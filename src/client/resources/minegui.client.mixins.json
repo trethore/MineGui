@@ -3,7 +3,9 @@
   "package": "tytoo.minegui.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ExampleClientMixin"
+    "MGGLFWMixin",
+    "MGKeyboardMixin",
+    "RenderSystemMixin"
   ],
   "injectors": {
     "defaultRequire": 1
