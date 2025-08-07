@@ -1,71 +1,79 @@
 package tytoo.minegui.imgui;
 
-import imgui.*;
+import imgui.ImFontConfig;
+import imgui.ImGui;
+import imgui.ImGuiIO;
+import imgui.ImGuiStyle;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiClient;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.utils.McUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
+    private static final String GLSL_VERSION = "#version 150";
 
-    private static long windowHandle;
+    private static int mcWindowWidth;
+    private static int mcWindowHeight;
+    private static int mcWindowX;
+    private static int mcWindowY;
 
     public static void onGlfwInit(long handle) {
-        initializeImGui(handle);
+        initializeImGui();
         imGuiGlfw.init(handle, true);
-        imGuiGl3.init();
-        windowHandle = handle;
+        imGuiGl3.init(GLSL_VERSION);
+    }
+
+    public static void onWindowResize(int width, int height) {
+        mcWindowWidth = width;
+        mcWindowHeight = height;
+    }
+
+    public static void onWindowMoved(int x, int y) {
+        mcWindowX = x;
+        mcWindowY = y;
     }
 
     public static void onFrameRender() {
+        if (!UIManager.getInstance().isAnyWindowVisible()) {
+            return;
+        }
         imGuiGlfw.newFrame();
         ImGui.newFrame();
 
-        setupDocking();
+        renderDockSpace();
         // ImGui.showDemoWindow();
         UIManager.getInstance().render();
 
-        finishDocking();
-
         ImGui.render();
-        endFrame(windowHandle);
+        endFrame();
     }
 
-    private static void setupDocking() {
-        Window window = McUtils.getMc().map(MinecraftClient::getWindow).orElseThrow(() -> new IllegalStateException("Minecraft window not found"));
-        ImGui.setNextWindowPos(0.0f, 0.0f, ImGuiCond.Always);
-        ImGui.setNextWindowPos(window.getX(), window.getY(), ImGuiCond.Always);
-        ImGui.setNextWindowSize(window.getWidth(), window.getHeight());
+    private static void renderDockSpace() {
+        ImGui.setNextWindowPos(mcWindowX, mcWindowY);
+        ImGui.setNextWindowSize(mcWindowWidth, mcWindowHeight);
         final int windowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
                 ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoBackground |
-                ImGuiWindowFlags.NoNavInputs;
+                ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoDocking;
 
         ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0, 0);
         ImGui.pushStyleVar(ImGuiStyleVar.WindowBorderSize, 0);
-        ImGui.begin("imgui-mc docking host window", windowFlags);
+        ImGui.begin("Dockspace Host", windowFlags);
         ImGui.popStyleVar(2);
 
         final int dockspaceId = ImGui.getID("MineGuiDockspace");
         ImGui.dockSpace(dockspaceId, 0.0f, 0.0f, ImGuiDockNodeFlags.PassthruCentralNode | ImGuiDockNodeFlags.NoDockingInCentralNode);
-    }
 
-    private static void finishDocking() {
         ImGui.end();
     }
 
-    private static void initializeImGui(long glHandle) {
+    private static void initializeImGui() {
         ImGui.createContext();
 
         final ImGuiIO io = ImGui.getIO();
@@ -76,17 +84,18 @@ public class ImGuiLoader {
         io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
         io.setConfigViewportsNoTaskBarIcon(true);
 
-        final ImFontAtlas fontAtlas = io.getFonts();
-        final ImFontConfig fontConfig = new ImFontConfig(); // Natively allocated object, should be explicitly destroyed
+        // Load default font with specific ranges
+        final ImFontConfig fontConfig = new ImFontConfig();
+        try {
+            fontConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
+            fontConfig.setPixelSnapH(true);
+            io.getFonts().addFontDefault(fontConfig);
+        } finally {
+            fontConfig.destroy();
+        }
 
-        fontConfig.setGlyphRanges(fontAtlas.getGlyphRangesCyrillic());
-
-        fontAtlas.addFontDefault();
-
-        fontConfig.setMergeMode(false);
-        fontConfig.setPixelSnapH(true);
-
-        fontConfig.destroy();
+        // Load custom fonts
+        initFont("proxima.ttf", 20.0f);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             final ImGuiStyle style = ImGui.getStyle();
@@ -95,7 +104,7 @@ public class ImGuiLoader {
         }
     }
 
-    private static void endFrame(long windowPtr) {
+    private static void endFrame() {
         // After Dear ImGui prepared a draw data, we use it in the LWJGL3 renderer.
         // At that moment ImGui will be rendered to the current OpenGL context.
         imGuiGl3.renderDrawData(ImGui.getDrawData());
@@ -111,30 +120,27 @@ public class ImGuiLoader {
         //glfwPollEvents();
     }
 
-    private static void initFont() {
-        InputStream fontStream = MineGuiClient.class.getClassLoader().getResourceAsStream("assets/mt/proxima.ttf");
-        if (fontStream == null) {
-            return;
-        }
-        File tempFontFile;
-        try {
-            tempFontFile = File.createTempFile("proxima", ".ttf");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        tempFontFile.deleteOnExit();
+    private static void initFont(String fontName, float fontSize) {
+        final ImGuiIO io = ImGui.getIO();
+        final String fontPath = String.format("assets/%s/fonts/%s", MineGuiClient.MOD_ID, fontName);
 
-        try (FileOutputStream outputStream = new FileOutputStream(tempFontFile)) {
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = fontStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+        try (InputStream fontStream = MineGuiClient.class.getClassLoader().getResourceAsStream(fontPath)) {
+            if (fontStream == null) {
+                MineGuiClient.LOGGER.warn("Font not found: {}", fontPath);
+                return;
+            }
+
+            final byte[] fontBytes = fontStream.readAllBytes();
+
+            final ImFontConfig fontConfig = new ImFontConfig();
+            try {
+                fontConfig.setPixelSnapH(true);
+                io.getFonts().addFontFromMemoryTTF(fontBytes, fontSize, fontConfig);
+            } finally {
+                fontConfig.destroy();
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            MineGuiClient.LOGGER.error("Failed to load font: {}", fontPath, e);
         }
-        String tempFontPath = tempFontFile.getAbsolutePath();
-        ImGui.getIO().getFonts().addFontFromFileTTF(tempFontPath, 20.0f);
     }
-
 }

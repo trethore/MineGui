@@ -22,9 +22,13 @@ public class UIManager {
         windows.add(window);
     }
 
+    public boolean isAnyWindowVisible() {
+        return windows.stream().anyMatch(MGWindow::isVisible);
+    }
+
     public void render() {
         for (MGWindow window : windows) {
-            Profilers.get().push("ImGui Render/" + window.getTitle());
+            Profilers.get().push(window.getTitle() + " " + window.hashCode());
             window.render();
             Profilers.get().pop();
         }

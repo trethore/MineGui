@@ -6,7 +6,7 @@ public final class ImGuiUtils {
     private ImGuiUtils() {
     }
 
-    public static boolean shouldCancelGameKeyboardInputs() {
+    public static boolean shouldCancelGameInputs() {
         return ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
     }
 }

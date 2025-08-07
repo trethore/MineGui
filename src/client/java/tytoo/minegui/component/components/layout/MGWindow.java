@@ -12,6 +12,7 @@ public abstract class MGWindow extends MGContainer {
     public MGWindow(String title) {
         this.title = title;
         this.visible = new ImBoolean(true);
+        build();
     }
 
     public void build() {

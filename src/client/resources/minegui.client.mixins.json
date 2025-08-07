@@ -5,7 +5,9 @@
   "client": [
     "MGGLFWMixin",
     "MGKeyboardMixin",
-    "RenderSystemMixin"
+    "MGMouseMixin",
+    "MGRenderSystemMixin",
+    "MGWindowMixin"
   ],
   "injectors": {
     "defaultRequire": 1
