@@ -41,9 +41,6 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
-        if (!UIManager.getInstance().isAnyWindowVisible()) {
-            return;
-        }
         imGuiGlfw.newFrame();
         ImGui.newFrame();
 

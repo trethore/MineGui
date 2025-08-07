@@ -9,8 +9,8 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.component.windows.TestWindow;
 import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.windows.TestWindow;
 
 public class MineGuiClient implements ClientModInitializer {
     public static final String MOD_ID = "minegui";

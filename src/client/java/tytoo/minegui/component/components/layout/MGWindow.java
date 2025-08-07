@@ -2,9 +2,10 @@ package tytoo.minegui.component.components.layout;
 
 import imgui.ImGui;
 import imgui.type.ImBoolean;
-import tytoo.minegui.component.MGContainer;
+import tytoo.minegui.component.MGComponent;
 
-public abstract class MGWindow extends MGContainer {
+// represent a imgui window.
+public abstract class MGWindow extends MGComponent<MGWindow> {
 
     private final ImBoolean visible;
     private String title;
@@ -15,8 +16,9 @@ public abstract class MGWindow extends MGContainer {
         build();
     }
 
+    // add components here
     public void build() {
-        // This method can be overridden to build the window's content.
+
     }
 
     @Override

@@ -3,7 +3,7 @@ package tytoo.minegui.component.components.display;
 import imgui.ImGui;
 import tytoo.minegui.component.MGComponent;
 
-public class MGText implements MGComponent {
+public class MGText extends MGComponent<MGText> {
 
     private final String text;
 
