@@ -4,16 +4,46 @@ import imgui.ImGui;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
+import tytoo.minegui.state.State;
+
+import java.util.function.Supplier;
 
 public class MGButton extends MGComponent<MGButton> {
-    private String text;
+    private Supplier<String> textSupplier;
+    private Runnable onPress;
+    private boolean disabled = false;
 
     private MGButton(String text) {
-        this.text = text;
+        this.textSupplier = () -> text;
     }
 
     public static MGButton of(String text) {
         return new MGButton(text);
+    }
+
+    public static MGButton of(State<String> state) {
+        MGButton b = new MGButton(state.get());
+        return b.bind(state);
+    }
+
+    public MGButton text(String text) {
+        this.textSupplier = () -> text;
+        return this;
+    }
+
+    public MGButton bind(State<String> state) {
+        this.textSupplier = state::get;
+        return this;
+    }
+
+    public MGButton onPress(Runnable action) {
+        this.onPress = action;
+        return this;
+    }
+
+    public MGButton disabled(boolean disabled) {
+        this.disabled = disabled;
+        return this;
     }
 
     @Override
@@ -27,6 +57,7 @@ public class MGButton extends MGComponent<MGButton> {
 
         float width;
         float height;
+        String label = textSupplier.get();
 
         if (widthIsAR && !heightIsAR) {
             height = c.computeHeight(parentHeight);
@@ -43,17 +74,21 @@ public class MGButton extends MGComponent<MGButton> {
 
         this.setMeasuredSize(width, height);
 
+
         float x = c.computeX(parentWidth, width);
         float y = c.computeY(parentHeight, height);
         ImGui.setCursorPos(x, y);
-        ImGui.button(text, width, height);
+        boolean pressed = ImGui.button(label, width, height);
+        if (pressed && !disabled && onPress != null) {
+            onPress.run();
+        }
     }
 
     public String getText() {
-        return text;
+        return textSupplier.get();
     }
 
     public void setText(String text) {
-        this.text = text;
+        this.textSupplier = () -> text;
     }
 }

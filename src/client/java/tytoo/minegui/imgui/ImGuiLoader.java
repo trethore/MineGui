@@ -9,6 +9,7 @@ import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiClient;
+import tytoo.minegui.input.InputRouter;
 import tytoo.minegui.manager.UIManager;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class ImGuiLoader {
 
     public static void onGlfwInit(long handle) {
         initializeImGui();
-        imGuiGlfw.init(handle, true);
+        imGuiGlfw.init(handle, false);
         imGuiGl3.init(GLSL_VERSION);
     }
 
@@ -41,6 +42,7 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
+        InputRouter.getInstance().onFrame();
         imGuiGlfw.newFrame();
         ImGui.newFrame();
 

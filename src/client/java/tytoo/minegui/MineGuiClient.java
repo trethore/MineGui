@@ -35,7 +35,7 @@ public class MineGuiClient implements ClientModInitializer {
         ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (openTestWindowKeybind != null && openTestWindowKeybind.wasPressed()) {
-                testWindow.toggle();
+                testWindow.toggleDependingOnScreen();
                 LOGGER.info("Toggled Test Window: {}", testWindow.isVisible() ? "Open" : "Closed");
             }
         });

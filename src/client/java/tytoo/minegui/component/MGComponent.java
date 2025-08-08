@@ -114,6 +114,7 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return this.parent;
     }
 
+    @SuppressWarnings("unchecked")
     public void setParent(MGComponent<?> parent) {
         this.parent = (MGComponent<T>) parent;
         this.parent.addChild(this);

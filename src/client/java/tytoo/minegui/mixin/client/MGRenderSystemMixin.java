@@ -10,7 +10,7 @@ import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.manager.UIManager;
 
 @Mixin(value = RenderSystem.class, remap = false)
-public class MGRenderSystemMixin {
+public abstract class MGRenderSystemMixin {
     @Inject(at = @At("HEAD"), method = "flipFrame")
     private static void runTickTail(CallbackInfo ci) {
         if (!UIManager.getInstance().isAnyWindowVisible()) {

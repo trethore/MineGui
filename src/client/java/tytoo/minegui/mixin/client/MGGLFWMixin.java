@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import tytoo.minegui.imgui.ImGuiLoader;
 
 @Mixin(Window.class)
-public class MGGLFWMixin {
+public abstract class MGGLFWMixin {
     @Shadow
     @Final
     private long handle;
