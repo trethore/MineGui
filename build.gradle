@@ -171,3 +171,43 @@ remapJar {
     dependsOn(shadowJar)
     inputFile = tasks.shadowJar.archiveFile
 }
+
+configurations {
+    decompiler
+}
+
+dependencies {
+    decompiler 'org.benf:cfr:0.152'
+}
+
+tasks.register('generateProjectSources', JavaExec) {
+    group = 'documentation'
+    description = 'Decompiles JAR files from libs/ and places sources in project-sources/'
+
+    classpath = configurations.decompiler
+    mainClass = 'org.benf.cfr.reader.Main'
+
+    doFirst {
+        def libsDir = file('libs')
+        def outputDir = file('project-sources')
+        def jarFiles = libsDir.listFiles({ it.name.endsWith('.jar') } as FileFilter)
+
+        if (jarFiles.length == 0) {
+            throw new GradleException("No JAR files found in libs/")
+        }
+
+        args = []
+        jarFiles.each { jar ->
+            def jarName = jar.name.replaceAll('\\.jar$', '')
+            def targetDir = file("${outputDir}/${jarName}")
+            targetDir.mkdirs()
+            args += [jar.absolutePath, '--outputdir', targetDir.absolutePath]
+        }
+    }
+}
+
+tasks.register('cleanProjectSources', Delete) {
+    group = 'documentation'
+    description = 'Deletes the project-sources folder'
+    delete 'project-sources'
+}
