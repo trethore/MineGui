@@ -8,7 +8,7 @@ import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import org.lwjgl.glfw.GLFW;
-import tytoo.minegui.MineGuiClient;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.input.InputRouter;
 import tytoo.minegui.manager.UIManager;
 
@@ -42,10 +42,21 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
-        InputRouter.getInstance().onFrame();
-        imGuiGlfw.newFrame();
-        ImGui.newFrame();
+        InputRouter router = InputRouter.getInstance();
+        router.onFrame();
 
+        imGuiGlfw.newFrame();
+
+        if (router.shouldMaskImGuiIO()) {
+            ImGuiIO io = ImGui.getIO();
+            io.setMousePos(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY);
+            io.setMouseDown(new boolean[]{false, false, false, false, false});
+            io.setMouseWheel(0.0f);
+            io.setMouseWheelH(0.0f);
+            io.clearInputCharacters();
+        }
+
+        ImGui.newFrame();
         renderDockSpace();
         // ImGui.showDemoWindow();
         UIManager.getInstance().render();
@@ -121,11 +132,11 @@ public class ImGuiLoader {
 
     private static void initFont(String fontName, float fontSize) {
         final ImGuiIO io = ImGui.getIO();
-        final String fontPath = String.format("assets/%s/fonts/%s", MineGuiClient.MOD_ID, fontName);
+        final String fontPath = String.format("assets/%s/fonts/%s", MineGuiCore.ID, fontName);
 
-        try (InputStream fontStream = MineGuiClient.class.getClassLoader().getResourceAsStream(fontPath)) {
+        try (InputStream fontStream = MineGuiCore.class.getClassLoader().getResourceAsStream(fontPath)) {
             if (fontStream == null) {
-                MineGuiClient.LOGGER.warn("Font not found: {}", fontPath);
+                MineGuiCore.LOGGER.warn("Font not found: {}", fontPath);
                 return;
             }
 
@@ -139,7 +150,7 @@ public class ImGuiLoader {
                 fontConfig.destroy();
             }
         } catch (IOException e) {
-            MineGuiClient.LOGGER.error("Failed to load font: {}", fontPath, e);
+            MineGuiCore.LOGGER.error("Failed to load font: {}", fontPath, e);
         }
     }
 }

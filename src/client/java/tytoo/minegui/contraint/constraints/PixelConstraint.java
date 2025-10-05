@@ -28,4 +28,4 @@ public record PixelConstraint(float value)
     public float calculateHeight(MGComponent<?> component, float parentHeight) {
         return value;
     }
-}
+}

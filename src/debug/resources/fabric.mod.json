@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "minegui",
+  "id": "minegui_debug",
   "version": "${version}",
-  "name": "MineGui",
-  "description": "MineGui is a lightweight wrapper around `imgui-java`, designed to simplify the creation of modern GUIs in Minecraft mods built with Fabric.",
+  "name": "MineGui Debug",
+  "description": "This is the debug part of the MineGui library.",
   "authors": [
     "Tytoo"
   ],
@@ -13,10 +13,14 @@
   "license": "CC0-1.0",
   "icon": "assets/minegui/icon.png",
   "environment": "*",
-  "entrypoints": {},
+  "entrypoints": {
+    "client": [
+      "tytoo.minegui_debug.MineGuiDebugClient"
+    ]
+  },
   "mixins": [
     {
-      "config": "minegui.client.mixins.json",
+      "config": "minegui_debug.client.mixins.json",
       "environment": "client"
     }
   ],

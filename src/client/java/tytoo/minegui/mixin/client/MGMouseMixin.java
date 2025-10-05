@@ -42,7 +42,9 @@ public abstract class MGMouseMixin {
 
     @Inject(method = "onCursorPos", at = @At("HEAD"), cancellable = true)
     private void minegui$onCursorPos(long window, double x, double y, CallbackInfo ci) {
-        InputRouter.getInstance().onMouseMove(x, y);
+        if (InputRouter.getInstance().onMouseMove(x, y)) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "lockCursor", at = @At("HEAD"), cancellable = true)

@@ -5,7 +5,6 @@ import imgui.ImGuiIO;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.manager.UIManager;
 
@@ -20,6 +19,7 @@ public final class InputRouter {
     private double lastMouseX;
     private double lastMouseY;
     private boolean lastOverWindow;
+    private boolean lastGameplayMask;
 
     private InputRouter() {
     }
@@ -33,15 +33,16 @@ public final class InputRouter {
         if (mc.currentScreen != null) return false;
         UIManager ui = UIManager.getInstance();
         if (!ui.isAnyWindowVisible()) return false;
-        Window win = mc.getWindow();
-        long handle = win.getHandle();
-        double[] px = new double[1];
-        double[] py = new double[1];
-        GLFW.glfwGetCursorPos(handle, px, py);
-        double cx = px[0];
-        double cy = py[0];
-        boolean overNow = ui.isPointOverWindow((int) cx, (int) cy);
+        boolean overNow = lastOverWindow;
         return forceUnlockUntilRelease || overNow;
+    }
+
+    public boolean shouldMaskImGuiIO() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc == null) return false;
+        boolean noScreen = mc.currentScreen == null;
+        boolean cursorLocked = mc.mouse != null && mc.mouse.isCursorLocked();
+        return noScreen && cursorLocked;
     }
 
     public void clearLatches() {
@@ -82,7 +83,6 @@ public final class InputRouter {
         UIManager ui = UIManager.getInstance();
         if (!ui.isAnyWindowVisible()) return;
         boolean screenOpen = mc.currentScreen != null;
-        lastOverWindow = ui.isPointOverWindow((int) lastMouseX, (int) lastMouseY);
         if (screenOpen) return;
         if (forceUnlockUntilRelease) {
             if (mc.mouse.isCursorLocked()) {
@@ -107,7 +107,7 @@ public final class InputRouter {
         ImGuiIO io = ImGui.getIO();
         boolean wantMouse = io.getWantCaptureMouse();
         boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
-        boolean overWindow = ui.isPointOverWindow((int) mouseX, (int) mouseY);
+        boolean overWindow = ui.isPointOverWindow(mouseX, mouseY);
         lastOverWindow = overWindow;
 
         if (action == GLFW.GLFW_PRESS) {
@@ -119,6 +119,7 @@ public final class InputRouter {
                     pressedMouse.add(button);
                     return true;
                 }
+                ImGui.setWindowFocus(null);
                 return false;
             }
             if (wantMouse || anyItemActiveOrFocused) {
@@ -130,6 +131,9 @@ public final class InputRouter {
             boolean consumed = pressedMouse.remove(button);
             if (pressedMouse.isEmpty() && forceUnlockUntilRelease) {
                 forceUnlockUntilRelease = false;
+                if (!lastOverWindow) {
+                    ImGui.setWindowFocus(null);
+                }
                 return true;
             }
             return consumed;
@@ -160,7 +164,7 @@ public final class InputRouter {
         boolean overWindow = ui.isPointOverWindow((int) mouseX, (int) mouseY);
         lastOverWindow = overWindow;
         boolean anyWindowFocused = ui.isAnyWindowFocused();
-        boolean allowHover = (mc.currentScreen != null) || anyWindowFocused;
+        boolean allowHover = (mc.currentScreen != null) || anyWindowFocused || overWindow;
         return allowHover && (!pressedMouse.isEmpty() || wantMouse || anyItemActiveOrFocused || overWindow);
     }
 
@@ -184,46 +188,35 @@ public final class InputRouter {
     }
 
     public boolean onKey(int key, int action) {
-        ImGuiIO io = ImGui.getIO();
         MinecraftClient mc = MinecraftClient.getInstance();
         updateSuppression(mc);
-        boolean anyVisible = UIManager.getInstance().isAnyWindowVisible();
-        if (!anyVisible) {
+
+        if (!UIManager.getInstance().isAnyWindowVisible()) {
             pressedKeys.remove(key);
             return false;
         }
-        boolean wantText = io.getWantTextInput();
-        boolean wantKeys = io.getWantCaptureKeyboard();
-        boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
+
+        ImGuiIO io = ImGui.getIO();
+        final boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
+        final boolean wantText = io.getWantTextInput();
+
+        final boolean wants = anyItemActiveOrFocused || wantText;
+
         if (action == GLFW.GLFW_PRESS) {
-            if (mc.currentScreen == null) {
-                if (anyItemActiveOrFocused || wantText || wantKeys) {
-                    pressedKeys.add(key);
-                    return true;
-                }
-                return false;
-            }
-            if (anyItemActiveOrFocused || wantText || wantKeys) {
-                pressedKeys.add(key);
-                return true;
-            }
-            return false;
-        } else if (action == GLFW.GLFW_RELEASE) {
-            if (pressedKeys.remove(key)) {
-                return true;
-            }
-            if (isInteractionSuppressed(mc.currentScreen != null, mc)) return false;
-            if (mc.currentScreen == null) {
-                return anyItemActiveOrFocused || wantText || wantKeys;
-            }
-            return anyItemActiveOrFocused || wantText || wantKeys;
-        } else {
-            if (!pressedKeys.isEmpty()) return true;
-            if (mc.currentScreen == null) {
-                return anyItemActiveOrFocused || wantText || wantKeys;
-            }
-            return anyItemActiveOrFocused || wantText || wantKeys;
+            if (!wants) return false;
+
+            pressedKeys.add(key);
+            return true;
         }
+
+        if (action == GLFW.GLFW_RELEASE) {
+            if (pressedKeys.remove(key)) return true;
+            if (isInteractionSuppressed(mc.currentScreen != null, mc)) return false;
+
+            return wants;
+        }
+
+        return !pressedKeys.isEmpty() || wants;
     }
 
     public boolean onChar() {

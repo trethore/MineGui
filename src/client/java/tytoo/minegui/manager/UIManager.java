@@ -27,7 +27,7 @@ public class UIManager {
         return windows.stream().anyMatch(MGWindow::isVisible);
     }
 
-    public boolean isPointOverWindow(int mouseX, int mouseY) {
+    public boolean isPointOverWindow(double mouseX, double mouseY) {
         for (int i = windows.size() - 1; i >= 0; i--) {
             MGWindow window = windows.get(i);
             if (window == null || !window.isVisible()) continue;

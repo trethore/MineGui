@@ -1,4 +1,4 @@
-package tytoo.minegui.windows;
+package tytoo.minegui_debug.windows;
 
 import tytoo.minegui.component.components.display.MGText;
 import tytoo.minegui.component.components.interactive.MGButton;

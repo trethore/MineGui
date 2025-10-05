@@ -50,4 +50,4 @@ public class MGText extends MGComponent<MGText> {
             ImGui.text(textSupplier.get());
         }
     }
-}
+}

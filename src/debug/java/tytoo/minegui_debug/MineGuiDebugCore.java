@@ -1,31 +1,28 @@
-package tytoo.minegui;
+package tytoo.minegui_debug;
 
-import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.windows.TestWindow;
+import tytoo.minegui_debug.windows.TestWindow;
 
-public class MineGuiClient implements ClientModInitializer {
-    public static final String MOD_ID = "minegui";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+@SuppressWarnings("unused")
+public final class MineGuiDebugCore {
+    public static String ID = "minegui_debug";
+    public static Logger LOGGER = LoggerFactory.getLogger(MineGuiDebugCore.class);
 
-    @Override
-    public void onInitializeClient() {
-        if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
-            test();
-        }
-        LOGGER.info("MineGui Client Initialized");
-
+    private MineGuiDebugCore() {
     }
 
-    private void test() {
+    public static void init() {
+        test();
+    }
+
+    private static void test() {
         TestWindow testWindow = new TestWindow();
         KeyBinding openTestWindowKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.minegui.open_gui",

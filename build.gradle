@@ -7,27 +7,61 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
+// version
+def mcVersion = project.property('minecraft_version')
+def fabricVer = project.property('fabric_version')
+def yarnMappings = project.property('yarn_mappings')
+def yarnSuffix = yarnMappings.startsWith("${mcVersion}+")
+        ? yarnMappings.substring(("${mcVersion}+").length())
+        : yarnMappings
+def compatSuffix = "${fabricVer}+${yarnSuffix}"
+
+version = "${project.mod_version}-${compatSuffix}"
+
 base {
 	archivesName = project.archives_base_name
 }
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
+    mavenCentral()
 }
 
 loom {
-	splitEnvironmentSourceSets()
+    splitEnvironmentSourceSets() // so client source set is created
+}
 
-	mods {
-		"minegui" {
-			sourceSet sourceSets.client
-		}
-	}
+def clientSS = sourceSets.named('client')
+sourceSets {
+    debug {
+        java.srcDir 'src/debug/java'
+        resources.srcDir 'src/debug/resources'
+        // Inherit classpaths + compiled output from client
+        compileClasspath += clientSS.get().compileClasspath + clientSS.get().output
+        runtimeClasspath += clientSS.get().runtimeClasspath + clientSS.get().output
+    }
+}
+loom {
+    mods {
+        "mcwebui" {
+            sourceSet sourceSets.named('client').get()
+        }
+        "mcwebui-debug" {
+            sourceSet sourceSets.named('debug').get()
+        }
+    }
 
+    runs {
+        client {
+            client()
+            source sourceSets.named('client').get()
+            ideConfigGenerated true
+        }
+        debugClient {
+            client()
+            source sourceSets.named('debug').get()
+            ideConfigGenerated true
+        }
+    }
 }
 
 dependencies {
@@ -43,21 +77,32 @@ dependencies {
 	
 }
 
-processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": inputs.properties.version
-	}
+tasks.named("processClientResources").configure {
+    inputs.property("version", project.version)
+    filesMatching("fabric.mod.json") { expand(version: project.version) }
 }
 
+tasks.named("processDebugResources").configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    inputs.property("version", project.version)
+    filesMatching("fabric.mod.json") { expand(version: project.version) }
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
+
+// java
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 21
 }
 
 java {
 	withSourcesJar()
-
 	sourceCompatibility = JavaVersion.VERSION_21
 	targetCompatibility = JavaVersion.VERSION_21
 }
@@ -68,23 +113,53 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_${inputs.properties.archivesName}"}
 	}
+    exclude 'tytoo/minegui_debug/**'
 }
 
 publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			artifactId = project.archives_base_name
-			from components.java
-		}
-	}
+    publications {
+        create("mavenJava", MavenPublication) {
+            groupId = project.maven_group
+            artifactId = project.archives_base_name
+            version = project.version
+            def gitUrl = "https://github.com/trethore/MineGui"
 
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
-	}
+            artifact(tasks.named("remapJar")) {
+                builtBy(tasks.named("remapJar"))
+            }
+            artifact(tasks.named("sourcesJar")) {
+                builtBy(tasks.named("sourcesJar"))
+                classifier = 'sources'
+            }
+
+            pom {
+                name = project.archives_base_name
+                description = "MineGui: is a lightweight wrapper around imgui-java to make modern uis."
+                url.set(gitUrl)
+                licenses {
+                    license {
+                        name = "MIT License"
+                        url = "https://opensource.org/licenses/MIT"
+                    }
+                }
+                scm {
+                    url = gitUrl
+                    connection.set("scm:git:${gitUrl}.git")
+                    developerConnection = "scm:git:ssh://git@github.com/trethore/McWebUI.git"
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/trethore/MineGui")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: (findProperty("gpr.user") ?: "")
+                password = System.getenv("GITHUB_TOKEN") ?: (findProperty("gpr.key") ?: "")
+            }
+        }
+    }
 }
 
 shadowJar {
