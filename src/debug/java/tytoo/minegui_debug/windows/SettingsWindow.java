@@ -8,7 +8,7 @@ import tytoo.minegui.state.State;
 public class SettingsWindow extends MGWindow {
 
     public SettingsWindow() {
-        super("Settings");
+        super("Settings", false);
     }
 
     public static SettingsWindow create() {

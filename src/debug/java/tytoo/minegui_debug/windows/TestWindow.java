@@ -10,7 +10,7 @@ import tytoo.minegui.state.State;
 public class TestWindow extends MGWindow {
 
     public TestWindow() {
-        super("test window", true);
+        super("test window");
         initialize();
     }
 

@@ -34,13 +34,13 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     private FocusMode focusMode = FocusMode.FOLLOW_PARENT;
 
     protected MGWindow(String title) {
-        this.title = title;
-        this.visible = new ImBoolean(true);
-        this.isFocused = new ImBoolean(false);
+        this(title, true);
     }
 
     protected MGWindow(String title, boolean autoRegister) {
-        this(title);
+        this.title = title;
+        this.visible = new ImBoolean(true);
+        this.isFocused = new ImBoolean(false);
         if (autoRegister && isTopLevel()) {
             UIManager.getInstance().autoRegister(this);
         }
