@@ -1,16 +1,23 @@
 package tytoo.minegui.component.components.interactive;
 
 import imgui.ImGui;
+import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.MGComponent;
+import tytoo.minegui.component.traits.Clickable;
+import tytoo.minegui.component.traits.Disableable;
+import tytoo.minegui.component.traits.Textable;
 import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 
 import java.util.function.Supplier;
 
-public class MGButton extends MGComponent<MGButton> {
+public class MGButton extends MGComponent<MGButton>
+        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton> {
+
     private Supplier<String> textSupplier;
-    private Runnable onPress;
+    @Nullable
+    private Runnable onClick;
     private boolean disabled = false;
 
     private MGButton(String text) {
@@ -22,28 +29,38 @@ public class MGButton extends MGComponent<MGButton> {
     }
 
     public static MGButton of(State<String> state) {
-        MGButton b = new MGButton(state.get());
-        return b.bind(state);
+        return new MGButton(state.get()).bindText(state);
     }
 
-    public MGButton text(String text) {
-        this.textSupplier = () -> text;
-        return this;
+    @Override
+    public Supplier<String> getTextSupplier() {
+        return textSupplier;
     }
 
-    public MGButton bind(State<String> state) {
-        this.textSupplier = state::get;
-        return this;
+    @Override
+    public void setTextSupplier(Supplier<String> supplier) {
+        this.textSupplier = supplier;
     }
 
-    public MGButton onPress(Runnable action) {
-        this.onPress = action;
-        return this;
+    @Override
+    @Nullable
+    public Runnable getOnClick() {
+        return onClick;
     }
 
-    public MGButton disabled(boolean disabled) {
+    @Override
+    public void setOnClick(@Nullable Runnable action) {
+        this.onClick = action;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
         this.disabled = disabled;
-        return this;
     }
 
     @Override
@@ -79,16 +96,8 @@ public class MGButton extends MGComponent<MGButton> {
         float y = c.computeY(parentHeight, height);
         ImGui.setCursorPos(x, y);
         boolean pressed = ImGui.button(label, width, height);
-        if (pressed && !disabled && onPress != null) {
-            onPress.run();
+        if (pressed) {
+            performClick();
         }
-    }
-
-    public String getText() {
-        return textSupplier.get();
-    }
-
-    public void setText(String text) {
-        this.textSupplier = () -> text;
     }
 }

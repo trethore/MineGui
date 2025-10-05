@@ -1,5 +1,6 @@
 package tytoo.minegui_debug.windows;
 
+import tytoo.minegui.component.behavior.TooltipBehavior;
 import tytoo.minegui.component.components.display.MGText;
 import tytoo.minegui.component.components.interactive.MGButton;
 import tytoo.minegui.component.components.layout.MGWindow;
@@ -9,57 +10,64 @@ import tytoo.minegui.state.State;
 public class TestWindow extends MGWindow {
 
     public TestWindow() {
-        super("test window");
-        this.setInitialBounds(200, 200, 400, 400);
+        super("test window", true);
+        initialize();
     }
 
     @Override
     public void build() {
         super.build();
+        this.initialBounds(200, 200, 400, 400);
 
-        // --- Reactive state demo ---
         State<Integer> count = State.of(0);
 
-        // Text bound to a computed state -> updates automatically when 'count' changes
-        MGText counterText = MGText.of(State.computed(() -> "Count: " + count.get()));
-        counterText.setParent(this);
-        // place the text near top-left
-        counterText.constraints().setX(Constraints.pixels(10));
-        counterText.constraints().setY(Constraints.pixels(10));
+        MGText.of(State.computed(() -> "Count: " + count.get()))
+                .pos(10, 10)
+                .parent(this);
 
-        // Increment button: label also bound to computed state
-        MGButton inc = MGButton.of(State.computed(() -> "Increment (" + count.get() + ")"));
-        inc.onPress(() -> count.set(count.get() + 1));
-        inc.setParent(this);
-        inc.constraints().setWidth(Constraints.pixels(160));
-        inc.constraints().setHeight(Constraints.pixels(28));
-        inc.constraints().setX(Constraints.pixels(10));
-        inc.constraints().setY(Constraints.pixels(36));
+        MGButton.of(State.computed(() -> "Increment (" + count.get() + ")"))
+                .onClick(() -> count.set(count.get() + 1))
+                .size(160, 28)
+                .pos(10, 36)
+                .behavior(TooltipBehavior.of("Click to increment counter"))
+                .parent(this);
 
-        // Decrement button
-        MGButton dec = MGButton.of("Decrement");
-        dec.onPress(() -> count.set(Math.max(0, count.get() - 1)));
-        dec.setParent(this);
-        dec.constraints().setWidth(Constraints.pixels(160));
-        dec.constraints().setHeight(Constraints.pixels(28));
-        dec.constraints().setX(Constraints.pixels(180));
-        dec.constraints().setY(Constraints.pixels(36));
+        MGButton.of("Decrement")
+                .onClick(() -> count.set(Math.max(0, count.get() - 1)))
+                .size(160, 28)
+                .pos(180, 36)
+                .behavior(TooltipBehavior.of("Click to decrement counter"))
+                .parent(this);
 
-        // Reset button centered horizontally using relative constraints
-        MGButton reset = MGButton.of("Reset");
-        reset.onPress(() -> count.set(0));
-        reset.setParent(this);
-        reset.constraints().setWidth(Constraints.pixels(120));
-        reset.constraints().setHeight(Constraints.pixels(28));
-        reset.constraints().setX(Constraints.relative(0.50f, -60f)); // center - half width
-        reset.constraints().setY(Constraints.pixels(72));
+        MGButton.of("Reset")
+                .onClick(() -> count.set(0))
+                .width(Constraints.pixels(120))
+                .height(Constraints.pixels(28))
+                .x(Constraints.relative(0.50f, -60f))
+                .y(Constraints.pixels(72))
+                .behavior(TooltipBehavior.of("Reset counter to zero"))
+                .parent(this);
 
-        // Aspect-ratio example button that reacts to window resize (kept to showcase constraints)
-        MGButton ar = MGButton.of("200px wide, 16:9");
-        ar.setParent(this);
-        ar.constraints().setWidth(Constraints.pixels(200));
-        ar.constraints().setHeight(Constraints.aspect(16f / 9f));
-        ar.constraints().setX(Constraints.relative(0.70f, -100f));
-        ar.constraints().setY(Constraints.pixels(110));
+        MGButton.of("200px wide, 16:9")
+                .width(Constraints.pixels(200))
+                .height(Constraints.aspect(16f / 9f))
+                .x(Constraints.relative(0.70f, -100f))
+                .y(Constraints.pixels(110))
+                .parent(this);
+
+        addSubWindow(SettingsWindow.create());
+
+        MGButton.of("Open Settings")
+                .onClick(() -> {
+                    for (MGWindow subWindow : getSubWindows()) {
+                        if (subWindow instanceof SettingsWindow) {
+                            subWindow.open();
+                        }
+                    }
+                })
+                .size(160, 28)
+                .pos(10, 150)
+                .behavior(TooltipBehavior.of("Open settings window (follows parent visibility)"))
+                .parent(this);
     }
 }

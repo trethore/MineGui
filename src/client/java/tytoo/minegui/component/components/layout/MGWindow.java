@@ -3,12 +3,22 @@ package tytoo.minegui.component.components.layout;
 import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
+import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.MGComponent;
+import tytoo.minegui.component.behavior.FocusMode;
+import tytoo.minegui.component.behavior.VisibilityMode;
+import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.utils.McUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class MGWindow extends MGComponent<MGWindow> {
     private final ImBoolean isFocused;
     private final ImBoolean visible;
+    private final List<MGWindow> subWindows = new ArrayList<>();
+    @Nullable
+    protected MGWindow parentWindow;
     private boolean shouldFocus = false;
     private String title;
     private Integer initX = 100;
@@ -20,16 +30,27 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     private int currentY = 100;
     private int currentWidth = 400;
     private int currentHeight = 300;
+    private VisibilityMode visibilityMode = VisibilityMode.FOLLOW_PARENT;
+    private FocusMode focusMode = FocusMode.FOLLOW_PARENT;
 
-    public MGWindow(String title) {
+    protected MGWindow(String title) {
         this.title = title;
         this.visible = new ImBoolean(true);
         this.isFocused = new ImBoolean(false);
+    }
+
+    protected MGWindow(String title, boolean autoRegister) {
+        this(title);
+        if (autoRegister && isTopLevel()) {
+            UIManager.getInstance().autoRegister(this);
+        }
+    }
+
+    protected void initialize() {
         build();
     }
 
-    // add components here
-    public void build() {
+    protected void build() {
 
     }
 
@@ -69,6 +90,10 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
             currentHeight = Math.round(ph);
         }
         ImGui.end();
+
+        for (MGWindow subWindow : subWindows) {
+            subWindow.render();
+        }
     }
 
 
@@ -148,6 +173,18 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
             this.isFocused.set(false);
             this.shouldFocus = false;
         }
+        propagateVisibilityToChildren(visible);
+    }
+
+    private void propagateVisibilityToChildren(boolean parentVisible) {
+        for (MGWindow subWindow : subWindows) {
+            switch (subWindow.visibilityMode) {
+                case FOLLOW_PARENT -> subWindow.setVisible(parentVisible);
+                case INVERSE -> subWindow.setVisible(!parentVisible);
+                case INDEPENDENT -> {
+                }
+            }
+        }
     }
 
     public boolean isFocused() {
@@ -183,6 +220,52 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     }
 
     public boolean isTopLevel() {
-        return getParent() == null;
+        return getParent() == null && parentWindow == null;
+    }
+
+    public <W extends MGWindow> W addSubWindow(W subWindow) {
+        subWindows.add(subWindow);
+        subWindow.parentWindow = this;
+        return subWindow;
+    }
+
+    public MGWindow removeSubWindow(MGWindow subWindow) {
+        subWindows.remove(subWindow);
+        if (subWindow.parentWindow == this) {
+            subWindow.parentWindow = null;
+        }
+        return this;
+    }
+
+    public List<MGWindow> getSubWindows() {
+        return new ArrayList<>(subWindows);
+    }
+
+    @Nullable
+    public MGWindow getParentWindow() {
+        return parentWindow;
+    }
+
+    public MGWindow visibilityMode(VisibilityMode mode) {
+        this.visibilityMode = mode;
+        return this;
+    }
+
+    public VisibilityMode getVisibilityMode() {
+        return visibilityMode;
+    }
+
+    public MGWindow focusMode(FocusMode mode) {
+        this.focusMode = mode;
+        return this;
+    }
+
+    public FocusMode getFocusMode() {
+        return focusMode;
+    }
+
+    public MGWindow initialBounds(int x, int y, int width, int height) {
+        setInitialBounds(x, y, width, height);
+        return this;
     }
 }

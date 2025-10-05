@@ -7,7 +7,6 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.manager.UIManager;
 import tytoo.minegui_debug.windows.TestWindow;
 
 @SuppressWarnings("unused")
@@ -36,7 +35,5 @@ public final class MineGuiDebugCore {
                 LOGGER.info("Toggled Test Window: {}", testWindow.isVisible() ? "Open" : "Closed");
             }
         });
-
-        UIManager.getInstance().registerWindow(testWindow);
     }
 }

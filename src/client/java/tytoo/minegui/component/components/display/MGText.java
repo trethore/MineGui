@@ -2,11 +2,13 @@ package tytoo.minegui.component.components.display;
 
 import imgui.ImGui;
 import tytoo.minegui.component.MGComponent;
+import tytoo.minegui.component.traits.Scalable;
+import tytoo.minegui.component.traits.Textable;
 import tytoo.minegui.state.State;
 
 import java.util.function.Supplier;
 
-public class MGText extends MGComponent<MGText> {
+public class MGText extends MGComponent<MGText> implements Textable<MGText>, Scalable<MGText> {
 
     private Supplier<String> textSupplier;
     private float scale = 1.0f;
@@ -20,23 +22,27 @@ public class MGText extends MGComponent<MGText> {
     }
 
     public static MGText of(State<String> state) {
-        MGText t = new MGText(state.get());
-        return t.bind(state);
+        return new MGText(state.get()).bindText(state);
     }
 
-    public MGText text(String text) {
-        this.textSupplier = () -> text;
-        return this;
+    @Override
+    public Supplier<String> getTextSupplier() {
+        return textSupplier;
     }
 
-    public MGText bind(State<String> state) {
-        this.textSupplier = state::get;
-        return this;
+    @Override
+    public void setTextSupplier(Supplier<String> supplier) {
+        this.textSupplier = supplier;
     }
 
-    public MGText scale(float scale) {
+    @Override
+    public float getScale() {
+        return scale;
+    }
+
+    @Override
+    public void setScale(float scale) {
         this.scale = scale;
-        return this;
     }
 
     @Override
@@ -44,10 +50,10 @@ public class MGText extends MGComponent<MGText> {
         if (scale != 1.0f) {
             float oldScale = ImGui.getIO().getFontGlobalScale();
             ImGui.getIO().setFontGlobalScale(scale);
-            ImGui.text(textSupplier.get());
+            ImGui.text(getText());
             ImGui.getIO().setFontGlobalScale(oldScale);
         } else {
-            ImGui.text(textSupplier.get());
+            ImGui.text(getText());
         }
     }
 }
