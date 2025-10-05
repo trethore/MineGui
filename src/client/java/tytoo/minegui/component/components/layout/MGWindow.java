@@ -97,10 +97,10 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     }
 
     private void close(boolean lockCursor) {
+        setVisible(false);
         if (lockCursor) {
             McUtils.getMc().ifPresent(mc -> mc.mouse.lockCursor());
         }
-        setVisible(false);
     }
 
     public void toggleDependingOnScreen() {
@@ -144,6 +144,10 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
 
     public void setVisible(boolean visible) {
         this.visible.set(visible);
+        if (!visible) {
+            this.isFocused.set(false);
+            this.shouldFocus = false;
+        }
     }
 
     public boolean isFocused() {

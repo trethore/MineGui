@@ -16,10 +16,9 @@ public final class InputRouter {
     private boolean cursorLockedPrev;
     private int suppressImGuiFrames;
     private boolean forceUnlockUntilRelease;
-    private double lastMouseX;
-    private double lastMouseY;
     private boolean lastOverWindow;
-    private boolean lastGameplayMask;
+    private boolean pressStartedOutside;
+    private int suppressFocusFrames;
 
     private InputRouter() {
     }
@@ -66,6 +65,9 @@ public final class InputRouter {
         if (suppressImGuiFrames > 0) {
             suppressImGuiFrames--;
         }
+        if (suppressFocusFrames > 0) {
+            suppressFocusFrames--;
+        }
         if (forceUnlockUntilRelease && mc.currentScreen == null && mc.mouse.isCursorLocked()) {
             ensureUnlocked(mc);
         }
@@ -104,37 +106,52 @@ public final class InputRouter {
         if (isInteractionSuppressed(screenOpen, mc)) {
             return false;
         }
+        if (suppressFocusFrames > 0 && action == GLFW.GLFW_PRESS) {
+            return false;
+        }
         ImGuiIO io = ImGui.getIO();
         boolean wantMouse = io.getWantCaptureMouse();
         boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
+        boolean anyWindowFocused = ui.isAnyWindowFocused();
         boolean overWindow = ui.isPointOverWindow(mouseX, mouseY);
         lastOverWindow = overWindow;
 
         if (action == GLFW.GLFW_PRESS) {
             if (!screenOpen) {
-                boolean capture = overWindow || anyItemActiveOrFocused || wantMouse;
+                boolean anyItemActive = ImGui.isAnyItemActive();
+                boolean capture = overWindow || anyItemActive || (wantMouse && anyWindowFocused);
                 if (capture) {
                     if (mc.mouse.isCursorLocked()) ensureUnlocked(mc);
                     forceUnlockUntilRelease = true;
                     pressedMouse.add(button);
+                    pressStartedOutside = false;
+                    suppressFocusFrames = 0;
                     return true;
                 }
                 ImGui.setWindowFocus(null);
+                suppressFocusFrames = 5;
                 return false;
             }
             if (wantMouse || anyItemActiveOrFocused) {
                 pressedMouse.add(button);
+                pressStartedOutside = false;
                 return true;
             }
+            pressStartedOutside = !overWindow;
             return false;
         } else if (action == GLFW.GLFW_RELEASE) {
             boolean consumed = pressedMouse.remove(button);
             if (pressedMouse.isEmpty() && forceUnlockUntilRelease) {
                 forceUnlockUntilRelease = false;
-                if (!lastOverWindow) {
+                boolean anyItemActive = ImGui.isAnyItemActive();
+                if (!overWindow && !anyItemActive && !screenOpen) {
                     ImGui.setWindowFocus(null);
                 }
                 return true;
+            }
+            if (pressedMouse.isEmpty() && pressStartedOutside && !screenOpen) {
+                ImGui.setWindowFocus(null);
+                pressStartedOutside = false;
             }
             return consumed;
         } else {
@@ -144,11 +161,12 @@ public final class InputRouter {
 
     public boolean onMouseMove(double mouseX, double mouseY) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
         updateSuppression(mc);
         if (isInteractionSuppressed(mc.currentScreen != null, mc)) {
             clearLatches();
+            return false;
+        }
+        if (suppressFocusFrames > 0) {
             return false;
         }
         UIManager ui = UIManager.getInstance();
@@ -164,7 +182,13 @@ public final class InputRouter {
         boolean overWindow = ui.isPointOverWindow((int) mouseX, (int) mouseY);
         lastOverWindow = overWindow;
         boolean anyWindowFocused = ui.isAnyWindowFocused();
-        boolean allowHover = (mc.currentScreen != null) || anyWindowFocused || overWindow;
+        boolean screenOpen = mc.currentScreen != null;
+        boolean allowHover;
+        if (screenOpen) {
+            allowHover = anyWindowFocused || overWindow;
+        } else {
+            allowHover = anyWindowFocused || !pressedMouse.isEmpty();
+        }
         return allowHover && (!pressedMouse.isEmpty() || wantMouse || anyItemActiveOrFocused || overWindow);
     }
 

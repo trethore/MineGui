@@ -43,7 +43,6 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Place new assets, mixin configs, and JSON metadata within `src/client/resources/`, keeping identifiers in the `minegui` namespace.
 - Integrate through established abstractions instead of bypassing them unless you are extending those layers.
 - Never reference loaders, mappings, or game versions beyond the configured target without explicit user approval.
-- When you need to inspect Minecraft sources, read from `project-sources/minecraft`; if it is absent, ask the user to run `./gradlew generateSourcesFolder` to create it.
 
 ## Dependencies & External Sources
 - imgui-java (Dear ImGui bindings) is bundled as JAR files in the `libs/` directory and included via shadow dependency configuration in build.gradle.
