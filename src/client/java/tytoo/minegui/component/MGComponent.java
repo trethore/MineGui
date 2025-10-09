@@ -3,8 +3,6 @@ package tytoo.minegui.component;
 import imgui.ImGui;
 import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.behavior.Behavior;
-import tytoo.minegui.contraint.HeightConstraint;
-import tytoo.minegui.contraint.WidthConstraint;
 import tytoo.minegui.contraint.XConstraint;
 import tytoo.minegui.contraint.YConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
@@ -165,21 +163,6 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     public T y(YConstraint constraint) {
         constraints().setY(constraint);
         return self();
-    }
-
-    public T width(WidthConstraint constraint) {
-        constraints().setWidth(constraint);
-        return self();
-    }
-
-    public T height(HeightConstraint constraint) {
-        constraints().setHeight(constraint);
-        return self();
-    }
-
-    public T size(float width, float height) {
-        return width(Constraints.pixels(width))
-                .height(Constraints.pixels(height));
     }
 
     public T pos(float x, float y) {

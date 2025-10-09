@@ -12,6 +12,7 @@ import tytoo.minegui.utils.McUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public abstract class MGWindow extends MGComponent<MGWindow> {
     private final ImBoolean isFocused;
@@ -52,6 +53,12 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
 
     protected void build() {
 
+    }
+
+    public static <W extends MGWindow> W create(Supplier<W> factory) {
+        W window = factory.get();
+        window.initialize();
+        return window;
     }
 
     @Override

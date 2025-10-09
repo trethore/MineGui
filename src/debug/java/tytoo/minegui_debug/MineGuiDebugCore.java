@@ -7,6 +7,7 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui_debug.windows.TestWindow;
 
 @SuppressWarnings("unused")
@@ -22,7 +23,7 @@ public final class MineGuiDebugCore {
     }
 
     private static void test() {
-        TestWindow testWindow = new TestWindow();
+        TestWindow testWindow = MGWindow.create(TestWindow::new);
         KeyBinding openTestWindowKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.minegui.open_gui",
                 InputUtil.Type.KEYSYM,

@@ -11,12 +11,6 @@ public class SettingsWindow extends MGWindow {
         super("Settings", false);
     }
 
-    public static SettingsWindow create() {
-        SettingsWindow window = new SettingsWindow();
-        window.initialize();
-        return window;
-    }
-
     @Override
     public void build() {
         super.build();

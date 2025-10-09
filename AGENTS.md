@@ -26,7 +26,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Declare explicit types and avoid `var`; prefer descriptive names over one-letter identifiers.
 - Bring types into scope with imports; do not use fully qualified class names inside method bodies.
 - Continue the fluent builder and chainable setter patterns established in existing components.
-- Assume contributors are working in IntelliJ IDEA; use JetBrains `@NotNull` and `@Nullable` annotations consistently and keep code free of IDE warnings.
+- Assume contributors are working in IntelliJ IDEA; keep code free of IDE warnings.
 - Never add code comments unless the user explicitly requests documentation.
 - Keep edits minimal and stylistically aligned with surrounding code; do not introduce new formatting tools or unrelated refactors.
 - If the requirements are unclear or the task is infeasible, pause and request clarification before proceeding.
@@ -48,6 +48,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - imgui-java (Dear ImGui bindings) is bundled as JAR files in the `libs/` directory and included via shadow dependency configuration in build.gradle.
 - ImGui natives are loaded at runtime by `ImGuiLoader`, which handles platform-specific native library initialization.
 - Keep ImGui usage behind component abstractions so public APIs remain clean and focused on layout/state concerns rather than raw ImGui calls.
+- When you need to inspect imgui-java sources, look for them under `project-sources/`; if they are missing, tell the user to run `./gradlew generateProjectSources` and explain why the source view is necessary (for example, to verify APIs or trace rendering hooks).
 
 ## Testing & Verification
 - Do not run Gradle commands yourself; provide the exact command so the user can execute it.

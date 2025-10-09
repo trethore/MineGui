@@ -78,7 +78,7 @@ public enum VisibilityMode {
 // Usage
 MainWindow main = new MainWindow();  // Auto-registers
 main.addSubWindow(
-    SettingsWindow.create()
+    MGWindow.create(SettingsWindow::new)
         .visibilityMode(VisibilityMode.FOLLOW_PARENT)
 );
 ```
@@ -153,13 +153,13 @@ MGButton.of("Click")
 
 **Before:**
 ```java
-TestWindow window = new TestWindow();
+TestWindow window = MGWindow.create(TestWindow::new);
 UIManager.getInstance().registerWindow(window);  // Manual registration
 ```
 
 **After:**
 ```java
-TestWindow window = new TestWindow();  // Auto-registers
+TestWindow window = MGWindow.create(TestWindow::new);  // Auto-registers
 ```
 
 ### Component with Behavior
@@ -263,7 +263,6 @@ MGButton.of("Fade In")
 public class MyWindow extends MGWindow {
     public MyWindow() {
         super("My Window", true);  // true = auto-register
-        initialize();
     }
 
     @Override
@@ -279,13 +278,18 @@ public class MyWindow extends MGWindow {
 }
 ```
 
+Instantiate windows through the shared factory:
+
+```java
+MyWindow window = MGWindow.create(MyWindow::new);
+```
+
 ### Window with Sub-windows
 
 ```java
 public class MainWindow extends MGWindow {
     public MainWindow() {
         super("Main", true);
-        initialize();
     }
 
     @Override
@@ -294,7 +298,7 @@ public class MainWindow extends MGWindow {
 
         // Add sub-window that follows parent visibility
         addSubWindow(
-            SettingsWindow.create()
+            MGWindow.create(SettingsWindow::new)
                 .visibilityMode(VisibilityMode.FOLLOW_PARENT)
         );
 
@@ -390,7 +394,6 @@ tytoo.minegui/
    // After
    public MyWindow() {
        super("title", true);
-       initialize();
    }
    ```
 
@@ -414,7 +417,7 @@ tytoo.minegui/
    UIManager.getInstance().registerWindow(window);
 
    // After
-   MyWindow window = new MyWindow();  // Auto-registers
+   MyWindow window = MGWindow.create(MyWindow::new);
    ```
 
 ### Update Components

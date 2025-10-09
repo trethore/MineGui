@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Clickable;
 import tytoo.minegui.component.traits.Disableable;
+import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Textable;
 import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
@@ -13,7 +14,7 @@ import tytoo.minegui.state.State;
 import java.util.function.Supplier;
 
 public class MGButton extends MGComponent<MGButton>
-        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton> {
+        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton>, Sizable<MGButton> {
 
     private Supplier<String> textSupplier;
     @Nullable

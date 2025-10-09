@@ -1,10 +1,13 @@
 package tytoo.minegui.component.components.display;
 
 import imgui.ImGui;
+import imgui.ImVec2;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Scalable;
 import tytoo.minegui.component.traits.Textable;
+import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
+import tytoo.minegui.utils.ImGuiUtils;
 
 import java.util.function.Supplier;
 
@@ -47,13 +50,35 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
 
     @Override
     public void render() {
-        if (scale != 1.0f) {
-            float oldScale = ImGui.getIO().getFontGlobalScale();
-            ImGui.getIO().setFontGlobalScale(scale);
-            ImGui.text(getText());
-            ImGui.getIO().setFontGlobalScale(oldScale);
-        } else {
-            ImGui.text(getText());
+        String text = getText();
+
+        float parentWidth = getParentWidth();
+        float parentHeight = getParentHeight();
+
+        Constraints constraints = constraints();
+        float requestedWidth = constraints.computeWidth(parentWidth);
+        float requestedHeight = constraints.computeHeight(parentHeight);
+
+        boolean applyScale = scale != 1.0f;
+        float scaleFactor = applyScale ? scale : 1.0f;
+        ImVec2 textSize = ImGui.calcTextSize(text);
+        float baselineWidth = textSize.x * scaleFactor;
+        float baselineHeight = textSize.y * scaleFactor;
+
+        float measuredWidth = requestedWidth > 0f ? requestedWidth : baselineWidth;
+        float measuredHeight = requestedHeight > 0f ? requestedHeight : baselineHeight;
+        setMeasuredSize(measuredWidth, measuredHeight);
+
+        float x = constraints.computeX(parentWidth, measuredWidth);
+        float y = constraints.computeY(parentHeight, measuredHeight);
+        ImGui.setCursorPos(x, y);
+
+        if (applyScale) {
+            ImGuiUtils.pushWindowFontScale(scale);
+        }
+        ImGui.text(text);
+        if (applyScale) {
+            ImGuiUtils.popWindowFontScale();
         }
     }
 }
