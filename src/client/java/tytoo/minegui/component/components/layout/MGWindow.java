@@ -84,18 +84,19 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
             boundsInitialized = true;
         }
 
-        if (ImGui.begin(title, visible, flags)) {
-            isFocused.set(ImGui.isWindowFocused());
+        boolean opened = ImGui.begin(title, visible, flags);
+        isFocused.set(ImGui.isWindowFocused());
+        if (opened) {
             super.render();
-            float px = ImGui.getWindowPosX();
-            float py = ImGui.getWindowPosY();
-            float pw = ImGui.getWindowWidth();
-            float ph = ImGui.getWindowHeight();
-            currentX = Math.round(px);
-            currentY = Math.round(py);
-            currentWidth = Math.round(pw);
-            currentHeight = Math.round(ph);
         }
+        float px = ImGui.getWindowPosX();
+        float py = ImGui.getWindowPosY();
+        float pw = ImGui.getWindowWidth();
+        float ph = ImGui.getWindowHeight();
+        currentX = Math.round(px);
+        currentY = Math.round(py);
+        currentWidth = Math.round(pw);
+        currentHeight = Math.max(1, Math.round(ph));
         ImGui.end();
 
         for (MGWindow subWindow : subWindows) {
