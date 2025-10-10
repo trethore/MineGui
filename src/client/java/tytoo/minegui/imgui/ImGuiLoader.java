@@ -58,7 +58,7 @@ public class ImGuiLoader {
 
         ImGui.newFrame();
         renderDockSpace();
-        // ImGui.showDemoWindow();
+        ImGui.showDemoWindow();
         UIManager.getInstance().render();
 
         ImGui.render();

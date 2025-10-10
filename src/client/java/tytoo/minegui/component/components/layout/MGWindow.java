@@ -11,13 +11,16 @@ import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.utils.McUtils;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public abstract class MGWindow extends MGComponent<MGWindow> {
     private final ImBoolean isFocused;
     private final ImBoolean visible;
     private final List<MGWindow> subWindows = new ArrayList<>();
+    private final EnumSet<MGWindowOption> windowOptions = EnumSet.noneOf(MGWindowOption.class);
     @Nullable
     protected MGWindow parentWindow;
     private boolean shouldFocus = false;
@@ -47,18 +50,18 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
         }
     }
 
+    public static <W extends MGWindow> W create(Supplier<W> factory) {
+        W window = factory.get();
+        window.initialize();
+        return window;
+    }
+
     protected void initialize() {
         build();
     }
 
     protected void build() {
 
-    }
-
-    public static <W extends MGWindow> W create(Supplier<W> factory) {
-        W window = factory.get();
-        window.initialize();
-        return window;
     }
 
     @Override
@@ -74,8 +77,31 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
 
         int flags = 0;
         boolean topLevel = getParent() == null;
+        boolean disablesCloseButton = false;
+        boolean allowChildMove = false;
+        boolean allowChildResize = false;
+        for (MGWindowOption option : windowOptions) {
+            Integer imGuiFlag = option.getImGuiFlag();
+            if (imGuiFlag != null) {
+                flags |= imGuiFlag;
+            }
+            if (option.disablesCloseButton()) {
+                disablesCloseButton = true;
+            }
+            if (option.allowsChildMove()) {
+                allowChildMove = true;
+            }
+            if (option.allowsChildResize()) {
+                allowChildResize = true;
+            }
+        }
         if (!topLevel) {
-            flags |= ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize;
+            if (!allowChildMove) {
+                flags |= ImGuiWindowFlags.NoMove;
+            }
+            if (!allowChildResize) {
+                flags |= ImGuiWindowFlags.NoResize;
+            }
         }
 
         if (topLevel && !boundsInitialized && initX != null && initY != null && initWidth != null && initHeight != null) {
@@ -84,7 +110,7 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
             boundsInitialized = true;
         }
 
-        boolean opened = ImGui.begin(title, visible, flags);
+        boolean opened = disablesCloseButton ? ImGui.begin(title, flags) : ImGui.begin(title, visible, flags);
         isFocused.set(ImGui.isWindowFocused());
         if (opened) {
             super.render();
@@ -275,5 +301,52 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     public MGWindow initialBounds(int x, int y, int width, int height) {
         setInitialBounds(x, y, width, height);
         return this;
+    }
+
+    public MGWindow windowOptions(MGWindowOption... options) {
+        windowOptions.clear();
+        return addWindowOptions(options);
+    }
+
+    public MGWindow windowOptions(Set<MGWindowOption> options) {
+        windowOptions.clear();
+        if (options != null) {
+            windowOptions.addAll(options);
+        }
+        return this;
+    }
+
+    public MGWindow addWindowOption(MGWindowOption option) {
+        if (option != null) {
+            windowOptions.add(option);
+        }
+        return this;
+    }
+
+    public MGWindow addWindowOptions(MGWindowOption... options) {
+        if (options != null) {
+            for (MGWindowOption option : options) {
+                if (option != null) {
+                    windowOptions.add(option);
+                }
+            }
+        }
+        return this;
+    }
+
+    public MGWindow removeWindowOption(MGWindowOption option) {
+        if (option != null) {
+            windowOptions.remove(option);
+        }
+        return this;
+    }
+
+    public MGWindow clearWindowOptions() {
+        windowOptions.clear();
+        return this;
+    }
+
+    public EnumSet<MGWindowOption> getWindowOptions() {
+        return windowOptions.isEmpty() ? EnumSet.noneOf(MGWindowOption.class) : EnumSet.copyOf(windowOptions);
     }
 }

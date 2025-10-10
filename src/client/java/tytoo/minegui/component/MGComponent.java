@@ -148,31 +148,29 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return self();
     }
 
+    public T x(XConstraint constraint) {
+        constraints.setX(constraint);
+        return self();
+    }
+
+    public T y(YConstraint constraint) {
+        constraints.setY(constraint);
+        return self();
+    }
+
+    public T pos(float x, float y) {
+        return x(Constraints.pixels(x)).y(Constraints.pixels(y));
+    }
+
+    public T center() {
+        return x(Constraints.center()).y(Constraints.center());
+    }
+
     @SuppressWarnings("unchecked")
     public T behavior(Behavior<? super T> behavior) {
         behaviors.add(behavior);
         behavior.onAttach((T) this);
         return self();
-    }
-
-    public T x(XConstraint constraint) {
-        constraints().setX(constraint);
-        return self();
-    }
-
-    public T y(YConstraint constraint) {
-        constraints().setY(constraint);
-        return self();
-    }
-
-    public T pos(float x, float y) {
-        return x(Constraints.pixels(x))
-                .y(Constraints.pixels(y));
-    }
-
-    public T center() {
-        return x(Constraints.center())
-                .y(Constraints.center());
     }
 
 }

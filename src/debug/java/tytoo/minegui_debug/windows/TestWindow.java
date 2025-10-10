@@ -1,13 +1,15 @@
 package tytoo.minegui_debug.windows;
 
-import tytoo.minegui.component.components.display.MGText;
 import tytoo.minegui.component.components.interactive.MGButton;
-import tytoo.minegui.component.components.interactive.MGCheckbox;
+import tytoo.minegui.component.components.interactive.MGRadioButton;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
+import tytoo.minegui_debug.MineGuiDebugCore;
 
 public class TestWindow extends MGWindow {
+
+    private final State<String> radioSelection = State.of("option_a");
 
     public TestWindow() {
         super("test window");
@@ -16,25 +18,29 @@ public class TestWindow extends MGWindow {
     @Override
     public void build() {
         super.build();
-        this.initialBounds(200, 200, 300, 150);
+        this.initialBounds(200, 180, 430, 260);
 
-        State<Boolean> showDetails = State.of(true);
-
-        MGText.of("Checkbox Example")
-                .scale(5f)
-                .pos(10, 120)
-                .parent(this);
-
-        MGCheckbox.of("Show Details", showDetails)
-                .scale(5f)
-                .pos(10, 30)
-                .parent(this);
-
-        MGButton.of("Hello, World!")
-                .pos(10, 180)
+        MGButton.of("Test")
                 .width(Constraints.pixels(200))
                 .height(Constraints.pixels(60))
-                .onClick(() -> System.out.println("Button clicked!"))
+                .pos(10, 30)
+                .onClick(() -> MineGuiDebugCore.LOGGER.info("Test: Button Clicked!"))
+                .parent(this);
+
+        MGRadioButton.of("Option A", "option_a", radioSelection)
+                .pos(10, 110)
+                .scale(2.0f)
+                .onClick(() -> MineGuiDebugCore.LOGGER.info("Radio Selected: {}", radioSelection.get()))
+                .parent(this);
+
+        MGRadioButton.of("Option B", "option_b", radioSelection)
+                .pos(10, 158)
+                .onClick(() -> MineGuiDebugCore.LOGGER.info("Radio Selected: {}", radioSelection.get()))
+                .parent(this);
+
+        MGRadioButton.of("Option C", "option_c", radioSelection)
+                .pos(10, 182)
+                .onClick(() -> MineGuiDebugCore.LOGGER.info("Radio Selected: {}", radioSelection.get()))
                 .parent(this);
     }
 }
