@@ -12,8 +12,8 @@ import tytoo.minegui.utils.ImGuiUtils;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public class MGRadioButton<T> extends MGComponent<MGRadioButton<T>>
-        implements Textable<MGRadioButton<T>>, Clickable<MGRadioButton<T>>, Disableable<MGRadioButton<T>>, Stateful<T, MGRadioButton<T>>, Scalable<MGRadioButton<T>> {
+public class MGRadio<T> extends MGComponent<MGRadio<T>>
+        implements Textable<MGRadio<T>>, Clickable<MGRadio<T>>, Disableable<MGRadio<T>>, Stateful<T, MGRadio<T>>, Scalable<MGRadio<T>> {
 
     private final T value;
     private Supplier<String> labelSupplier;
@@ -25,30 +25,30 @@ public class MGRadioButton<T> extends MGComponent<MGRadioButton<T>>
     @Nullable
     private State<T> state;
 
-    private MGRadioButton(String label, T value, @Nullable State<T> state) {
+    private MGRadio(String label, T value, @Nullable State<T> state) {
         this.labelSupplier = () -> label;
         this.value = value;
         this.state = state;
     }
 
-    public static <V> MGRadioButton<V> of(String label, V value) {
-        return new MGRadioButton<>(label, value, null);
+    public static <V> MGRadio<V> of(String label, V value) {
+        return new MGRadio<>(label, value, null);
     }
 
-    public static <V> MGRadioButton<V> of(String label, V value, State<V> state) {
-        MGRadioButton<V> button = new MGRadioButton<>(label, value, state);
+    public static <V> MGRadio<V> of(String label, V value, State<V> state) {
+        MGRadio<V> button = new MGRadio<>(label, value, state);
         button.setState(state);
         return button;
     }
 
-    public static <V> MGRadioButton<V> of(Supplier<String> labelSupplier, V value) {
-        MGRadioButton<V> button = new MGRadioButton<>(labelSupplier.get(), value, null);
+    public static <V> MGRadio<V> of(Supplier<String> labelSupplier, V value) {
+        MGRadio<V> button = new MGRadio<>(labelSupplier.get(), value, null);
         button.setTextSupplier(labelSupplier);
         return button;
     }
 
-    public static <V> MGRadioButton<V> of(Supplier<String> labelSupplier, V value, State<V> state) {
-        MGRadioButton<V> button = new MGRadioButton<>(labelSupplier.get(), value, state);
+    public static <V> MGRadio<V> of(Supplier<String> labelSupplier, V value, State<V> state) {
+        MGRadio<V> button = new MGRadio<>(labelSupplier.get(), value, state);
         button.setTextSupplier(labelSupplier);
         button.setState(state);
         return button;

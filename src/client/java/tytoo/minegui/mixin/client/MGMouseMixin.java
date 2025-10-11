@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.input.InputRouter;
 import tytoo.minegui.manager.UIManager;
 
@@ -24,6 +25,7 @@ public abstract class MGMouseMixin {
 
     @Inject(at = @At("HEAD"), method = "onMouseScroll(JDD)V", cancellable = true)
     private void onOnMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
+        ImGuiLoader.onMouseScroll(window, horizontal, vertical);
         double x = mcX();
         double y = mcY();
         if (InputRouter.getInstance().onScroll(x, y, horizontal, vertical)) {

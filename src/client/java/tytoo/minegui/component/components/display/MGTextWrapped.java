@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Scalable;
+import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Textable;
 import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
@@ -11,23 +12,23 @@ import tytoo.minegui.utils.ImGuiUtils;
 
 import java.util.function.Supplier;
 
-public class MGText extends MGComponent<MGText> implements Textable<MGText>, Scalable<MGText> {
+public class MGTextWrapped extends MGComponent<MGTextWrapped> implements Textable<MGTextWrapped>, Scalable<MGTextWrapped>, Sizable<MGTextWrapped> {
 
     private Supplier<String> textSupplier;
     private float scale = 1.0f;
     private boolean bullet = false;
     private boolean unformatted = false;
 
-    private MGText(String text) {
+    private MGTextWrapped(String text) {
         this.textSupplier = () -> text;
     }
 
-    public static MGText of(String text) {
-        return new MGText(text);
+    public static MGTextWrapped of(String text) {
+        return new MGTextWrapped(text);
     }
 
-    public static MGText of(State<String> state) {
-        return new MGText(state.get()).bindText(state);
+    public static MGTextWrapped of(State<String> state) {
+        return new MGTextWrapped(state.get()).bindText(state);
     }
 
     @Override
@@ -58,7 +59,7 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
         this.bullet = bullet;
     }
 
-    public MGText bullet(boolean bullet) {
+    public MGTextWrapped bullet(boolean bullet) {
         setBullet(bullet);
         return this;
     }
@@ -71,7 +72,7 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
         this.unformatted = unformatted;
     }
 
-    public MGText unformatted(boolean unformatted) {
+    public MGTextWrapped unformatted(boolean unformatted) {
         setUnformatted(unformatted);
         return this;
     }
@@ -106,16 +107,18 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
             ImGuiUtils.pushWindowFontScale(scale);
         }
 
-        if (bullet && !unformatted) {
-            ImGui.bulletText(text);
+        if (bullet && unformatted) {
+            ImGui.bullet();
+            ImGui.sameLine();
+            ImGui.textWrapped(text);
         } else if (bullet) {
             ImGui.bullet();
             ImGui.sameLine();
-            ImGui.textUnformatted(text);
+            ImGui.textWrapped(text);
         } else if (unformatted) {
-            ImGui.textUnformatted(text);
+            ImGui.textWrapped(text);
         } else {
-            ImGui.text(text);
+            ImGui.textWrapped(text);
         }
 
         if (applyScale) {

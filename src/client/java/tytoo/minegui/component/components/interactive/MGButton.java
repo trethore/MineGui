@@ -12,13 +12,14 @@ import tytoo.minegui.utils.ImGuiUtils;
 import java.util.function.Supplier;
 
 public class MGButton extends MGComponent<MGButton>
-        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton>, Sizable<MGButton>, Scalable<MGButton> {
+        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton>, Sizable<MGButton>, Scalable<MGButton>, Repeatable<MGButton> {
 
     private Supplier<String> textSupplier;
     @Nullable
     private Runnable onClick;
     private boolean disabled = false;
     private float scale = 1.0f;
+    private boolean repeatable = false;
 
     private MGButton(String text) {
         this.textSupplier = () -> text;
@@ -74,6 +75,16 @@ public class MGButton extends MGComponent<MGButton>
     }
 
     @Override
+    public boolean isRepeatable() {
+        return repeatable;
+    }
+
+    @Override
+    public void setRepeatable(boolean repeatable) {
+        this.repeatable = repeatable;
+    }
+
+    @Override
     public void render() {
         beginRenderLifecycle();
         float parentWidth = getParentWidth();
@@ -126,7 +137,13 @@ public class MGButton extends MGComponent<MGButton>
         if (applyScale) {
             ImGuiUtils.pushWindowFontScale(appliedScale);
         }
+        if (repeatable) {
+            ImGui.pushButtonRepeat(true);
+        }
         boolean pressed = ImGui.button(label, width, height);
+        if (repeatable) {
+            ImGui.popButtonRepeat();
+        }
         if (applyScale) {
             ImGuiUtils.popWindowFontScale();
         }

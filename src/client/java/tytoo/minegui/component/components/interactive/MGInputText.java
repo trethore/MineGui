@@ -23,10 +23,31 @@ import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class MGTextField extends MGComponent<MGTextField>
-        implements Disableable<MGTextField>, Stateful<String, MGTextField>, Scalable<MGTextField>, Sizable<MGTextField> {
+public class MGInputText extends MGComponent<MGInputText>
+        implements Disableable<MGInputText>, Stateful<String, MGInputText>, Scalable<MGInputText>, Sizable<MGInputText> {
 
     private final ImString buffer;
+    private final String defaultLabel = "##MGInputText_" + UUID.randomUUID();
+    private String label = defaultLabel;
+    private Supplier<String> hintSupplier = () -> "";
+    private boolean disabled;
+    private float scale = 1.0f;
+    @Nullable
+    private State<String> state;
+    @Nullable
+    private Consumer<String> stateListener;
+    private boolean suppressStateCallback;
+    private String currentValue;
+    @Nullable
+    private IntPredicate characterFilter;
+    @Nullable
+    private Predicate<String> validator;
+    @Nullable
+    private Consumer<String> onChange;
+    @Nullable
+    private Consumer<String> onSubmit;
+    private int userFlags = ImGuiInputTextFlags.None;
+    private int maxLength;
     private final ImGuiInputTextCallback inputTextCallback = new ImGuiInputTextCallback() {
         @Override
         public void accept(ImGuiInputTextCallbackData data) {
@@ -56,29 +77,8 @@ public class MGTextField extends MGComponent<MGTextField>
             }
         }
     };
-    private final String defaultLabel = "##MGTextField_" + UUID.randomUUID();
-    private String label = defaultLabel;
-    private Supplier<String> hintSupplier = () -> "";
-    private boolean disabled;
-    private float scale = 1.0f;
-    @Nullable
-    private State<String> state;
-    @Nullable
-    private Consumer<String> stateListener;
-    private boolean suppressStateCallback;
-    private String currentValue;
-    @Nullable
-    private IntPredicate characterFilter;
-    @Nullable
-    private Predicate<String> validator;
-    @Nullable
-    private Consumer<String> onChange;
-    @Nullable
-    private Consumer<String> onSubmit;
-    private int userFlags = ImGuiInputTextFlags.None;
-    private int maxLength;
 
-    private MGTextField(String initialValue) {
+    private MGInputText(String initialValue) {
         String value = initialValue != null ? initialValue : "";
         int capacity = Math.max(32, value.length() + 32);
         this.buffer = new ImString(value, capacity);
@@ -86,16 +86,16 @@ public class MGTextField extends MGComponent<MGTextField>
         this.currentValue = value;
     }
 
-    public static MGTextField of() {
-        return new MGTextField("");
+    public static MGInputText of() {
+        return new MGInputText("");
     }
 
-    public static MGTextField of(String initialValue) {
-        return new MGTextField(initialValue);
+    public static MGInputText of(String initialValue) {
+        return new MGInputText(initialValue);
     }
 
-    public static MGTextField of(State<String> state) {
-        MGTextField field = new MGTextField(state != null ? Objects.toString(state.get(), "") : "");
+    public static MGInputText of(State<String> state) {
+        MGInputText field = new MGInputText(state != null ? Objects.toString(state.get(), "") : "");
         field.setState(state);
         return field;
     }
@@ -104,68 +104,68 @@ public class MGTextField extends MGComponent<MGTextField>
         return currentValue;
     }
 
-    public MGTextField value(String value) {
+    public MGInputText value(String value) {
         setInternalValue(value, false, true);
         return self();
     }
 
-    public MGTextField hint(String hint) {
+    public MGInputText hint(String hint) {
         return hint(() -> hint != null ? hint : "");
     }
 
-    public MGTextField hint(Supplier<String> supplier) {
+    public MGInputText hint(Supplier<String> supplier) {
         this.hintSupplier = supplier != null ? supplier : () -> "";
         return self();
     }
 
-    public MGTextField label(String label) {
+    public MGInputText label(String label) {
         this.label = label != null && !label.isBlank() ? label : defaultLabel;
         return self();
     }
 
-    public MGTextField onChange(Consumer<String> consumer) {
+    public MGInputText onChange(Consumer<String> consumer) {
         this.onChange = consumer;
         return self();
     }
 
-    public MGTextField onSubmit(Consumer<String> consumer) {
+    public MGInputText onSubmit(Consumer<String> consumer) {
         this.onSubmit = consumer;
         return self();
     }
 
-    public MGTextField filter(IntPredicate predicate) {
+    public MGInputText filter(IntPredicate predicate) {
         this.characterFilter = predicate;
         return self();
     }
 
-    public MGTextField validator(Predicate<String> predicate) {
+    public MGInputText validator(Predicate<String> predicate) {
         this.validator = predicate;
         setInternalValue(currentValue, true, false);
         return self();
     }
 
-    public MGTextField maxLength(int length) {
+    public MGInputText maxLength(int length) {
         this.maxLength = Math.max(0, length);
         setInternalValue(currentValue, true, false);
         return self();
     }
 
-    public MGTextField flags(int flags) {
+    public MGInputText flags(int flags) {
         this.userFlags = flags;
         return self();
     }
 
-    public MGTextField addFlags(int flags) {
+    public MGInputText addFlags(int flags) {
         this.userFlags |= flags;
         return self();
     }
 
-    public MGTextField removeFlags(int flags) {
+    public MGInputText removeFlags(int flags) {
         this.userFlags &= ~flags;
         return self();
     }
 
-    public MGTextField submitOnEnter(boolean enabled) {
+    public MGInputText submitOnEnter(boolean enabled) {
         if (enabled) {
             addFlags(ImGuiInputTextFlags.EnterReturnsTrue);
         } else {
@@ -174,7 +174,7 @@ public class MGTextField extends MGComponent<MGTextField>
         return self();
     }
 
-    public MGTextField readOnly(boolean enabled) {
+    public MGInputText readOnly(boolean enabled) {
         if (enabled) {
             addFlags(ImGuiInputTextFlags.ReadOnly);
         } else {
@@ -183,7 +183,7 @@ public class MGTextField extends MGComponent<MGTextField>
         return self();
     }
 
-    public MGTextField password(boolean enabled) {
+    public MGInputText password(boolean enabled) {
         if (enabled) {
             addFlags(ImGuiInputTextFlags.Password);
         } else {

@@ -157,6 +157,13 @@ public class ImGuiLoader {
         }
     }
 
+    public static void onMouseScroll(long window, double horizontal, double vertical) {
+        if (windowHandle == 0L || window != windowHandle) {
+            return;
+        }
+        imGuiGlfw.scrollCallback(window, horizontal, vertical);
+    }
+
     public static void onKeyEvent(long window, int key, int scancode, int action, int modifiers) {
         if (windowHandle == 0L || window != windowHandle) {
             return;
