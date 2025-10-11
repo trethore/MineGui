@@ -50,6 +50,7 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
 
     @Override
     public void render() {
+        beginRenderLifecycle();
         String text = getText();
 
         float parentWidth = getParentWidth();
@@ -80,5 +81,7 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
         if (applyScale) {
             ImGuiUtils.popWindowFontScale();
         }
+        renderChildren();
+        endRenderLifecycle();
     }
 }

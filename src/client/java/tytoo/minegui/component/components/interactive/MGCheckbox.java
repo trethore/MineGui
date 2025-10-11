@@ -112,6 +112,7 @@ public class MGCheckbox extends MGComponent<MGCheckbox> implements Textable<MGCh
 
     @Override
     public void render() {
+        beginRenderLifecycle();
         float parentWidth = getParentWidth();
         float parentHeight = getParentHeight();
 
@@ -167,5 +168,7 @@ public class MGCheckbox extends MGComponent<MGCheckbox> implements Textable<MGCh
             applyValue(checkboxValue.get());
             performClick();
         }
+        renderChildren();
+        endRenderLifecycle();
     }
 }

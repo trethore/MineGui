@@ -11,6 +11,7 @@ import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.input.InputRouter;
 import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.utils.InputHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +21,7 @@ public class ImGuiLoader {
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
     private static final String GLSL_VERSION = "#version 150";
 
+    private static long windowHandle;
     private static int mcWindowWidth;
     private static int mcWindowHeight;
     private static int mcWindowX;
@@ -29,6 +31,7 @@ public class ImGuiLoader {
         initializeImGui();
         imGuiGlfw.init(handle, false);
         imGuiGl3.init(GLSL_VERSION);
+        windowHandle = handle;
     }
 
     public static void onWindowResize(int width, int height) {
@@ -152,5 +155,20 @@ public class ImGuiLoader {
         } catch (IOException e) {
             MineGuiCore.LOGGER.error("Failed to load font: {}", fontPath, e);
         }
+    }
+
+    public static void onKeyEvent(long window, int key, int scancode, int action, int modifiers) {
+        if (windowHandle == 0L || window != windowHandle) {
+            return;
+        }
+        int normalizedKey = InputHelper.toQwerty(key);
+        imGuiGlfw.keyCallback(window, normalizedKey, scancode, action, modifiers);
+    }
+
+    public static void onCharTyped(long window, int codePoint) {
+        if (windowHandle == 0L || window != windowHandle) {
+            return;
+        }
+        imGuiGlfw.charCallback(window, codePoint);
     }
 }

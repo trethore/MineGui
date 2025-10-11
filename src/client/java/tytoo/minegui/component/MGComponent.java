@@ -42,11 +42,20 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         this.measuredHeight = height;
     }
 
-    @SuppressWarnings("unchecked")
     public void render() {
+        beginRenderLifecycle();
+        renderChildren();
+        endRenderLifecycle();
+    }
+
+    @SuppressWarnings("unchecked")
+    protected final void beginRenderLifecycle() {
         behaviors.forEach(b -> b.preRender((T) this));
         preRender();
-        renderChildren();
+    }
+
+    @SuppressWarnings("unchecked")
+    protected final void endRenderLifecycle() {
         postRender();
         behaviors.forEach(b -> b.postRender((T) this));
     }

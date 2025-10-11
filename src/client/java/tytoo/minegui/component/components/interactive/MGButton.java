@@ -75,6 +75,7 @@ public class MGButton extends MGComponent<MGButton>
 
     @Override
     public void render() {
+        beginRenderLifecycle();
         float parentWidth = getParentWidth();
         float parentHeight = getParentHeight();
 
@@ -133,5 +134,7 @@ public class MGButton extends MGComponent<MGButton>
         if (pressed) {
             performClick();
         }
+        renderChildren();
+        endRenderLifecycle();
     }
 }

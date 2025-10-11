@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.utils.InputHelper;
 
 public final class InputRouter {
     private static final InputRouter INSTANCE = new InputRouter();
@@ -212,11 +213,15 @@ public final class InputRouter {
     }
 
     public boolean onKey(int key, int action) {
+        int normalizedKey = InputHelper.toQwerty(key);
+        if (normalizedKey == GLFW.GLFW_KEY_UNKNOWN) {
+            normalizedKey = key;
+        }
         MinecraftClient mc = MinecraftClient.getInstance();
         updateSuppression(mc);
 
         if (!UIManager.getInstance().isAnyWindowVisible()) {
-            pressedKeys.remove(key);
+            pressedKeys.remove(normalizedKey);
             return false;
         }
 
@@ -229,12 +234,12 @@ public final class InputRouter {
         if (action == GLFW.GLFW_PRESS) {
             if (!wants) return false;
 
-            pressedKeys.add(key);
+            pressedKeys.add(normalizedKey);
             return true;
         }
 
         if (action == GLFW.GLFW_RELEASE) {
-            if (pressedKeys.remove(key)) return true;
+            if (pressedKeys.remove(normalizedKey)) return true;
             if (isInteractionSuppressed(mc.currentScreen != null, mc)) return false;
 
             return wants;

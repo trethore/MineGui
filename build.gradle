@@ -180,28 +180,25 @@ dependencies {
     decompiler 'org.benf:cfr:0.152'
 }
 
-tasks.register('generateProjectSources', JavaExec) {
+tasks.register('generateProjectSources') {
     group = 'documentation'
     description = 'Decompiles JAR files from libs/ and places sources in project-sources/'
-
-    classpath = configurations.decompiler
-    mainClass = 'org.benf.cfr.reader.Main'
-
-    doFirst {
+    doLast {
         def libsDir = file('libs')
         def outputDir = file('project-sources')
         def jarFiles = libsDir.listFiles({ it.name.endsWith('.jar') } as FileFilter)
-
-        if (jarFiles.length == 0) {
+        if (jarFiles == null || jarFiles.length == 0) {
             throw new GradleException("No JAR files found in libs/")
         }
-
-        args = []
         jarFiles.each { jar ->
             def jarName = jar.name.replaceAll('\\.jar$', '')
             def targetDir = file("${outputDir}/${jarName}")
             targetDir.mkdirs()
-            args += [jar.absolutePath, '--outputdir', targetDir.absolutePath]
+            javaexec {
+                classpath = configurations.decompiler
+                mainClass = 'org.benf.cfr.reader.Main'
+                args jar.absolutePath, '--outputdir', targetDir.absolutePath
+            }
         }
     }
 }

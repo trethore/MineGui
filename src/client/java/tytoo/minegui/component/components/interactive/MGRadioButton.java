@@ -121,6 +121,7 @@ public class MGRadioButton<T> extends MGComponent<MGRadioButton<T>>
 
     @Override
     public void render() {
+        beginRenderLifecycle();
         float parentWidth = getParentWidth();
         float parentHeight = getParentHeight();
 
@@ -176,6 +177,8 @@ public class MGRadioButton<T> extends MGComponent<MGRadioButton<T>>
                 performClick();
             }
         }
+        renderChildren();
+        endRenderLifecycle();
     }
 
     private boolean applySelection() {
