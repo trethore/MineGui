@@ -5,6 +5,7 @@ import tytoo.minegui.component.components.interactive.MGButton;
 import tytoo.minegui.component.components.interactive.MGInputNumber;
 import tytoo.minegui.component.components.interactive.MGInputText;
 import tytoo.minegui.component.components.interactive.MGRadio;
+import tytoo.minegui.component.components.interactive.MGSlider;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
@@ -17,6 +18,9 @@ public class TestWindow extends MGWindow {
     private final State<Integer> counterValue = State.of(5);
     private final State<Float[]> vectorValue = State.of(new Float[]{0.25f, 1.5f, -3.0f});
     private final State<Double> speedValue = State.of(12.5);
+    private final State<Float> brightnessValue = State.of(0.65f);
+    private final State<Double> zoomLevel = State.of(10.0);
+    private final State<Difficulty> difficultyState = State.of(Difficulty.NORMAL);
 
     public TestWindow() {
         super("test window");
@@ -25,7 +29,7 @@ public class TestWindow extends MGWindow {
     @Override
     public void build() {
         super.build();
-        this.initialBounds(200, 180, 430, 260);
+        this.initialBounds(200, 180, 430, 320);
 
         MGButton.of("Test")
                 .width(Constraints.pixels(200))
@@ -92,5 +96,46 @@ public class TestWindow extends MGWindow {
                 .onCommit(values -> MineGuiDebugCore.LOGGER.info("Speed committed: {}", values[0]))
                 .parent(this);
 
+        MGSlider.ofFloat()
+                .label("Brightness")
+                .pos(10, 220)
+                .width(Constraints.pixels(180))
+                .range(0f, 1f)
+                .state(brightnessValue)
+                .valueFormatter(value -> String.format("%.0f%%", value * 100f))
+                .onChange(value -> MineGuiDebugCore.LOGGER.info("Brightness changed: {}", value))
+                .parent(this);
+
+        MGSlider.ofDouble()
+                .label("Zoom Level")
+                .pos(10, 260)
+                .width(Constraints.pixels(180))
+                .range(1.0, 1000.0)
+                .transform(Math::log10, exponent -> Math.pow(10.0, exponent))
+                .state(zoomLevel)
+                .valueFormatter(value -> String.format("%.1fx", value))
+                .onCommit(value -> MineGuiDebugCore.LOGGER.info("Zoom committed: {}", value))
+                .parent(this);
+
+        MGSlider.ofEnum(Difficulty.class)
+                .label("Difficulty")
+                .pos(220, 230)
+                .width(Constraints.pixels(180))
+                .state(difficultyState)
+                .enumFormatter(value -> value.name().replace('_', ' '))
+                .onEnumChange(selection -> MineGuiDebugCore.LOGGER.info("Difficulty changed: {} (index {})", selection.label(), selection.index()))
+                .onEnumCommit(selection -> {
+                    Difficulty difficulty = selection.value(Difficulty.class);
+                    MineGuiDebugCore.LOGGER.info("Difficulty committed: {}", difficulty);
+                })
+                .parent(this);
+    }
+
+    private enum Difficulty {
+        PEACEFUL,
+        EASY,
+        NORMAL,
+        HARD,
+        INSANE
     }
 }

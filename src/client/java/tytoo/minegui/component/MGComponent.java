@@ -8,15 +8,17 @@ import tytoo.minegui.contraint.YConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 public abstract class MGComponent<T extends MGComponent<T>> {
     protected final Constraints constraints = new Constraints(this);
     protected final List<Behavior<? super T>> behaviors = new ArrayList<>();
-    protected List<MGComponent<?>> children = new LinkedList<>();
-    protected MGComponent<T> parent;
+    protected final Deque<MGComponent<?>> children = new LinkedList<>();
+    protected MGComponent<?> parent;
     protected float measuredWidth = 0f;
     protected float measuredHeight = 0f;
 
@@ -100,21 +102,46 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     }
 
     public List<MGComponent<?>> getChildren() {
-        return this.children;
+        return List.copyOf(this.children);
+    }
+
+    public void forEachChild(Consumer<? super MGComponent<?>> consumer) {
+        if (consumer == null) {
+            return;
+        }
+        for (MGComponent<?> child : this.children) {
+            consumer.accept(child);
+        }
     }
 
     public void addChild(MGComponent<?> child) {
         if (child == null) {
             return;
         }
-        this.children.add(child);
+        if (child == this) {
+            return;
+        }
+        if (child.parent == this) {
+            if (!this.children.contains(child)) {
+                this.children.addLast(child);
+            }
+        } else {
+            if (child.parent != null) {
+                child.parent.removeChild(child);
+            }
+            this.children.remove(child);
+            this.children.addLast(child);
+            child.parent = this;
+        }
     }
 
     public void addChildren(List<MGComponent<?>> children) {
         if (children == null || children.isEmpty()) {
             return;
         }
-        this.children.addAll(children);
+        for (MGComponent<?> child : children) {
+            addChild(child);
+        }
     }
 
     public void removeChild(MGComponent<?> child) {
@@ -122,10 +149,15 @@ public abstract class MGComponent<T extends MGComponent<T>> {
             return;
         }
         this.children.remove(child);
+        if (child.parent == this) {
+            child.parent = null;
+        }
     }
 
     public void removeAllChildren() {
-        this.children.clear();
+        for (MGComponent<?> child : List.copyOf(this.children)) {
+            removeChild(child);
+        }
     }
 
     @Nullable
@@ -133,14 +165,15 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return this.parent;
     }
 
-    @SuppressWarnings("unchecked")
     public T setParent(@Nullable MGComponent<?> parent) {
+        if (this.parent == parent) {
+            return self();
+        }
         if (this.parent != null) {
             this.parent.removeChild(this);
         }
-        this.parent = (MGComponent<T>) parent;
-        if (this.parent != null) {
-            this.parent.addChild(this);
+        if (parent != null) {
+            parent.addChild(this);
         }
         return self();
     }
@@ -152,7 +185,7 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     public T goFirst() {
         if (this.parent != null) {
             this.parent.children.remove(this);
-            this.parent.children.addLast(this);
+            this.parent.children.addFirst(this);
         }
         return self();
     }
