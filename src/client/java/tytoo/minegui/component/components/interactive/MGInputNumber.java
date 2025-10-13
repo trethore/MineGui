@@ -11,7 +11,6 @@ import tytoo.minegui.component.traits.Disableable;
 import tytoo.minegui.component.traits.Scalable;
 import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Stateful;
-import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
@@ -335,40 +334,31 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     @Override
     public void render() {
         beginRenderLifecycle();
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-        Constraints c = constraints();
-        float requestedWidth = c.computeWidth(parentWidth);
-        float requestedHeight = c.computeHeight(parentHeight);
         float frameHeight = ImGui.getFrameHeight();
         float componentWidth = frameHeight * 4.0f;
-        float width = requestedWidth > 0f ? requestedWidth : componentWidth * componentCount;
-        float height = requestedHeight > 0f ? requestedHeight : frameHeight;
-        setMeasuredSize(width, height);
-        float x = c.computeX(parentWidth, width);
-        float y = c.computeY(parentHeight, height);
-        ImGui.setCursorPos(x, y);
-        ImGui.setNextItemWidth(width);
-
         updateBuffersFromValues();
-
         boolean scaled = scale != 1.0f;
-        if (scaled) {
-            ImGuiUtils.pushWindowFontScale(scale);
-        }
         boolean disabledScope = disabled;
-        if (disabledScope) {
-            ImGui.beginDisabled(true);
-        }
-
-        boolean activated = renderWidget();
-
-        if (disabledScope) {
-            ImGui.endDisabled();
-        }
-        if (scaled) {
-            ImGuiUtils.popWindowFontScale();
-        }
+        final boolean[] activation = new boolean[1];
+        withLayout(componentWidth * componentCount, frameHeight, (width, height) -> {
+            if (scaled) {
+                ImGuiUtils.pushWindowFontScale(scale);
+            }
+            if (disabledScope) {
+                ImGui.beginDisabled(true);
+            }
+            try {
+                activation[0] = renderWidget();
+            } finally {
+                if (disabledScope) {
+                    ImGui.endDisabled();
+                }
+                if (scaled) {
+                    ImGuiUtils.popWindowFontScale();
+                }
+            }
+        });
+        boolean activated = activation[0];
 
         if (activated && onCommit != null) {
             onCommit.accept(copyTypedArray());

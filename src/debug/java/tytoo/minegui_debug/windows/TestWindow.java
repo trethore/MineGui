@@ -1,11 +1,7 @@
 package tytoo.minegui_debug.windows;
 
 import tytoo.minegui.component.behavior.TooltipBehavior;
-import tytoo.minegui.component.components.interactive.MGButton;
-import tytoo.minegui.component.components.interactive.MGInputNumber;
-import tytoo.minegui.component.components.interactive.MGInputText;
-import tytoo.minegui.component.components.interactive.MGRadio;
-import tytoo.minegui.component.components.interactive.MGSlider;
+import tytoo.minegui.component.components.interactive.*;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;

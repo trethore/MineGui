@@ -11,7 +11,6 @@ import tytoo.minegui.component.traits.Disableable;
 import tytoo.minegui.component.traits.Scalable;
 import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Stateful;
-import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
@@ -25,26 +24,17 @@ import java.util.function.Function;
 public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable<MGSlider<T>>,
         Stateful<T, MGSlider<T>>, Scalable<MGSlider<T>>, Sizable<MGSlider<T>> {
 
-    private enum SliderKind {
-        INTEGER,
-        FLOAT,
-        DOUBLE,
-        ENUM
-    }
-
     private static final double DEFAULT_INT_MIN = 0.0;
     private static final double DEFAULT_INT_MAX = 100.0;
     private static final double DEFAULT_FLOAT_MIN = 0.0;
     private static final double DEFAULT_FLOAT_MAX = 1.0;
     private static final double DEFAULT_DOUBLE_MIN = 0.0;
     private static final double DEFAULT_DOUBLE_MAX = 1.0;
-
     private final SliderKind kind;
     private final String defaultLabel = "##MGSlider_" + UUID.randomUUID();
     private final ImInt intValue;
     private final ImFloat floatValue;
     private final ImDouble doubleValue;
-
     private String label = defaultLabel;
     private boolean disabled;
     private float scale = 1.0f;
@@ -59,7 +49,6 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private Function<Object, String> valueFormatter;
     @Nullable
     private EnumSelection currentEnumSelection;
-
     @Nullable
     private State<T> state;
     @Nullable
@@ -73,7 +62,6 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     @Nullable
     private Consumer<EnumSelection> onEnumCommit;
     private boolean suppressStateCallback;
-
     private Enum<?>[] enumValues;
     private int enumIndex;
 
@@ -344,45 +332,36 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     @Override
     public void render() {
         beginRenderLifecycle();
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-        Constraints c = constraints();
-        float requestedWidth = c.computeWidth(parentWidth);
-        float requestedHeight = c.computeHeight(parentHeight);
         float frameHeight = ImGui.getFrameHeight();
-        float width = requestedWidth > 0f ? requestedWidth : frameHeight * 6.0f;
-        float height = requestedHeight > 0f ? requestedHeight : frameHeight;
-        setMeasuredSize(width, height);
-        float x = c.computeX(parentWidth, width);
-        float y = c.computeY(parentHeight, height);
-        ImGui.setCursorPos(x, y);
-        ImGui.setNextItemWidth(width);
-
         updateBuffersFromValue();
 
         boolean scaled = scale != 1.0f;
-        if (scaled) {
-            ImGuiUtils.pushWindowFontScale(scale);
-        }
-
         boolean disabledScope = disabled;
-        if (disabledScope) {
-            ImGui.beginDisabled(true);
-        }
-
-        if (kind == SliderKind.ENUM) {
-            renderEnumSlider();
-        } else {
-            renderNumericSlider();
-        }
-        boolean committed = ImGui.isItemDeactivatedAfterEdit();
-
-        if (disabledScope) {
-            ImGui.endDisabled();
-        }
-        if (scaled) {
-            ImGuiUtils.popWindowFontScale();
-        }
+        final boolean[] committedFlag = new boolean[1];
+        withLayout(frameHeight * 6.0f, frameHeight, (width, height) -> {
+            if (scaled) {
+                ImGuiUtils.pushWindowFontScale(scale);
+            }
+            if (disabledScope) {
+                ImGui.beginDisabled(true);
+            }
+            try {
+                if (kind == SliderKind.ENUM) {
+                    renderEnumSlider();
+                } else {
+                    renderNumericSlider();
+                }
+                committedFlag[0] = ImGui.isItemDeactivatedAfterEdit();
+            } finally {
+                if (disabledScope) {
+                    ImGui.endDisabled();
+                }
+                if (scaled) {
+                    ImGuiUtils.popWindowFontScale();
+                }
+            }
+        });
+        boolean committed = committedFlag[0];
 
         if (committed) {
             if (kind == SliderKind.ENUM) {
@@ -670,6 +649,13 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
 
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private enum SliderKind {
+        INTEGER,
+        FLOAT,
+        DOUBLE,
+        ENUM
     }
 
     public record EnumSelection(int index, Enum<?> value, String label) {

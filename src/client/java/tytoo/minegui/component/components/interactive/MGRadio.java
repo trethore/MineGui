@@ -4,8 +4,6 @@ import imgui.ImGui;
 import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.*;
-import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
-import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
@@ -122,55 +120,37 @@ public class MGRadio<T> extends MGComponent<MGRadio<T>>
     @Override
     public void render() {
         beginRenderLifecycle();
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-
-        Constraints constraints = constraints();
-        boolean widthIsAR = constraints.getWidthConstraint() instanceof AspectRatioConstraint;
-        boolean heightIsAR = constraints.getHeightConstraint() instanceof AspectRatioConstraint;
-
-        float width;
-        float height;
-
-        if (widthIsAR && !heightIsAR) {
-            height = constraints.computeHeight(parentHeight);
-            this.measuredHeight = height;
-            width = constraints.computeWidth(parentWidth);
-        } else if (heightIsAR && !widthIsAR) {
-            width = constraints.computeWidth(parentWidth);
-            this.measuredWidth = width;
-            height = constraints.computeHeight(parentHeight);
-        } else {
-            width = constraints.computeWidth(parentWidth);
-            height = constraints.computeHeight(parentHeight);
-        }
-
-        setMeasuredSize(width, height);
-
-        float x = constraints.computeX(parentWidth, width);
-        float y = constraints.computeY(parentHeight, height);
-        ImGui.setCursorPos(x, y);
-
         boolean disabledScope = isDisabled();
-        if (disabledScope) {
-            ImGui.beginDisabled(true);
-        }
-
         boolean scaled = scale != 1.0f;
-        if (scaled) {
-            ImGuiUtils.pushWindowFontScale(scale);
-        }
+        float scaleFactor = scaled ? scale : 1.0f;
+        String label = labelSupplier.get();
+        float indicatorSize = ImGui.getFrameHeight();
+        float spacing = ImGui.getStyle().getItemInnerSpacingX();
+        float textWidth = ImGui.calcTextSize(label).x * scaleFactor;
+        float textHeight = ImGui.calcTextSize(label).y * scaleFactor;
+        float baseWidth = indicatorSize + spacing + textWidth;
+        float baseHeight = Math.max(indicatorSize, textHeight);
 
-        boolean active = isSelected();
-        boolean pressed = ImGui.radioButton(labelSupplier.get(), active);
-
-        if (scaled) {
-            ImGuiUtils.popWindowFontScale();
-        }
-
-        if (disabledScope) {
-            ImGui.endDisabled();
-        }
+        final boolean[] pressedHolder = new boolean[1];
+        withLayout(baseWidth, baseHeight, (width, height) -> {
+            if (disabledScope) {
+                ImGui.beginDisabled(true);
+            }
+            if (scaled) {
+                ImGuiUtils.pushWindowFontScale(scale);
+            }
+            try {
+                pressedHolder[0] = ImGui.radioButton(label, isSelected());
+            } finally {
+                if (scaled) {
+                    ImGuiUtils.popWindowFontScale();
+                }
+                if (disabledScope) {
+                    ImGui.endDisabled();
+                }
+            }
+        });
+        boolean pressed = pressedHolder[0];
 
         if (pressed && !disabledScope) {
             if (applySelection()) {

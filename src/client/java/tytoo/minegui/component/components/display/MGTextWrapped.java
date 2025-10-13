@@ -6,7 +6,6 @@ import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Scalable;
 import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Textable;
-import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
@@ -82,48 +81,32 @@ public class MGTextWrapped extends MGComponent<MGTextWrapped> implements Textabl
         beginRenderLifecycle();
         String text = getText();
 
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-
-        Constraints constraints = constraints();
-        float requestedWidth = constraints.computeWidth(parentWidth);
-        float requestedHeight = constraints.computeHeight(parentHeight);
-
         boolean applyScale = scale != 1.0f;
         float scaleFactor = applyScale ? scale : 1.0f;
         ImVec2 textSize = ImGui.calcTextSize(text);
         float baselineWidth = textSize.x * scaleFactor;
         float baselineHeight = textSize.y * scaleFactor;
 
-        float measuredWidth = requestedWidth > 0f ? requestedWidth : baselineWidth;
-        float measuredHeight = requestedHeight > 0f ? requestedHeight : baselineHeight;
-        setMeasuredSize(measuredWidth, measuredHeight);
-
-        float x = constraints.computeX(parentWidth, measuredWidth);
-        float y = constraints.computeY(parentHeight, measuredHeight);
-        ImGui.setCursorPos(x, y);
-
-        if (applyScale) {
-            ImGuiUtils.pushWindowFontScale(scale);
-        }
-
-        if (bullet && unformatted) {
-            ImGui.bullet();
-            ImGui.sameLine();
-            ImGui.textWrapped(text);
-        } else if (bullet) {
-            ImGui.bullet();
-            ImGui.sameLine();
-            ImGui.textWrapped(text);
-        } else if (unformatted) {
-            ImGui.textWrapped(text);
-        } else {
-            ImGui.textWrapped(text);
-        }
-
-        if (applyScale) {
-            ImGuiUtils.popWindowFontScale();
-        }
+        withLayout(baselineWidth, baselineHeight, (width, height) -> {
+            if (applyScale) {
+                ImGuiUtils.pushWindowFontScale(scale);
+            }
+            try {
+                if (bullet) {
+                    ImGui.bullet();
+                    ImGui.sameLine();
+                }
+                if (unformatted) {
+                    ImGui.textUnformatted(text);
+                } else {
+                    ImGui.textWrapped(text);
+                }
+            } finally {
+                if (applyScale) {
+                    ImGuiUtils.popWindowFontScale();
+                }
+            }
+        });
         renderChildren();
         endRenderLifecycle();
     }

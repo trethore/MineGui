@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.behavior.Behavior;
 import tytoo.minegui.contraint.XConstraint;
 import tytoo.minegui.contraint.YConstraint;
+import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
 
 import java.util.ArrayList;
@@ -84,17 +85,62 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return this.constraints;
     }
 
-    public void applyLayoutBeforeDraw() {
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-        float width = constraints.computeWidth(parentWidth);
-        float height = constraints.computeHeight(parentHeight);
-        float x = constraints.computeX(parentWidth, width);
-        float y = constraints.computeY(parentHeight, height);
+    protected final LayoutScope applyLayoutBeforeDraw(float preferredWidth, float preferredHeight) {
+        float parentWidth = Math.max(0f, getParentWidth());
+        float parentHeight = Math.max(0f, getParentHeight());
+        float baselineWidth = normalizePreferred(preferredWidth);
+        float baselineHeight = normalizePreferred(preferredHeight);
+
+        float requestedWidth = constraints.computeWidth(parentWidth);
+        float requestedHeight = constraints.computeHeight(parentHeight);
+
+        float width = resolveSize(requestedWidth, baselineWidth, parentWidth);
+        float height = resolveSize(requestedHeight, baselineHeight, parentHeight);
+
+        if (constraints.getHeightConstraint() instanceof AspectRatioConstraint(float ratio)) {
+            if (ratio > 0f) {
+                float target = width / ratio;
+                height = resolveSize(target, baselineHeight, parentHeight);
+            }
+        }
+
+        if (constraints.getWidthConstraint() instanceof AspectRatioConstraint(float ratio)) {
+            if (ratio > 0f) {
+                float target = height * ratio;
+                width = resolveSize(target, baselineWidth, parentWidth);
+            }
+        }
+
         setMeasuredSize(width, height);
-        ImGui.setCursorPos(x, y);
-        ImGui.pushItemWidth(width);
-        ImGui.setNextItemWidth(width);
+        float cursorX = constraints.computeX(parentWidth, width);
+        float cursorY = constraints.computeY(parentHeight, height);
+        ImGui.setCursorPos(cursorX, cursorY);
+        boolean pushedWidth = width > 0f;
+        if (pushedWidth) {
+            ImGui.pushItemWidth(width);
+            ImGui.setNextItemWidth(width);
+        }
+        return new LayoutScope(width, height, pushedWidth);
+    }
+
+    protected final LayoutScope applyLayoutBeforeDraw() {
+        return applyLayoutBeforeDraw(this.measuredWidth, this.measuredHeight);
+    }
+
+    protected final void withLayout(float preferredWidth, float preferredHeight, LayoutConsumer consumer) {
+        try (LayoutScope scope = applyLayoutBeforeDraw(preferredWidth, preferredHeight)) {
+            if (consumer != null) {
+                consumer.accept(scope.width(), scope.height());
+            }
+        }
+    }
+
+    protected final void withLayout(LayoutConsumer consumer) {
+        try (LayoutScope scope = applyLayoutBeforeDraw()) {
+            if (consumer != null) {
+                consumer.accept(scope.width(), scope.height());
+            }
+        }
     }
 
     protected void postRender() {
@@ -213,6 +259,63 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         behaviors.add(behavior);
         behavior.onAttach((T) this);
         return self();
+    }
+
+    private float normalizePreferred(float preferred) {
+        if (!Float.isFinite(preferred) || preferred <= 0f) {
+            return 1f;
+        }
+        return preferred;
+    }
+
+    private float resolveSize(float requested, float fallback, float parentExtent) {
+        if (Float.isFinite(requested) && requested > 0f) {
+            return requested;
+        }
+        if (Float.isFinite(fallback) && fallback > 0f) {
+            return fallback;
+        }
+        if (Float.isFinite(parentExtent) && parentExtent > 0f) {
+            return parentExtent;
+        }
+        return 1f;
+    }
+
+    @FunctionalInterface
+    protected interface LayoutConsumer {
+        void accept(float width, float height);
+    }
+
+    protected static final class LayoutScope implements AutoCloseable {
+        private final float width;
+        private final float height;
+        private final boolean popWidth;
+        private boolean closed;
+
+        private LayoutScope(float width, float height, boolean popWidth) {
+            this.width = width;
+            this.height = height;
+            this.popWidth = popWidth;
+        }
+
+        public float width() {
+            return width;
+        }
+
+        public float height() {
+            return height;
+        }
+
+        @Override
+        public void close() {
+            if (closed) {
+                return;
+            }
+            if (popWidth) {
+                ImGui.popItemWidth();
+            }
+            closed = true;
+        }
     }
 
 }

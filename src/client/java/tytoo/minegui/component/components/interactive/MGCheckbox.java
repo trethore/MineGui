@@ -5,8 +5,6 @@ import imgui.type.ImBoolean;
 import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.*;
-import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
-import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
@@ -113,61 +111,41 @@ public class MGCheckbox extends MGComponent<MGCheckbox> implements Textable<MGCh
     @Override
     public void render() {
         beginRenderLifecycle();
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-
-        Constraints c = constraints();
-        boolean widthIsAR = c.getWidthConstraint() instanceof AspectRatioConstraint;
-        boolean heightIsAR = c.getHeightConstraint() instanceof AspectRatioConstraint;
-
-        float width;
-        float height;
-
-        if (widthIsAR && !heightIsAR) {
-            height = c.computeHeight(parentHeight);
-            this.measuredHeight = height;
-            width = c.computeWidth(parentWidth);
-        } else if (heightIsAR && !widthIsAR) {
-            width = c.computeWidth(parentWidth);
-            this.measuredWidth = width;
-            height = c.computeHeight(parentHeight);
-        } else {
-            width = c.computeWidth(parentWidth);
-            height = c.computeHeight(parentHeight);
-        }
-
-        setMeasuredSize(width, height);
-
-        float x = c.computeX(parentWidth, width);
-        float y = c.computeY(parentHeight, height);
-        ImGui.setCursorPos(x, y);
-
         checkboxValue.set(currentValue());
 
         boolean disabledScope = disabled;
-        if (disabledScope) {
-            ImGui.beginDisabled(true);
-        }
-
         boolean scaled = scale != 1.0f;
-        if (scaled) {
-            ImGuiUtils.pushWindowFontScale(scale);
-        }
+        String label = labelSupplier.get();
+        float checkSize = ImGui.getFrameHeight();
+        float spacing = ImGui.getStyle().getItemInnerSpacingX();
+        float textWidth = ImGui.calcTextSize(label).x * (scaled ? scale : 1.0f);
+        float textHeight = ImGui.calcTextSize(label).y * (scaled ? scale : 1.0f);
+        float baseWidth = checkSize + spacing + textWidth;
+        float baseHeight = Math.max(checkSize, textHeight);
 
-        boolean changed = ImGui.checkbox(labelSupplier.get(), checkboxValue);
-
-        if (scaled) {
-            ImGuiUtils.popWindowFontScale();
-        }
-
-        if (disabledScope) {
-            ImGui.endDisabled();
-        }
-
-        if (changed && !disabled) {
-            applyValue(checkboxValue.get());
-            performClick();
-        }
+        withLayout(baseWidth, baseHeight, (width, height) -> {
+            if (disabledScope) {
+                ImGui.beginDisabled(true);
+            }
+            if (scaled) {
+                ImGuiUtils.pushWindowFontScale(scale);
+            }
+            boolean changed;
+            try {
+                changed = ImGui.checkbox(label, checkboxValue);
+            } finally {
+                if (scaled) {
+                    ImGuiUtils.popWindowFontScale();
+                }
+                if (disabledScope) {
+                    ImGui.endDisabled();
+                }
+            }
+            if (changed && !disabled) {
+                applyValue(checkboxValue.get());
+                performClick();
+            }
+        });
         renderChildren();
         endRenderLifecycle();
     }

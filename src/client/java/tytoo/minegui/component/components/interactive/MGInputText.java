@@ -11,7 +11,6 @@ import tytoo.minegui.component.traits.Disableable;
 import tytoo.minegui.component.traits.Scalable;
 import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Stateful;
-import tytoo.minegui.contraint.constraints.Constraints;
 import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
@@ -59,14 +58,8 @@ public class MGInputText extends MGComponent<MGInputText>
                 return;
             }
             if (maxLength > 0) {
-                int selectionStart = Math.max(0, data.getSelectionStart());
-                int selectionEnd = Math.max(selectionStart, data.getSelectionEnd());
-                int selectionLength = Math.max(0, selectionEnd - selectionStart);
-                String value = currentValue != null ? currentValue : "";
-                int baseLength = value.length();
-                int remainingLength = Math.max(0, baseLength - selectionLength);
                 int charUnits = Character.isValidCodePoint(eventChar) ? Character.charCount(eventChar) : 1;
-                int resultingLength = remainingLength + charUnits;
+                int resultingLength = projectedLengthAfterInsertion(data, charUnits);
                 if (resultingLength > maxLength) {
                     data.setEventChar(0);
                     return;
@@ -107,6 +100,16 @@ public class MGInputText extends MGComponent<MGInputText>
     public MGInputText value(String value) {
         setInternalValue(value, false, true);
         return self();
+    }
+
+    private int projectedLengthAfterInsertion(ImGuiInputTextCallbackData data, int charUnits) {
+        int selectionStart = Math.max(0, data.getSelectionStart());
+        int selectionEnd = Math.max(selectionStart, data.getSelectionEnd());
+        int selectionLength = Math.max(0, selectionEnd - selectionStart);
+        String value = currentValue != null ? currentValue : "";
+        int baseLength = value.length();
+        int remainingLength = Math.max(0, baseLength - selectionLength);
+        return remainingLength + Math.max(0, charUnits);
     }
 
     public MGInputText hint(String hint) {
@@ -244,56 +247,42 @@ public class MGInputText extends MGComponent<MGInputText>
     @Override
     public void render() {
         beginRenderLifecycle();
-        float parentWidth = getParentWidth();
-        float parentHeight = getParentHeight();
-
         String text = readBuffer();
-        Constraints constraints = constraints();
-        float requestedWidth = constraints.computeWidth(parentWidth);
-        float requestedHeight = constraints.computeHeight(parentHeight);
-
         String hint = hintSupplier.get();
         boolean scaled = scale != 1.0f;
-        if (scaled) {
-            ImGuiUtils.pushWindowFontScale(scale);
-        }
-
+        float scaleFactor = scaled ? scale : 1.0f;
         float framePaddingX = ImGui.getStyle().getFramePaddingX();
-        float baseWidth = ImGui.calcTextSize(text.isEmpty() ? hint : text).x + framePaddingX * 2.0f;
-        float frameHeight = ImGui.getFrameHeight();
-
-        float width = requestedWidth > 0f ? requestedWidth : baseWidth;
-        float height = requestedHeight > 0f ? requestedHeight : frameHeight;
-
-        setMeasuredSize(width, height);
-
-        float x = constraints.computeX(parentWidth, width);
-        float y = constraints.computeY(parentHeight, height);
-        ImGui.setCursorPos(x, y);
-        ImGui.setNextItemWidth(width);
-
+        String sampleText = text.isEmpty() ? (hint != null ? hint : "") : text;
+        float baseWidth = ImGui.calcTextSize(sampleText).x * scaleFactor + framePaddingX * 2.0f;
+        float baseHeight = ImGui.getFrameHeight() * scaleFactor;
         boolean disabledScope = disabled;
-        if (disabledScope) {
-            ImGui.beginDisabled(true);
-        }
-
         int effectiveFlags = resolveFlags();
         ImGuiInputTextCallback callback = needsCallback(effectiveFlags) ? inputTextCallback : null;
 
-        boolean activated;
-        if (hint == null || hint.isEmpty()) {
-            activated = ImGui.inputText(label, buffer, effectiveFlags, callback);
-        } else {
-            activated = ImGui.inputTextWithHint(label, hint, buffer, effectiveFlags, callback);
-        }
-
-        if (scaled) {
-            ImGuiUtils.popWindowFontScale();
-        }
-
-        if (disabledScope) {
-            ImGui.endDisabled();
-        }
+        final boolean[] activation = new boolean[1];
+        withLayout(baseWidth, baseHeight, (width, height) -> {
+            if (scaled) {
+                ImGuiUtils.pushWindowFontScale(scale);
+            }
+            if (disabledScope) {
+                ImGui.beginDisabled(true);
+            }
+            try {
+                if (hint == null || hint.isEmpty()) {
+                    activation[0] = ImGui.inputText(label, buffer, effectiveFlags, callback);
+                } else {
+                    activation[0] = ImGui.inputTextWithHint(label, hint, buffer, effectiveFlags, callback);
+                }
+            } finally {
+                if (disabledScope) {
+                    ImGui.endDisabled();
+                }
+                if (scaled) {
+                    ImGuiUtils.popWindowFontScale();
+                }
+            }
+        });
+        boolean activated = activation[0];
 
         String after = readBuffer();
         boolean changed = !Objects.equals(text, after);
