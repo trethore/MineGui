@@ -23,10 +23,12 @@ public class TestWindow extends MGWindow {
     }
 
     @Override
-    public void build() {
-        super.build();
+    protected void onCreate() {
         this.initialBounds(200, 180, 430, 320);
+    }
 
+    @Override
+    protected void renderContents() {
         MGButton.of("Test")
                 .width(Constraints.pixels(200))
                 .height(Constraints.pixels(60))
@@ -34,7 +36,7 @@ public class TestWindow extends MGWindow {
                 .pos(10, 30)
                 .onClick(() -> MineGuiDebugCore.LOGGER.info("Test: Button Clicked!"))
                 .behavior(TooltipBehavior.of("This is a button tooltip!"))
-                .parent(this);
+                .render();
 
         MGInputText.of(nameInput)
                 .hint("Enter player name")
@@ -46,23 +48,23 @@ public class TestWindow extends MGWindow {
                 .submitOnEnter(true)
                 .onChange(value -> MineGuiDebugCore.LOGGER.info("Name changed to: {}", value))
                 .onSubmit(value -> MineGuiDebugCore.LOGGER.info("Name submitted: {}", value))
-                .parent(this);
+                .render();
 
         MGRadio.of("Option A", "option_a", radioSelection)
                 .pos(10, 110)
                 .scale(2.0f)
                 .onClick(() -> MineGuiDebugCore.LOGGER.info("Radio Selected: {}", radioSelection.get()))
-                .parent(this);
+                .render();
 
         MGRadio.of("Option B", "option_b", radioSelection)
                 .pos(10, 158)
                 .onClick(() -> MineGuiDebugCore.LOGGER.info("Radio Selected: {}", radioSelection.get()))
-                .parent(this);
+                .render();
 
         MGRadio.of("Option C", "option_c", radioSelection)
                 .pos(10, 182)
                 .onClick(() -> MineGuiDebugCore.LOGGER.info("Radio Selected: {}", radioSelection.get()))
-                .parent(this);
+                .render();
 
         MGInputNumber.ofInt(counterValue)
                 .pos(220, 110)
@@ -71,7 +73,7 @@ public class TestWindow extends MGWindow {
                 .fastStep(10)
                 .onChange(values -> MineGuiDebugCore.LOGGER.info("Counter changed: {}", values[0]))
                 .onCommit(values -> MineGuiDebugCore.LOGGER.info("Counter committed: {}", values[0]))
-                .parent(this);
+                .render();
 
         MGInputNumber.ofFloatComponents(3)
                 .pos(220, 150)
@@ -80,7 +82,7 @@ public class TestWindow extends MGWindow {
                 .format("%.2f")
                 .state(vectorValue)
                 .onChange(values -> MineGuiDebugCore.LOGGER.info("Vector changed: [{}, {}, {}]", values[0], values[1], values[2]))
-                .parent(this);
+                .render();
 
         MGInputNumber.ofDouble(speedValue)
                 .pos(220, 190)
@@ -90,7 +92,7 @@ public class TestWindow extends MGWindow {
                 .submitOnEnter(true)
                 .onChange(values -> MineGuiDebugCore.LOGGER.info("Speed changed: {}", values[0]))
                 .onCommit(values -> MineGuiDebugCore.LOGGER.info("Speed committed: {}", values[0]))
-                .parent(this);
+                .render();
 
         MGSlider.ofFloat()
                 .label("Brightness")
@@ -100,7 +102,7 @@ public class TestWindow extends MGWindow {
                 .state(brightnessValue)
                 .valueFormatter(value -> String.format("%.0f%%", value * 100f))
                 .onChange(value -> MineGuiDebugCore.LOGGER.info("Brightness changed: {}", value))
-                .parent(this);
+                .render();
 
         MGSlider.ofDouble()
                 .label("Zoom Level")
@@ -111,7 +113,7 @@ public class TestWindow extends MGWindow {
                 .state(zoomLevel)
                 .valueFormatter(value -> String.format("%.1fx", value))
                 .onCommit(value -> MineGuiDebugCore.LOGGER.info("Zoom committed: {}", value))
-                .parent(this);
+                .render();
 
         MGSlider.ofEnum(Difficulty.class)
                 .label("Difficulty")
@@ -124,7 +126,7 @@ public class TestWindow extends MGWindow {
                     Difficulty difficulty = selection.value(Difficulty.class);
                     MineGuiDebugCore.LOGGER.info("Difficulty committed: {}", difficulty);
                 })
-                .parent(this);
+                .render();
     }
 
     private enum Difficulty {

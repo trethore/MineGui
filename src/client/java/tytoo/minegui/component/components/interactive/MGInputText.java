@@ -6,6 +6,7 @@ import imgui.callback.ImGuiInputTextCallback;
 import imgui.flag.ImGuiInputTextFlags;
 import imgui.type.ImString;
 import org.jetbrains.annotations.Nullable;
+import tytoo.minegui.component.ComponentPool;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Disableable;
 import tytoo.minegui.component.traits.Scalable;
@@ -22,20 +23,19 @@ import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class MGInputText extends MGComponent<MGInputText>
+public final class MGInputText extends MGComponent<MGInputText>
         implements Disableable<MGInputText>, Stateful<String, MGInputText>, Scalable<MGInputText>, Sizable<MGInputText> {
 
+    private static final ComponentPool<MGInputText> POOL = new ComponentPool<>(MGInputText::new, MGInputText::prepare);
+
     private final ImString buffer;
-    private final String defaultLabel = "##MGInputText_" + UUID.randomUUID();
-    private String label = defaultLabel;
-    private Supplier<String> hintSupplier = () -> "";
+    private final String defaultLabel;
+    private String label;
+    private Supplier<String> hintSupplier;
     private boolean disabled;
-    private float scale = 1.0f;
+    private float scale;
     @Nullable
     private State<String> state;
-    @Nullable
-    private Consumer<String> stateListener;
-    private boolean suppressStateCallback;
     private String currentValue;
     @Nullable
     private IntPredicate characterFilter;
@@ -45,7 +45,7 @@ public class MGInputText extends MGComponent<MGInputText>
     private Consumer<String> onChange;
     @Nullable
     private Consumer<String> onSubmit;
-    private int userFlags = ImGuiInputTextFlags.None;
+    private int userFlags;
     private int maxLength;
     private final ImGuiInputTextCallback inputTextCallback = new ImGuiInputTextCallback() {
         @Override
@@ -71,26 +71,55 @@ public class MGInputText extends MGComponent<MGInputText>
         }
     };
 
-    private MGInputText(String initialValue) {
-        String value = initialValue != null ? initialValue : "";
-        int capacity = Math.max(32, value.length() + 32);
-        this.buffer = new ImString(value, capacity);
-        this.buffer.inputData.isResizable = true;
-        this.currentValue = value;
+    private MGInputText() {
+        int capacity = 64;
+        buffer = new ImString("", capacity);
+        buffer.inputData.isResizable = true;
+        defaultLabel = "##MGInputText_" + UUID.randomUUID();
+        label = defaultLabel;
+        hintSupplier = () -> "";
+        disabled = false;
+        scale = 1.0f;
+        state = null;
+        currentValue = "";
+        characterFilter = null;
+        validator = null;
+        onChange = null;
+        onSubmit = null;
+        userFlags = ImGuiInputTextFlags.None;
+        maxLength = 0;
     }
 
     public static MGInputText of() {
-        return new MGInputText("");
+        return POOL.acquire();
     }
 
     public static MGInputText of(String initialValue) {
-        return new MGInputText(initialValue);
+        MGInputText field = POOL.acquire();
+        field.setInternalValue(initialValue, true, false);
+        return field;
     }
 
     public static MGInputText of(State<String> state) {
-        MGInputText field = new MGInputText(state != null ? Objects.toString(state.get(), "") : "");
+        MGInputText field = POOL.acquire();
         field.setState(state);
         return field;
+    }
+
+    private void prepare() {
+        label = defaultLabel;
+        hintSupplier = () -> "";
+        disabled = false;
+        scale = 1.0f;
+        state = null;
+        currentValue = "";
+        characterFilter = null;
+        validator = null;
+        onChange = null;
+        onSubmit = null;
+        userFlags = ImGuiInputTextFlags.None;
+        maxLength = 0;
+        buffer.set("", true);
     }
 
     public String getValue() {
@@ -98,18 +127,8 @@ public class MGInputText extends MGComponent<MGInputText>
     }
 
     public MGInputText value(String value) {
-        setInternalValue(value, false, true);
+        setInternalValue(value, true, true);
         return self();
-    }
-
-    private int projectedLengthAfterInsertion(ImGuiInputTextCallbackData data, int charUnits) {
-        int selectionStart = Math.max(0, data.getSelectionStart());
-        int selectionEnd = Math.max(selectionStart, data.getSelectionEnd());
-        int selectionLength = Math.max(0, selectionEnd - selectionStart);
-        String value = currentValue != null ? currentValue : "";
-        int baseLength = value.length();
-        int remainingLength = Math.max(0, baseLength - selectionLength);
-        return remainingLength + Math.max(0, charUnits);
     }
 
     public MGInputText hint(String hint) {
@@ -117,7 +136,7 @@ public class MGInputText extends MGComponent<MGInputText>
     }
 
     public MGInputText hint(Supplier<String> supplier) {
-        this.hintSupplier = supplier != null ? supplier : () -> "";
+        hintSupplier = supplier != null ? supplier : () -> "";
         return self();
     }
 
@@ -127,44 +146,44 @@ public class MGInputText extends MGComponent<MGInputText>
     }
 
     public MGInputText onChange(Consumer<String> consumer) {
-        this.onChange = consumer;
+        onChange = consumer;
         return self();
     }
 
     public MGInputText onSubmit(Consumer<String> consumer) {
-        this.onSubmit = consumer;
+        onSubmit = consumer;
         return self();
     }
 
     public MGInputText filter(IntPredicate predicate) {
-        this.characterFilter = predicate;
+        characterFilter = predicate;
         return self();
     }
 
     public MGInputText validator(Predicate<String> predicate) {
-        this.validator = predicate;
+        validator = predicate;
         setInternalValue(currentValue, true, false);
         return self();
     }
 
     public MGInputText maxLength(int length) {
-        this.maxLength = Math.max(0, length);
+        maxLength = Math.max(0, length);
         setInternalValue(currentValue, true, false);
         return self();
     }
 
     public MGInputText flags(int flags) {
-        this.userFlags = flags;
+        userFlags = flags;
         return self();
     }
 
     public MGInputText addFlags(int flags) {
-        this.userFlags |= flags;
+        userFlags |= flags;
         return self();
     }
 
     public MGInputText removeFlags(int flags) {
-        this.userFlags &= ~flags;
+        userFlags &= ~flags;
         return self();
     }
 
@@ -213,25 +232,10 @@ public class MGInputText extends MGComponent<MGInputText>
 
     @Override
     public void setState(@Nullable State<String> state) {
-        if (Objects.equals(this.state, state)) {
-            return;
-        }
-        if (this.state != null && stateListener != null) {
-            this.state.removeListener(stateListener);
-        }
         this.state = state;
-        if (state == null) {
-            stateListener = null;
-            return;
+        if (state != null) {
+            setInternalValue(state.get(), true, false);
         }
-        stateListener = newValue -> {
-            if (suppressStateCallback) {
-                return;
-            }
-            setInternalValue(newValue, true, false);
-        };
-        state.addListener(stateListener);
-        setInternalValue(state.get(), true, false);
     }
 
     @Override
@@ -245,8 +249,14 @@ public class MGInputText extends MGComponent<MGInputText>
     }
 
     @Override
-    public void render() {
-        beginRenderLifecycle();
+    protected void renderComponent() {
+        if (state != null) {
+            String stateValue = Objects.toString(state.get(), "");
+            if (!Objects.equals(stateValue, currentValue)) {
+                setInternalValue(stateValue, true, false);
+            }
+        }
+
         String text = readBuffer();
         String hint = hintSupplier.get();
         boolean scaled = scale != 1.0f;
@@ -295,8 +305,6 @@ public class MGInputText extends MGComponent<MGInputText>
         if ((effectiveFlags & ImGuiInputTextFlags.EnterReturnsTrue) != 0 && activated && onSubmit != null) {
             onSubmit.accept(currentValue);
         }
-        renderChildren();
-        endRenderLifecycle();
     }
 
     private int resolveFlags() {
@@ -320,26 +328,28 @@ public class MGInputText extends MGComponent<MGInputText>
         }
         boolean valueChanged = !Objects.equals(currentValue, sanitized);
         if (!valueChanged) {
-            if (fromState && state != null && !Objects.equals(value, sanitized)) {
-                suppressStateCallback = true;
+            if (!fromState && state != null && !Objects.equals(value, sanitized)) {
                 state.set(sanitized);
-                suppressStateCallback = false;
             }
             return;
         }
         currentValue = sanitized;
         if (!fromState && state != null) {
-            suppressStateCallback = true;
             state.set(sanitized);
-            suppressStateCallback = false;
-        } else if (fromState && state != null && !Objects.equals(value, sanitized)) {
-            suppressStateCallback = true;
-            state.set(sanitized);
-            suppressStateCallback = false;
         }
         if (notifyChange && onChange != null) {
             onChange.accept(sanitized);
         }
+    }
+
+    private int projectedLengthAfterInsertion(ImGuiInputTextCallbackData data, int charUnits) {
+        int selectionStart = Math.max(0, data.getSelectionStart());
+        int selectionEnd = Math.max(selectionStart, data.getSelectionEnd());
+        int selectionLength = Math.max(0, selectionEnd - selectionStart);
+        String value = currentValue != null ? currentValue : "";
+        int baseLength = value.length();
+        int remainingLength = Math.max(0, baseLength - selectionLength);
+        return remainingLength + Math.max(0, charUnits);
     }
 
     private String readBuffer() {
@@ -365,3 +375,4 @@ public class MGInputText extends MGComponent<MGInputText>
         return result;
     }
 }
+

@@ -1,7 +1,6 @@
 package tytoo.minegui.component;
 
 import imgui.ImGui;
-import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.behavior.Behavior;
 import tytoo.minegui.contraint.XConstraint;
 import tytoo.minegui.contraint.YConstraint;
@@ -9,22 +8,27 @@ import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
 import tytoo.minegui.contraint.constraints.Constraints;
 
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 public abstract class MGComponent<T extends MGComponent<T>> {
     protected final Constraints constraints = new Constraints(this);
     protected final List<Behavior<? super T>> behaviors = new ArrayList<>();
-    protected final Deque<MGComponent<?>> children = new LinkedList<>();
-    protected MGComponent<?> parent;
-    protected float measuredWidth = 0f;
-    protected float measuredHeight = 0f;
+    protected float measuredWidth;
+    protected float measuredHeight;
+    private Runnable afterRenderHook;
 
-    public MGComponent() {
+    protected MGComponent() {
+        measuredWidth = 0f;
+        measuredHeight = 0f;
+        afterRenderHook = null;
+    }
 
+    protected void resetRootState() {
+        detachBehaviors();
+        constraints.reset();
+        measuredWidth = 0f;
+        measuredHeight = 0f;
     }
 
     @SuppressWarnings("unchecked")
@@ -33,22 +37,26 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     }
 
     public float getMeasuredWidth() {
-        return this.measuredWidth;
+        return measuredWidth;
     }
 
     public float getMeasuredHeight() {
-        return this.measuredHeight;
+        return measuredHeight;
     }
 
     protected void setMeasuredSize(float width, float height) {
-        this.measuredWidth = width;
-        this.measuredHeight = height;
+        measuredWidth = width;
+        measuredHeight = height;
     }
 
     public void render() {
         beginRenderLifecycle();
-        renderChildren();
-        endRenderLifecycle();
+        try {
+            renderComponent();
+        } finally {
+            endRenderLifecycle();
+            afterRender();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -63,14 +71,16 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         behaviors.forEach(b -> b.postRender((T) this));
     }
 
-    public void renderChildren() {
-        for (MGComponent<?> child : children) {
-            child.render();
-        }
+    protected void renderComponent() {
     }
 
     protected void preRender() {
+    }
 
+    protected void postRender() {
+    }
+
+    protected void renderChildren() {
     }
 
     protected float getParentWidth() {
@@ -82,7 +92,7 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     }
 
     public Constraints constraints() {
-        return this.constraints;
+        return constraints;
     }
 
     protected final LayoutScope applyLayoutBeforeDraw(float preferredWidth, float preferredHeight) {
@@ -124,7 +134,7 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     }
 
     protected final LayoutScope applyLayoutBeforeDraw() {
-        return applyLayoutBeforeDraw(this.measuredWidth, this.measuredHeight);
+        return applyLayoutBeforeDraw(measuredWidth, measuredHeight);
     }
 
     protected final void withLayout(float preferredWidth, float preferredHeight, LayoutConsumer consumer) {
@@ -141,99 +151,6 @@ public abstract class MGComponent<T extends MGComponent<T>> {
                 consumer.accept(scope.width(), scope.height());
             }
         }
-    }
-
-    protected void postRender() {
-
-    }
-
-    public List<MGComponent<?>> getChildren() {
-        return List.copyOf(this.children);
-    }
-
-    public void forEachChild(Consumer<? super MGComponent<?>> consumer) {
-        if (consumer == null) {
-            return;
-        }
-        for (MGComponent<?> child : this.children) {
-            consumer.accept(child);
-        }
-    }
-
-    public void addChild(MGComponent<?> child) {
-        if (child == null) {
-            return;
-        }
-        if (child == this) {
-            return;
-        }
-        if (child.parent == this) {
-            if (!this.children.contains(child)) {
-                this.children.addLast(child);
-            }
-        } else {
-            if (child.parent != null) {
-                child.parent.removeChild(child);
-            }
-            this.children.remove(child);
-            this.children.addLast(child);
-            child.parent = this;
-        }
-    }
-
-    public void addChildren(List<MGComponent<?>> children) {
-        if (children == null || children.isEmpty()) {
-            return;
-        }
-        for (MGComponent<?> child : children) {
-            addChild(child);
-        }
-    }
-
-    public void removeChild(MGComponent<?> child) {
-        if (child == null) {
-            return;
-        }
-        this.children.remove(child);
-        if (child.parent == this) {
-            child.parent = null;
-        }
-    }
-
-    public void removeAllChildren() {
-        for (MGComponent<?> child : List.copyOf(this.children)) {
-            removeChild(child);
-        }
-    }
-
-    @Nullable
-    public MGComponent<?> getParent() {
-        return this.parent;
-    }
-
-    public T setParent(@Nullable MGComponent<?> parent) {
-        if (this.parent == parent) {
-            return self();
-        }
-        if (this.parent != null) {
-            this.parent.removeChild(this);
-        }
-        if (parent != null) {
-            parent.addChild(this);
-        }
-        return self();
-    }
-
-    public T parent(@Nullable MGComponent<?> parent) {
-        return setParent(parent);
-    }
-
-    public T goFirst() {
-        if (this.parent != null) {
-            this.parent.children.remove(this);
-            this.parent.children.addFirst(this);
-        }
-        return self();
     }
 
     public T x(XConstraint constraint) {
@@ -281,6 +198,29 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return 1f;
     }
 
+    @SuppressWarnings("unchecked")
+    protected final void detachBehaviors() {
+        if (behaviors.isEmpty()) {
+            return;
+        }
+        List<Behavior<? super T>> snapshot = List.copyOf(behaviors);
+        behaviors.clear();
+        for (Behavior<? super T> behavior : snapshot) {
+            behavior.onDetach((T) this);
+        }
+    }
+
+    protected void afterRender() {
+        if (afterRenderHook != null) {
+            afterRenderHook.run();
+            afterRenderHook = null;
+        }
+    }
+
+    protected final void setAfterRenderHook(Runnable hook) {
+        afterRenderHook = hook;
+    }
+
     @FunctionalInterface
     protected interface LayoutConsumer {
         void accept(float width, float height);
@@ -296,6 +236,7 @@ public abstract class MGComponent<T extends MGComponent<T>> {
             this.width = width;
             this.height = height;
             this.popWidth = popWidth;
+            this.closed = false;
         }
 
         public float width() {
@@ -317,5 +258,4 @@ public abstract class MGComponent<T extends MGComponent<T>> {
             closed = true;
         }
     }
-
 }

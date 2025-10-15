@@ -7,32 +7,34 @@ import tytoo.minegui.state.State;
 
 public class SettingsWindow extends MGWindow {
 
+    private final State<Boolean> darkMode = State.of(false);
+
     public SettingsWindow() {
         super("Settings", false);
     }
 
     @Override
-    public void build() {
-        super.build();
+    protected void onCreate() {
         this.initialBounds(300, 300, 300, 200);
+    }
 
-        State<Boolean> darkMode = State.of(false);
-
+    @Override
+    protected void renderContents() {
         MGText.of("Settings Panel")
                 .scale(1.2f)
                 .pos(10, 10)
-                .parent(this);
+                .render();
 
-        MGButton.of(State.computed(() -> "Dark Mode: " + (darkMode.get() ? "ON" : "OFF")))
-                .onClick(() -> darkMode.set(!darkMode.get()))
+        MGButton.of(() -> "Dark Mode: " + (darkMode.get() ? "ON" : "OFF"))
                 .size(200, 30)
                 .pos(10, 40)
-                .parent(this);
+                .onClick(() -> darkMode.set(!darkMode.get()))
+                .render();
 
         MGButton.of("Close")
-                .onClick(this::close)
                 .size(100, 30)
                 .pos(10, 80)
-                .parent(this);
+                .onClick(this::close)
+                .render();
     }
 }

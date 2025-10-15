@@ -36,6 +36,8 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     private int currentHeight = 300;
     private VisibilityMode visibilityMode = VisibilityMode.FOLLOW_PARENT;
     private FocusMode focusMode = FocusMode.FOLLOW_PARENT;
+    private boolean created = false;
+    private boolean lastFocusedState = false;
 
     protected MGWindow(String title) {
         this(title, true);
@@ -52,20 +54,28 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
 
     public static <W extends MGWindow> W create(Supplier<W> factory) {
         W window = factory.get();
-        window.initialize();
+        window.ensureLifecycleInitialized();
         return window;
     }
 
-    protected void initialize() {
-        build();
+    protected void onCreate() {
     }
 
-    protected void build() {
+    protected void renderContents() {
+    }
 
+    protected void onOpen() {
+    }
+
+    protected void onClose() {
+    }
+
+    protected void onFocusChange(boolean focused) {
     }
 
     @Override
     public void render() {
+        ensureLifecycleInitializedInternal();
         if (!isVisible()) {
             return;
         }
@@ -76,7 +86,7 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
         }
 
         int flags = 0;
-        boolean topLevel = getParent() == null;
+        boolean topLevel = parentWindow == null;
         boolean disablesCloseButton = false;
         boolean allowChildMove = false;
         boolean allowChildResize = false;
@@ -110,9 +120,12 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
             boundsInitialized = true;
         }
 
+        boolean previousFocus = lastFocusedState;
         boolean opened = disablesCloseButton ? ImGui.begin(title, flags) : ImGui.begin(title, visible, flags);
-        isFocused.set(ImGui.isWindowFocused());
+        boolean windowFocused = ImGui.isWindowFocused();
+        isFocused.set(windowFocused);
         if (opened) {
+            renderFrameContents();
             super.render();
         }
         float px = ImGui.getWindowPosX();
@@ -125,9 +138,21 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
         currentHeight = Math.max(1, Math.round(ph));
         ImGui.end();
 
+        if (windowFocused != previousFocus) {
+            lastFocusedState = windowFocused;
+            onFocusChange(windowFocused);
+            propagateFocusToChildren(windowFocused);
+        } else {
+            lastFocusedState = windowFocused;
+        }
+
         for (MGWindow subWindow : subWindows) {
             subWindow.render();
         }
+    }
+
+    private void renderFrameContents() {
+        renderContents();
     }
 
 
@@ -202,10 +227,25 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     }
 
     public void setVisible(boolean visible) {
+        ensureLifecycleInitializedInternal();
+        boolean previouslyVisible = isVisible();
         this.visible.set(visible);
         if (!visible) {
             this.isFocused.set(false);
             this.shouldFocus = false;
+        }
+        if (!previouslyVisible && visible) {
+            onOpen();
+        } else if (previouslyVisible && !visible) {
+            boolean hadFocus = lastFocusedState;
+            lastFocusedState = false;
+            if (hadFocus) {
+                onFocusChange(false);
+            }
+            propagateFocusToChildren(false);
+            onClose();
+        } else if (!visible) {
+            propagateFocusToChildren(false);
         }
         propagateVisibilityToChildren(visible);
     }
@@ -221,12 +261,31 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
         }
     }
 
+    private void propagateFocusToChildren(boolean parentFocused) {
+        for (MGWindow subWindow : subWindows) {
+            switch (subWindow.focusMode) {
+                case FOLLOW_PARENT -> subWindow.setFocused(parentFocused);
+                case EXCLUSIVE -> {
+                    if (parentFocused) {
+                        subWindow.open();
+                        subWindow.setFocused(true);
+                    } else {
+                        subWindow.close();
+                    }
+                }
+                case INDEPENDENT -> {
+                }
+            }
+        }
+    }
+
     public boolean isFocused() {
         return isFocused.get();
     }
 
     public void setFocused(boolean focused) {
         this.shouldFocus = focused;
+        propagateFocusToChildren(focused);
     }
 
     public void setInitialBounds(int x, int y, int width, int height) {
@@ -254,12 +313,20 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     }
 
     public boolean isTopLevel() {
-        return getParent() == null && parentWindow == null;
+        return parentWindow == null;
     }
 
     public <W extends MGWindow> W addSubWindow(W subWindow) {
-        subWindows.add(subWindow);
-        subWindow.parentWindow = this;
+        if (subWindow == null) {
+            return null;
+        }
+        if (!subWindows.contains(subWindow)) {
+            subWindow.parentWindow = this;
+            subWindow.ensureLifecycleInitialized();
+            subWindows.add(subWindow);
+            propagateVisibilityToChildren(isVisible());
+            propagateFocusToChildren(lastFocusedState);
+        }
         return subWindow;
     }
 
@@ -348,5 +415,25 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
 
     public EnumSet<MGWindowOption> getWindowOptions() {
         return windowOptions.isEmpty() ? EnumSet.noneOf(MGWindowOption.class) : EnumSet.copyOf(windowOptions);
+    }
+
+    protected final void ensureLifecycleInitialized() {
+        ensureLifecycleInitializedInternal();
+    }
+
+    private void ensureLifecycleInitializedInternal() {
+        if (created) {
+            return;
+        }
+        created = true;
+        onCreate();
+        if (isVisible()) {
+            onOpen();
+        }
+        lastFocusedState = isFocused();
+        propagateVisibilityToChildren(isVisible());
+        if (lastFocusedState) {
+            propagateFocusToChildren(true);
+        }
     }
 }

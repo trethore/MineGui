@@ -2,6 +2,7 @@ package tytoo.minegui.component.components.interactive;
 
 import imgui.ImGui;
 import org.jetbrains.annotations.Nullable;
+import tytoo.minegui.component.ComponentPool;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.*;
 import tytoo.minegui.state.State;
@@ -9,26 +10,52 @@ import tytoo.minegui.utils.ImGuiUtils;
 
 import java.util.function.Supplier;
 
-public class MGButton extends MGComponent<MGButton>
-        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton>, Sizable<MGButton>, Scalable<MGButton>, Repeatable<MGButton> {
+public final class MGButton extends MGComponent<MGButton>
+        implements Textable<MGButton>, Clickable<MGButton>, Disableable<MGButton>, Sizable<MGButton>,
+        Scalable<MGButton>, Repeatable<MGButton> {
 
+    private static final ComponentPool<MGButton> POOL = new ComponentPool<>(MGButton::new, MGButton::prepare);
+
+    private String literalText;
+    private final Supplier<String> literalSupplier = () -> literalText;
     private Supplier<String> textSupplier;
     @Nullable
     private Runnable onClick;
-    private boolean disabled = false;
-    private float scale = 1.0f;
-    private boolean repeatable = false;
+    private boolean disabled;
+    private float scale;
+    private boolean repeatable;
 
-    private MGButton(String text) {
-        this.textSupplier = () -> text;
+    private MGButton() {
+        literalText = "";
+        prepare();
     }
 
     public static MGButton of(String text) {
-        return new MGButton(text);
+        MGButton button = POOL.acquire();
+        button.literalText = text != null ? text : "";
+        button.textSupplier = button.literalSupplier;
+        return button;
     }
 
     public static MGButton of(State<String> state) {
-        return new MGButton(state.get()).bindText(state);
+        MGButton button = POOL.acquire();
+        button.bindText(state);
+        return button;
+    }
+
+    public static MGButton of(Supplier<String> supplier) {
+        MGButton button = POOL.acquire();
+        button.setTextSupplier(supplier);
+        return button;
+    }
+
+    private void prepare() {
+        textSupplier = literalSupplier;
+        literalText = "";
+        onClick = null;
+        disabled = false;
+        scale = 1.0f;
+        repeatable = false;
     }
 
     @Override
@@ -38,7 +65,7 @@ public class MGButton extends MGComponent<MGButton>
 
     @Override
     public void setTextSupplier(Supplier<String> supplier) {
-        this.textSupplier = supplier;
+        textSupplier = supplier != null ? supplier : literalSupplier;
     }
 
     @Override
@@ -49,7 +76,7 @@ public class MGButton extends MGComponent<MGButton>
 
     @Override
     public void setOnClick(@Nullable Runnable action) {
-        this.onClick = action;
+        onClick = action;
     }
 
     @Override
@@ -83,8 +110,7 @@ public class MGButton extends MGComponent<MGButton>
     }
 
     @Override
-    public void render() {
-        beginRenderLifecycle();
+    protected void renderComponent() {
         String label = textSupplier.get();
         float appliedScale = scale;
         boolean applyScale = appliedScale != 1.0f;
@@ -113,11 +139,28 @@ public class MGButton extends MGComponent<MGButton>
                     ImGuiUtils.popWindowFontScale();
                 }
             }
-            if (pressed) {
+            if (pressed && !disabled) {
                 performClick();
             }
         });
-        renderChildren();
-        endRenderLifecycle();
     }
+
+    @Override
+    public MGButton text(String text) {
+        literalText = text != null ? text : "";
+        textSupplier = literalSupplier;
+        return self();
+    }
+
+    @Override
+    public MGButton bindText(State<String> state) {
+        if (state == null) {
+            literalText = "";
+            textSupplier = literalSupplier;
+        } else {
+            textSupplier = state::get;
+        }
+        return self();
+    }
+
 }

@@ -6,6 +6,7 @@ import imgui.type.ImDouble;
 import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import org.jetbrains.annotations.Nullable;
+import tytoo.minegui.component.ComponentPool;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Disableable;
 import tytoo.minegui.component.traits.Scalable;
@@ -15,7 +16,6 @@ import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
@@ -30,6 +30,12 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private static final double DEFAULT_FLOAT_MAX = 1.0;
     private static final double DEFAULT_DOUBLE_MIN = 0.0;
     private static final double DEFAULT_DOUBLE_MAX = 1.0;
+    private static final ComponentPool<MGSlider<Integer>> INT_POOL =
+            new ComponentPool<>(() -> new MGSlider<>(SliderKind.INTEGER), MGSlider::prepare);
+    private static final ComponentPool<MGSlider<Float>> FLOAT_POOL =
+            new ComponentPool<>(() -> new MGSlider<>(SliderKind.FLOAT), MGSlider::prepare);
+    private static final ComponentPool<MGSlider<Double>> DOUBLE_POOL =
+            new ComponentPool<>(() -> new MGSlider<>(SliderKind.DOUBLE), MGSlider::prepare);
     private final SliderKind kind;
     private final String defaultLabel = "##MGSlider_" + UUID.randomUUID();
     private final ImInt intValue;
@@ -52,8 +58,6 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     @Nullable
     private State<T> state;
     @Nullable
-    private Consumer<T> stateListener;
-    @Nullable
     private Consumer<T> onChange;
     @Nullable
     private Consumer<T> onCommit;
@@ -61,7 +65,6 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private Consumer<EnumSelection> onEnumChange;
     @Nullable
     private Consumer<EnumSelection> onEnumCommit;
-    private boolean suppressStateCallback;
     private Enum<?>[] enumValues;
     private int enumIndex;
 
@@ -112,7 +115,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     }
 
     public static MGSlider<Integer> ofInt() {
-        return new MGSlider<>(SliderKind.INTEGER);
+        return INT_POOL.acquire();
     }
 
     public static MGSlider<Integer> ofInt(State<Integer> state) {
@@ -122,7 +125,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     }
 
     public static MGSlider<Float> ofFloat() {
-        return new MGSlider<>(SliderKind.FLOAT);
+        return FLOAT_POOL.acquire();
     }
 
     public static MGSlider<Float> ofFloat(State<Float> state) {
@@ -132,7 +135,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     }
 
     public static MGSlider<Double> ofDouble() {
-        return new MGSlider<>(SliderKind.DOUBLE);
+        return DOUBLE_POOL.acquire();
     }
 
     public static MGSlider<Double> ofDouble(State<Double> state) {
@@ -149,6 +152,47 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
         MGSlider<E> slider = ofEnum(enumType);
         slider.setState(state);
         return slider;
+    }
+
+    private void prepare() {
+        label = defaultLabel;
+        disabled = false;
+        scale = 1.0f;
+        sliderFlags = 0;
+        forwardTransform = DoubleUnaryOperator.identity();
+        backwardTransform = DoubleUnaryOperator.identity();
+        valueFormatter = null;
+        onChange = null;
+        onCommit = null;
+        onEnumChange = null;
+        onEnumCommit = null;
+        state = null;
+        currentEnumSelection = null;
+        enumIndex = 0;
+        if (kind == SliderKind.INTEGER) {
+            minValue = DEFAULT_INT_MIN;
+            maxValue = DEFAULT_INT_MAX;
+            value = DEFAULT_INT_MIN;
+            format = "%d";
+        } else if (kind == SliderKind.FLOAT) {
+            minValue = DEFAULT_FLOAT_MIN;
+            maxValue = DEFAULT_FLOAT_MAX;
+            value = DEFAULT_FLOAT_MIN;
+            format = "%.3f";
+        } else if (kind == SliderKind.DOUBLE) {
+            minValue = DEFAULT_DOUBLE_MIN;
+            maxValue = DEFAULT_DOUBLE_MAX;
+            value = DEFAULT_DOUBLE_MIN;
+            format = "%.6f";
+        } else {
+            if (enumValues.length > 0) {
+                enumIndex = 0;
+                updateEnumSelection();
+            } else {
+                currentEnumSelection = null;
+            }
+        }
+        updateBuffersFromValue();
     }
 
     public MGSlider<T> label(@Nullable String label) {
@@ -289,28 +333,10 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
 
     @Override
     public void setState(@Nullable State<T> state) {
-        if (Objects.equals(this.state, state)) {
-            return;
-        }
-        if (this.state != null && stateListener != null) {
-            this.state.removeListener(stateListener);
-        }
         this.state = state;
         if (state == null) {
-            stateListener = null;
             return;
         }
-        stateListener = newValue -> {
-            if (suppressStateCallback) {
-                return;
-            }
-            if (kind == SliderKind.ENUM) {
-                setInternalEnumValue((Enum<?>) newValue, true);
-            } else {
-                setInternalNumericValue(toDouble(newValue), true, false);
-            }
-        };
-        state.addListener(stateListener);
         T current = state.get();
         if (kind == SliderKind.ENUM) {
             setInternalEnumValue((Enum<?>) current, true);
@@ -329,9 +355,22 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
         this.scale = scale;
     }
 
+    private void refreshFromState() {
+        if (state == null) {
+            return;
+        }
+        T current = state.get();
+        if (kind == SliderKind.ENUM) {
+            setInternalEnumValue((Enum<?>) current, true);
+        } else {
+            setInternalNumericValue(toDouble(current), true, false);
+        }
+    }
+
     @Override
     public void render() {
         beginRenderLifecycle();
+        refreshFromState();
         float frameHeight = ImGui.getFrameHeight();
         updateBuffersFromValue();
 
@@ -500,24 +539,12 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private void setInternalNumericValue(double newValue, boolean fromState, boolean notifyChange) {
         double sanitized = sanitizeNumericValue(newValue);
         if (Double.doubleToLongBits(value) == Double.doubleToLongBits(sanitized)) {
-            if (fromState) {
-                syncStateIfNeeded();
-            }
             return;
         }
         value = sanitized;
         updateBuffersFromValue();
-        if (state != null) {
-            T typed = snapshotValue();
-            if (!fromState) {
-                suppressStateCallback = true;
-                state.set(typed);
-                suppressStateCallback = false;
-            } else if (!Objects.equals(state.get(), typed)) {
-                suppressStateCallback = true;
-                state.set(typed);
-                suppressStateCallback = false;
-            }
+        if (!fromState && state != null) {
+            state.set(snapshotValue());
         }
         if (notifyChange) {
             notifyNumericChange();
@@ -538,25 +565,13 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private void setInternalEnumIndex(int index, boolean fromState, boolean notifyChange) {
         int clamped = Math.max(0, Math.min(enumValues.length - 1, index));
         if (enumIndex == clamped) {
-            if (fromState) {
-                syncStateIfNeeded();
-            }
             return;
         }
         enumIndex = clamped;
         updateBuffersFromValue();
         updateEnumSelection();
-        if (state != null) {
-            T typed = snapshotValue();
-            if (!fromState) {
-                suppressStateCallback = true;
-                state.set(typed);
-                suppressStateCallback = false;
-            } else if (!Objects.equals(state.get(), typed)) {
-                suppressStateCallback = true;
-                state.set(typed);
-                suppressStateCallback = false;
-            }
+        if (!fromState && state != null) {
+            state.set(snapshotValue());
         }
         if (notifyChange) {
             notifyEnumChange();
@@ -567,18 +582,6 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
         Enum<?> current = enumValues[enumIndex];
         String label = valueFormatter != null ? valueFormatter.apply(current) : current.name();
         currentEnumSelection = new EnumSelection(enumIndex, current, label);
-    }
-
-    private void syncStateIfNeeded() {
-        if (state == null) {
-            return;
-        }
-        T typed = snapshotValue();
-        if (!Objects.equals(state.get(), typed)) {
-            suppressStateCallback = true;
-            state.set(typed);
-            suppressStateCallback = false;
-        }
     }
 
     private double sanitizeNumericValue(double incoming) {

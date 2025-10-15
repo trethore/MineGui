@@ -6,6 +6,7 @@ import imgui.type.ImDouble;
 import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import org.jetbrains.annotations.Nullable;
+import tytoo.minegui.component.ComponentPool;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.traits.Disableable;
 import tytoo.minegui.component.traits.Scalable;
@@ -16,23 +17,32 @@ import tytoo.minegui.utils.ImGuiUtils;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T>>
+public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T>>
         implements Disableable<MGInputNumber<T>>, Stateful<T[], MGInputNumber<T>>, Scalable<MGInputNumber<T>>, Sizable<MGInputNumber<T>> {
 
     private static final int MAX_COMPONENTS = 4;
+    private static final ComponentPool<MGInputNumber<Integer>>[] INT_POOLS = createIntPools();
+    private static final ComponentPool<MGInputNumber<Float>>[] FLOAT_POOLS = createFloatPools();
+    private static final ComponentPool<MGInputNumber<Double>> DOUBLE_POOL =
+            new ComponentPool<>(() -> new MGInputNumber<>(Double.class, 1), MGInputNumber::prepare);
 
     private final Class<T> typeClass;
-    private final String defaultLabel = "##MGInputNumber_" + UUID.randomUUID();
+    private final String defaultLabel;
     private final int componentCount;
-    private final double[] pendingValuesBuffer;
-    private String label = defaultLabel;
+    private final double[] values;
+    private final double[] scratchValues;
+    private final int[] intArrayBuffer;
+    private final float[] floatArrayBuffer;
+    private final ImInt intBuffer;
+    private final ImFloat floatBuffer;
+    private final ImDouble doubleBuffer;
+
+    private String label;
     private boolean disabled;
-    private float scale = 1.0f;
-    private double[] values;
+    private float scale;
     private double step;
     private double fastStep;
     private String format;
@@ -40,26 +50,11 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     @Nullable
     private State<T[]> state;
     @Nullable
-    private Consumer<T[]> stateListener;
-    @Nullable
     private State<T> singleState;
-    @Nullable
-    private Consumer<T> singleStateListener;
-    private boolean suppressStateCallback;
-    private boolean suppressSingleStateCallback;
     @Nullable
     private Consumer<T[]> onChange;
     @Nullable
     private Consumer<T[]> onCommit;
-
-    @Nullable
-    private ImInt intBuffer;
-    private int[] intArrayBuffer;
-    @Nullable
-    private ImFloat floatBuffer;
-    private float[] floatArrayBuffer;
-    @Nullable
-    private ImDouble doubleBuffer;
 
     private MGInputNumber(Class<T> typeClass, int components) {
         this.typeClass = typeClass;
@@ -67,26 +62,78 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         if (typeClass == Double.class && this.componentCount != 1) {
             throw new IllegalArgumentException("InputDouble only supports a single component");
         }
+        this.defaultLabel = "##MGInputNumber_" + UUID.randomUUID();
+        this.label = defaultLabel;
         this.values = new double[this.componentCount];
-        this.pendingValuesBuffer = new double[this.componentCount];
-        this.format = defaultFormatFor(typeClass);
+        this.scratchValues = new double[this.componentCount];
         if (typeClass == Integer.class) {
-            this.step = 1.0;
-            this.fastStep = 100.0;
+            this.intArrayBuffer = this.componentCount > 1 ? new int[this.componentCount] : null;
+            this.floatArrayBuffer = null;
+            this.intBuffer = this.componentCount == 1 ? new ImInt() : null;
+            this.floatBuffer = null;
+            this.doubleBuffer = null;
+        } else if (typeClass == Float.class) {
+            this.intArrayBuffer = null;
+            this.floatArrayBuffer = this.componentCount > 1 ? new float[this.componentCount] : null;
+            this.intBuffer = null;
+            this.floatBuffer = this.componentCount == 1 ? new ImFloat() : null;
+            this.doubleBuffer = null;
+        } else if (typeClass == Double.class) {
+            this.intArrayBuffer = null;
+            this.floatArrayBuffer = null;
+            this.intBuffer = null;
+            this.floatBuffer = null;
+            this.doubleBuffer = new ImDouble();
         } else {
-            this.step = 0.0;
-            this.fastStep = 0.0;
+            throw new IllegalArgumentException("Unsupported numeric type: " + typeClass.getName());
         }
-        this.userFlags = 0;
-        initializeBuffers();
+        prepare();
+    }
+
+    static ComponentPool<MGInputNumber<Integer>>[] createIntPools() {
+        @SuppressWarnings("unchecked")
+        ComponentPool<MGInputNumber<Integer>>[] pools = (ComponentPool<MGInputNumber<Integer>>[]) new ComponentPool<?>[MAX_COMPONENTS];
+        for (int i = 1; i <= MAX_COMPONENTS; i++) {
+            final int componentCount = i;
+            pools[i - 1] = new ComponentPool<>(() -> new MGInputNumber<>(Integer.class, componentCount), MGInputNumber::prepare);
+        }
+        return pools;
+    }
+
+    static ComponentPool<MGInputNumber<Float>>[] createFloatPools() {
+        @SuppressWarnings("unchecked")
+        ComponentPool<MGInputNumber<Float>>[] pools = (ComponentPool<MGInputNumber<Float>>[]) new ComponentPool<?>[MAX_COMPONENTS];
+        for (int i = 1; i <= MAX_COMPONENTS; i++) {
+            final int componentCount = i;
+            pools[i - 1] = new ComponentPool<>(() -> new MGInputNumber<>(Float.class, componentCount), MGInputNumber::prepare);
+        }
+        return pools;
+    }
+
+    static MGInputNumber<Integer> acquireInt(int components) {
+        if (components < 1 || components > MAX_COMPONENTS) {
+            throw new IllegalArgumentException("Components must be between 1 and " + MAX_COMPONENTS);
+        }
+        return INT_POOLS[components - 1].acquire();
+    }
+
+    static MGInputNumber<Float> acquireFloat(int components) {
+        if (components < 1 || components > MAX_COMPONENTS) {
+            throw new IllegalArgumentException("Components must be between 1 and " + MAX_COMPONENTS);
+        }
+        return FLOAT_POOLS[components - 1].acquire();
+    }
+
+    static MGInputNumber<Double> acquireDouble() {
+        return DOUBLE_POOL.acquire();
     }
 
     public static MGInputNumber<Integer> ofInt() {
-        return new MGInputNumber<>(Integer.class, 1);
+        return acquireInt(1);
     }
 
     public static MGInputNumber<Integer> ofIntComponents(int components) {
-        return new MGInputNumber<>(Integer.class, components);
+        return acquireInt(components);
     }
 
     public static MGInputNumber<Integer> ofInt(State<Integer> state) {
@@ -96,11 +143,11 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     }
 
     public static MGInputNumber<Float> ofFloat() {
-        return new MGInputNumber<>(Float.class, 1);
+        return acquireFloat(1);
     }
 
     public static MGInputNumber<Float> ofFloatComponents(int components) {
-        return new MGInputNumber<>(Float.class, components);
+        return acquireFloat(components);
     }
 
     public static MGInputNumber<Float> ofFloat(State<Float> state) {
@@ -110,7 +157,7 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     }
 
     public static MGInputNumber<Double> ofDouble() {
-        return new MGInputNumber<>(Double.class, 1);
+        return acquireDouble();
     }
 
     public static MGInputNumber<Double> ofDouble(State<Double> state) {
@@ -130,22 +177,26 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         return "%s";
     }
 
-    private void initializeBuffers() {
+    void prepare() {
+        label = defaultLabel;
+        disabled = false;
+        scale = 1.0f;
+        format = defaultFormatFor(typeClass);
+        userFlags = 0;
+        onChange = null;
+        onCommit = null;
+        state = null;
+        singleState = null;
+        Arrays.fill(values, 0.0);
+        Arrays.fill(scratchValues, 0.0);
         if (typeClass == Integer.class) {
-            if (componentCount == 1) {
-                intBuffer = new ImInt();
-            } else {
-                intArrayBuffer = new int[componentCount];
-            }
-        } else if (typeClass == Float.class) {
-            if (componentCount == 1) {
-                floatBuffer = new ImFloat();
-            } else {
-                floatArrayBuffer = new float[componentCount];
-            }
-        } else if (typeClass == Double.class) {
-            doubleBuffer = new ImDouble();
+            step = 1.0;
+            fastStep = 100.0;
+        } else {
+            step = 0.0;
+            fastStep = 0.0;
         }
+        updateBuffersFromValues();
     }
 
     public MGInputNumber<T> label(String label) {
@@ -154,17 +205,17 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     }
 
     public MGInputNumber<T> flags(int flags) {
-        this.userFlags = flags;
+        userFlags = flags;
         return self();
     }
 
     public MGInputNumber<T> addFlags(int flags) {
-        this.userFlags |= flags;
+        userFlags |= flags;
         return self();
     }
 
     public MGInputNumber<T> removeFlags(int flags) {
-        this.userFlags &= ~flags;
+        userFlags &= ~flags;
         return self();
     }
 
@@ -187,12 +238,12 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     }
 
     public MGInputNumber<T> step(T value) {
-        this.step = value != null ? toDouble(value) : 0.0;
+        step = value != null ? toDouble(value) : 0.0;
         return self();
     }
 
     public MGInputNumber<T> fastStep(T value) {
-        this.fastStep = value != null ? toDouble(value) : 0.0;
+        fastStep = value != null ? toDouble(value) : 0.0;
         return self();
     }
 
@@ -205,35 +256,34 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         if (componentCount != 1) {
             throw new IllegalStateException("Single value setter requires component count of 1");
         }
-        double[] newValues = new double[]{value != null ? toDouble(value) : 0.0};
-        setInternalValues(newValues, false, true);
+        scratchValues[0] = value != null ? toDouble(value) : 0.0;
+        setInternalValues(scratchValues);
         return self();
     }
 
     @SafeVarargs
     public final MGInputNumber<T> values(T... values) {
         if (values == null) {
-            double[] zeros = new double[componentCount];
-            setInternalValues(zeros, false, true);
-            return self();
+            Arrays.fill(scratchValues, 0.0);
+        } else {
+            if (values.length != componentCount) {
+                throw new IllegalArgumentException("Expected " + componentCount + " values but got " + values.length);
+            }
+            for (int i = 0; i < componentCount; i++) {
+                scratchValues[i] = values[i] != null ? toDouble(values[i]) : 0.0;
+            }
         }
-        if (values.length != componentCount) {
-            throw new IllegalArgumentException("Expected " + componentCount + " values but got " + values.length);
-        }
-        for (int i = 0; i < componentCount; i++) {
-            pendingValuesBuffer[i] = values[i] != null ? toDouble(values[i]) : 0.0;
-        }
-        setInternalValues(pendingValuesBuffer, false, true);
+        setInternalValues(scratchValues);
         return self();
     }
 
     public MGInputNumber<T> onChange(Consumer<T[]> consumer) {
-        this.onChange = consumer;
+        onChange = consumer;
         return self();
     }
 
     public MGInputNumber<T> onCommit(Consumer<T[]> consumer) {
-        this.onCommit = consumer;
+        onCommit = consumer;
         return self();
     }
 
@@ -266,59 +316,20 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
 
     @Override
     public void setState(@Nullable State<T[]> state) {
-        if (Objects.equals(this.state, state)) {
-            return;
-        }
-        if (this.state != null && stateListener != null) {
-            this.state.removeListener(stateListener);
-        }
         this.state = state;
-        if (state == null) {
-            stateListener = null;
-            return;
+        if (state != null) {
+            syncArrayState();
+            updateBuffersFromValues();
         }
-        stateListener = newValue -> {
-            if (suppressStateCallback) {
-                return;
-            }
-            double[] source = new double[componentCount];
-            T[] incoming = adjustIncomingArray(newValue);
-            for (int i = 0; i < componentCount; i++) {
-                source[i] = incoming[i] != null ? toDouble(incoming[i]) : 0.0;
-            }
-            setInternalValues(source, true, false);
-        };
-        state.addListener(stateListener);
-        T[] current = adjustIncomingArray(state.get());
-        double[] initial = new double[componentCount];
-        for (int i = 0; i < componentCount; i++) {
-            initial[i] = current[i] != null ? toDouble(current[i]) : 0.0;
-        }
-        setInternalValues(initial, true, false);
     }
 
     private void bindSingleState(@Nullable State<T> state) {
-        if (Objects.equals(this.singleState, state)) {
-            return;
-        }
-        if (this.singleState != null && singleStateListener != null) {
-            this.singleState.removeListener(singleStateListener);
-        }
         this.singleState = state;
-        if (state == null) {
-            singleStateListener = null;
-            return;
+        if (state != null) {
+            double incoming = state.get() != null ? toDouble(state.get()) : 0.0;
+            values[0] = incoming;
+            updateBuffersFromValues();
         }
-        singleStateListener = newValue -> {
-            if (suppressSingleStateCallback) {
-                return;
-            }
-            double[] source = new double[]{newValue != null ? toDouble(newValue) : 0.0};
-            setInternalValues(source, true, false);
-        };
-        state.addListener(singleStateListener);
-        double[] initial = new double[]{state.get() != null ? toDouble(state.get()) : 0.0};
-        setInternalValues(initial, true, false);
     }
 
     @Override
@@ -332,11 +343,15 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
     }
 
     @Override
-    public void render() {
-        beginRenderLifecycle();
+    protected void renderComponent() {
+        boolean updated = syncArrayState();
+        updated |= syncSingleState();
+        if (updated) {
+            updateBuffersFromValues();
+        }
+
         float frameHeight = ImGui.getFrameHeight();
         float componentWidth = frameHeight * 4.0f;
-        updateBuffersFromValues();
         boolean scaled = scale != 1.0f;
         boolean disabledScope = disabled;
         final boolean[] activation = new boolean[1];
@@ -363,9 +378,6 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         if (activated && onCommit != null) {
             onCommit.accept(copyTypedArray());
         }
-
-        renderChildren();
-        endRenderLifecycle();
     }
 
     private boolean renderWidget() {
@@ -385,8 +397,8 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
             int fastStepValue = (int) Math.round(fastStep);
             boolean activated = ImGui.inputInt(label, intBuffer, stepValue, fastStepValue, userFlags);
             if (activated) {
-                double[] next = new double[]{intBuffer.get()};
-                setInternalValues(next, false, true);
+                scratchValues[0] = intBuffer.get();
+                setInternalValues(scratchValues);
             }
             return activated;
         }
@@ -403,9 +415,9 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         }
         if (activated) {
             for (int i = 0; i < componentCount; i++) {
-                pendingValuesBuffer[i] = intArrayBuffer[i];
+                scratchValues[i] = intArrayBuffer[i];
             }
-            setInternalValues(pendingValuesBuffer, false, true);
+            setInternalValues(scratchValues);
         }
         return activated;
     }
@@ -416,8 +428,8 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
             float fastStepValue = (float) fastStep;
             boolean activated = ImGui.inputFloat(label, floatBuffer, stepValue, fastStepValue, format, userFlags);
             if (activated) {
-                double[] next = new double[]{floatBuffer.get()};
-                setInternalValues(next, false, true);
+                scratchValues[0] = floatBuffer.get();
+                setInternalValues(scratchValues);
             }
             return activated;
         }
@@ -426,23 +438,17 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         }
         boolean activated;
         if (componentCount == 2) {
-            activated = userFlags != 0
-                    ? ImGui.inputFloat2(label, floatArrayBuffer, format, userFlags)
-                    : ImGui.inputFloat2(label, floatArrayBuffer, format);
+            activated = userFlags != 0 ? ImGui.inputFloat2(label, floatArrayBuffer, format, userFlags) : ImGui.inputFloat2(label, floatArrayBuffer, format);
         } else if (componentCount == 3) {
-            activated = userFlags != 0
-                    ? ImGui.inputFloat3(label, floatArrayBuffer, format, userFlags)
-                    : ImGui.inputFloat3(label, floatArrayBuffer, format);
+            activated = userFlags != 0 ? ImGui.inputFloat3(label, floatArrayBuffer, format, userFlags) : ImGui.inputFloat3(label, floatArrayBuffer, format);
         } else {
-            activated = userFlags != 0
-                    ? ImGui.inputFloat4(label, floatArrayBuffer, format, userFlags)
-                    : ImGui.inputFloat4(label, floatArrayBuffer, format);
+            activated = userFlags != 0 ? ImGui.inputFloat4(label, floatArrayBuffer, format, userFlags) : ImGui.inputFloat4(label, floatArrayBuffer, format);
         }
         if (activated) {
             for (int i = 0; i < componentCount; i++) {
-                pendingValuesBuffer[i] = floatArrayBuffer[i];
+                scratchValues[i] = floatArrayBuffer[i];
             }
-            setInternalValues(pendingValuesBuffer, false, true);
+            setInternalValues(scratchValues);
         }
         return activated;
     }
@@ -455,8 +461,8 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         double fastStepValue = fastStep;
         boolean activated = ImGui.inputDouble(label, doubleBuffer, stepValue, fastStepValue, format, userFlags);
         if (activated) {
-            double[] next = new double[]{doubleBuffer.get()};
-            setInternalValues(next, false, true);
+            scratchValues[0] = doubleBuffer.get();
+            setInternalValues(scratchValues);
         }
         return activated;
     }
@@ -494,91 +500,79 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
         }
     }
 
-    private void setInternalValues(double[] source, boolean fromState, boolean notifyChange) {
-        double[] sanitized = sanitizeValues(source);
-        boolean changed = !DoubleArray.equals(values, sanitized, componentCount);
-        if (!changed) {
-            if (fromState) {
-                syncStateIfNeeded(sanitized);
+    private void setInternalValues(double[] source) {
+        boolean changed = false;
+        for (int i = 0; i < componentCount; i++) {
+            double sanitized = sanitizeValue(i < source.length ? source[i] : 0.0);
+            if (Double.doubleToLongBits(values[i]) != Double.doubleToLongBits(sanitized)) {
+                values[i] = sanitized;
+                changed = true;
             }
+        }
+        if (!changed) {
+            pushValuesToStates();
             return;
         }
-        this.values = Arrays.copyOf(sanitized, componentCount);
         updateBuffersFromValues();
-        T[] typedSnapshot = copyTypedArray();
-        if (!fromState && state != null) {
-            suppressStateCallback = true;
-            state.set(Arrays.copyOf(typedSnapshot, typedSnapshot.length));
-            suppressStateCallback = false;
-        } else if (fromState && state != null) {
-            T[] current = state.get();
-            if (!Arrays.equals(adjustIncomingArray(current), typedSnapshot)) {
-                suppressStateCallback = true;
-                state.set(Arrays.copyOf(typedSnapshot, typedSnapshot.length));
-                suppressStateCallback = false;
-            }
-        }
-        if (!fromState && singleState != null && componentCount == 1) {
-            suppressSingleStateCallback = true;
-            singleState.set(typedSnapshot[0]);
-            suppressSingleStateCallback = false;
-        } else if (fromState && singleState != null && componentCount == 1) {
-            T current = singleState.get();
-            if (!Objects.equals(current, typedSnapshot[0])) {
-                suppressSingleStateCallback = true;
-                singleState.set(typedSnapshot[0]);
-                suppressSingleStateCallback = false;
-            }
-        }
-        if (notifyChange && onChange != null) {
-            onChange.accept(Arrays.copyOf(typedSnapshot, typedSnapshot.length));
+        pushValuesToStates();
+        if (onChange != null) {
+            onChange.accept(copyTypedArray());
         }
     }
 
-    private void syncStateIfNeeded(double[] sanitized) {
+    private void pushValuesToStates() {
         if (state != null) {
-            T[] typedSnapshot = copyTypedArray();
-            T[] current = adjustIncomingArray(state.get());
-            if (!Arrays.equals(current, typedSnapshot)) {
-                suppressStateCallback = true;
-                state.set(Arrays.copyOf(typedSnapshot, typedSnapshot.length));
-                suppressStateCallback = false;
-            }
+            state.set(copyTypedArray());
         }
         if (singleState != null && componentCount == 1) {
-            T value = castToType(sanitized[0]);
-            if (!Objects.equals(singleState.get(), value)) {
-                suppressSingleStateCallback = true;
-                singleState.set(value);
-                suppressSingleStateCallback = false;
-            }
+            singleState.set(castToType(values[0]));
         }
     }
 
-    private double[] sanitizeValues(double[] source) {
-        double[] result = new double[componentCount];
+    private boolean syncArrayState() {
+        if (state == null) {
+            return false;
+        }
+        T[] snapshot = state.get();
+        boolean changed = false;
         for (int i = 0; i < componentCount; i++) {
-            double value = i < source.length ? source[i] : 0.0;
-            if (typeClass == Integer.class) {
-                double clamped = Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, value));
-                result[i] = Math.round(clamped);
-            } else if (typeClass == Float.class) {
-                float f = (float) value;
-                result[i] = Float.isFinite(f) ? f : 0.0f;
-            } else if (typeClass == Double.class) {
-                result[i] = Double.isFinite(value) ? value : 0.0;
-            } else {
-                result[i] = value;
+            double incoming = snapshot != null && i < snapshot.length && snapshot[i] != null ? toDouble(snapshot[i]) : 0.0;
+            if (Double.doubleToLongBits(values[i]) != Double.doubleToLongBits(incoming)) {
+                values[i] = incoming;
+                changed = true;
             }
         }
-        return result;
+        return changed;
+    }
+
+    private boolean syncSingleState() {
+        if (singleState == null || componentCount != 1) {
+            return false;
+        }
+        T snapshot = singleState.get();
+        double incoming = snapshot != null ? toDouble(snapshot) : 0.0;
+        if (Double.doubleToLongBits(values[0]) != Double.doubleToLongBits(incoming)) {
+            values[0] = incoming;
+            return true;
+        }
+        return false;
+    }
+
+    private double sanitizeValue(double value) {
+        if (typeClass == Integer.class) {
+            double clamped = Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, value));
+            return Math.round(clamped);
+        } else if (typeClass == Float.class) {
+            float f = (float) value;
+            return Float.isFinite(f) ? f : 0.0f;
+        } else if (typeClass == Double.class) {
+            return Double.isFinite(value) ? value : 0.0;
+        }
+        return value;
     }
 
     private double toDouble(Number value) {
-        if (value == null) {
-            return 0.0;
-        }
-        return value.doubleValue();
+        return value != null ? value.doubleValue() : 0.0;
     }
 
     @SuppressWarnings("unchecked")
@@ -600,39 +594,5 @@ public class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T
             array[i] = castToType(values[i]);
         }
         return array;
-    }
-
-    @SuppressWarnings("unchecked")
-    private T[] adjustIncomingArray(@Nullable T[] source) {
-        T[] result = (T[]) Array.newInstance(typeClass, componentCount);
-        if (source == null) {
-            return result;
-        }
-        int limit = Math.min(componentCount, source.length);
-        System.arraycopy(source, 0, result, 0, limit);
-        return result;
-    }
-
-    private static final class DoubleArray {
-        private DoubleArray() {
-        }
-
-        private static boolean equals(double[] a, double[] b, int components) {
-            if (a == b) {
-                return true;
-            }
-            if (a == null || b == null) {
-                return false;
-            }
-            if (a.length < components || b.length < components) {
-                return false;
-            }
-            for (int i = 0; i < components; i++) {
-                if (Double.doubleToLongBits(a[i]) != Double.doubleToLongBits(b[i])) {
-                    return false;
-                }
-            }
-            return true;
-        }
     }
 }

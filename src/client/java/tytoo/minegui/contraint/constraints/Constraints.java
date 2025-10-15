@@ -91,4 +91,11 @@ public class Constraints {
         return component;
     }
 
+    public void reset() {
+        x = new PixelConstraint(0);
+        y = new PixelConstraint(0);
+        width = new PixelConstraint(0);
+        height = new PixelConstraint(0);
+    }
+
 }
