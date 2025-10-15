@@ -29,6 +29,7 @@ public final class MGRadio<T> extends MGComponent<MGRadio<T>>
     @Nullable
     private T value;
     private boolean locallySelected;
+    private boolean layoutPressed;
 
     private MGRadio() {
     }
@@ -156,7 +157,7 @@ public final class MGRadio<T> extends MGComponent<MGRadio<T>>
         float baseWidth = indicatorSize + spacing + textWidth;
         float baseHeight = Math.max(indicatorSize, textHeight);
 
-        final boolean[] pressedHolder = new boolean[1];
+        layoutPressed = false;
         withLayout(baseWidth, baseHeight, (width, height) -> {
             if (disabledScope) {
                 ImGui.beginDisabled(true);
@@ -165,7 +166,7 @@ public final class MGRadio<T> extends MGComponent<MGRadio<T>>
                 ImGuiUtils.pushWindowFontScale(scale);
             }
             try {
-                pressedHolder[0] = ImGui.radioButton(label, isSelected());
+                layoutPressed = ImGui.radioButton(label, isSelected());
             } finally {
                 if (scaled) {
                     ImGuiUtils.popWindowFontScale();
@@ -175,7 +176,7 @@ public final class MGRadio<T> extends MGComponent<MGRadio<T>>
                 }
             }
         });
-        boolean pressed = pressedHolder[0];
+        boolean pressed = layoutPressed;
 
         if (pressed && !disabledScope) {
             if (applySelection()) {

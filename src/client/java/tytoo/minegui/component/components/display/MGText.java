@@ -76,8 +76,7 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
     }
 
     @Override
-    public void render() {
-        beginRenderLifecycle();
+    protected void renderComponent() {
         String text = getText();
 
         boolean applyScale = scale != 1.0f;
@@ -109,6 +108,5 @@ public class MGText extends MGComponent<MGText> implements Textable<MGText>, Sca
             }
         });
         renderChildren();
-        endRenderLifecycle();
     }
 }

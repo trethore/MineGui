@@ -67,6 +67,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private Consumer<EnumSelection> onEnumCommit;
     private Enum<?>[] enumValues;
     private int enumIndex;
+    private boolean layoutCommitFlag;
 
     private MGSlider(SliderKind kind) {
         this.kind = kind;
@@ -368,15 +369,14 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     }
 
     @Override
-    public void render() {
-        beginRenderLifecycle();
+    protected void renderComponent() {
         refreshFromState();
         float frameHeight = ImGui.getFrameHeight();
         updateBuffersFromValue();
 
         boolean scaled = scale != 1.0f;
         boolean disabledScope = disabled;
-        final boolean[] committedFlag = new boolean[1];
+        layoutCommitFlag = false;
         withLayout(frameHeight * 6.0f, frameHeight, (width, height) -> {
             if (scaled) {
                 ImGuiUtils.pushWindowFontScale(scale);
@@ -390,7 +390,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
                 } else {
                     renderNumericSlider();
                 }
-                committedFlag[0] = ImGui.isItemDeactivatedAfterEdit();
+                layoutCommitFlag = ImGui.isItemDeactivatedAfterEdit();
             } finally {
                 if (disabledScope) {
                     ImGui.endDisabled();
@@ -400,7 +400,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
                 }
             }
         });
-        boolean committed = committedFlag[0];
+        boolean committed = layoutCommitFlag;
 
         if (committed) {
             if (kind == SliderKind.ENUM) {
@@ -411,7 +411,6 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
         }
 
         renderChildren();
-        endRenderLifecycle();
     }
 
     private void renderNumericSlider() {

@@ -70,6 +70,7 @@ public final class MGInputText extends MGComponent<MGInputText>
             }
         }
     };
+    private boolean layoutActivated;
 
     private MGInputText() {
         int capacity = 64;
@@ -269,7 +270,7 @@ public final class MGInputText extends MGComponent<MGInputText>
         int effectiveFlags = resolveFlags();
         ImGuiInputTextCallback callback = needsCallback(effectiveFlags) ? inputTextCallback : null;
 
-        final boolean[] activation = new boolean[1];
+        layoutActivated = false;
         withLayout(baseWidth, baseHeight, (width, height) -> {
             if (scaled) {
                 ImGuiUtils.pushWindowFontScale(scale);
@@ -279,9 +280,9 @@ public final class MGInputText extends MGComponent<MGInputText>
             }
             try {
                 if (hint == null || hint.isEmpty()) {
-                    activation[0] = ImGui.inputText(label, buffer, effectiveFlags, callback);
+                    layoutActivated = ImGui.inputText(label, buffer, effectiveFlags, callback);
                 } else {
-                    activation[0] = ImGui.inputTextWithHint(label, hint, buffer, effectiveFlags, callback);
+                    layoutActivated = ImGui.inputTextWithHint(label, hint, buffer, effectiveFlags, callback);
                 }
             } finally {
                 if (disabledScope) {
@@ -292,7 +293,7 @@ public final class MGInputText extends MGComponent<MGInputText>
                 }
             }
         });
-        boolean activated = activation[0];
+        boolean activated = layoutActivated;
 
         String after = readBuffer();
         boolean changed = !Objects.equals(text, after);
@@ -375,4 +376,3 @@ public final class MGInputText extends MGComponent<MGInputText>
         return result;
     }
 }
-

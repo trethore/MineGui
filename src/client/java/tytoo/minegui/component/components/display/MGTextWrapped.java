@@ -77,8 +77,7 @@ public class MGTextWrapped extends MGComponent<MGTextWrapped> implements Textabl
     }
 
     @Override
-    public void render() {
-        beginRenderLifecycle();
+    protected void renderComponent() {
         String text = getText();
 
         boolean applyScale = scale != 1.0f;
@@ -108,6 +107,5 @@ public class MGTextWrapped extends MGComponent<MGTextWrapped> implements Textabl
             }
         });
         renderChildren();
-        endRenderLifecycle();
     }
 }

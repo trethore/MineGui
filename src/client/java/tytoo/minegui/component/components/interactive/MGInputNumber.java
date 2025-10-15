@@ -55,6 +55,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
     private Consumer<T[]> onChange;
     @Nullable
     private Consumer<T[]> onCommit;
+    private boolean layoutActivated;
 
     private MGInputNumber(Class<T> typeClass, int components) {
         this.typeClass = typeClass;
@@ -354,7 +355,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         float componentWidth = frameHeight * 4.0f;
         boolean scaled = scale != 1.0f;
         boolean disabledScope = disabled;
-        final boolean[] activation = new boolean[1];
+        layoutActivated = false;
         withLayout(componentWidth * componentCount, frameHeight, (width, height) -> {
             if (scaled) {
                 ImGuiUtils.pushWindowFontScale(scale);
@@ -363,7 +364,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
                 ImGui.beginDisabled(true);
             }
             try {
-                activation[0] = renderWidget();
+                layoutActivated = renderWidget();
             } finally {
                 if (disabledScope) {
                     ImGui.endDisabled();
@@ -373,7 +374,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
                 }
             }
         });
-        boolean activated = activation[0];
+        boolean activated = layoutActivated;
 
         if (activated && onCommit != null) {
             onCommit.accept(copyTypedArray());
