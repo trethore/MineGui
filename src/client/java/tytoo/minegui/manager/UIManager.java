@@ -2,6 +2,7 @@ package tytoo.minegui.manager;
 
 import net.minecraft.util.profiler.Profilers;
 import tytoo.minegui.component.components.layout.MGWindow;
+import tytoo.minegui.component.id.IDScope;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -77,6 +78,7 @@ public class UIManager {
     }
 
     public void render() {
+        IDScope.reset();
         for (MGWindow window : windows) {
             Profilers.get().push(window.getTitle() + " " + window.hashCode());
             window.render();

@@ -2,6 +2,7 @@ package tytoo.minegui.component;
 
 import imgui.ImGui;
 import tytoo.minegui.component.behavior.Behavior;
+import tytoo.minegui.component.id.IDScope;
 import tytoo.minegui.contraint.XConstraint;
 import tytoo.minegui.contraint.YConstraint;
 import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
@@ -17,11 +18,15 @@ public abstract class MGComponent<T extends MGComponent<T>> {
     protected float measuredWidth;
     protected float measuredHeight;
     private Runnable afterRenderHook;
+    private String[] idSegments;
+    private String currentId;
 
     protected MGComponent() {
         measuredWidth = 0f;
         measuredHeight = 0f;
         afterRenderHook = null;
+        idSegments = null;
+        currentId = null;
     }
 
     protected void resetRootState() {
@@ -29,6 +34,8 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         constraints.reset();
         measuredWidth = 0f;
         measuredHeight = 0f;
+        idSegments = null;
+        currentId = null;
     }
 
     @SuppressWarnings("unchecked")
@@ -44,18 +51,35 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return measuredHeight;
     }
 
+    public String getId() {
+        return currentId;
+    }
+
     protected void setMeasuredSize(float width, float height) {
         measuredWidth = width;
         measuredHeight = height;
     }
 
     public void render() {
-        beginRenderLifecycle();
+        IDScope.ComponentScope scope = IDScope.pushComponent(defaultIdSegment(), idSegments);
+        currentId = scope.id();
+        boolean lifecycleStarted = false;
         try {
-            renderComponent();
+            beginRenderLifecycle();
+            lifecycleStarted = true;
+            try {
+                renderComponent();
+            } finally {
+                endRenderLifecycle();
+            }
         } finally {
-            endRenderLifecycle();
-            afterRender();
+            try {
+                scope.close();
+            } finally {
+                if (lifecycleStarted) {
+                    afterRender();
+                }
+            }
         }
     }
 
@@ -93,6 +117,26 @@ public abstract class MGComponent<T extends MGComponent<T>> {
 
     public Constraints constraints() {
         return constraints;
+    }
+
+    public T id(Enum<?> key) {
+        setIdSegments(IDScope.normalizeSegment(key));
+        return self();
+    }
+
+    public T id(Enum<?> key, String additional) {
+        setIdSegments(IDScope.normalizeSegment(key), IDScope.normalizeSegment(additional));
+        return self();
+    }
+
+    public T id(String key) {
+        setIdSegments(IDScope.normalizeSegment(key));
+        return self();
+    }
+
+    public T id(String key, String additional) {
+        setIdSegments(IDScope.normalizeSegment(key), IDScope.normalizeSegment(additional));
+        return self();
     }
 
     protected final LayoutScope applyLayoutBeforeDraw(float preferredWidth, float preferredHeight) {
@@ -196,6 +240,31 @@ public abstract class MGComponent<T extends MGComponent<T>> {
             return parentExtent;
         }
         return 1f;
+    }
+
+    protected String defaultIdSegment() {
+        return IDScope.normalizeSegment(getClass().getSimpleName());
+    }
+
+    private void setIdSegments(String... segments) {
+        if (segments == null || segments.length == 0) {
+            idSegments = null;
+            return;
+        }
+        String[] normalized = new String[segments.length];
+        boolean hasValue = false;
+        for (int i = 0; i < segments.length; i++) {
+            String normalizedSegment = IDScope.normalizeSegment(segments[i]);
+            normalized[i] = normalizedSegment;
+            if (!normalizedSegment.isEmpty()) {
+                hasValue = true;
+            }
+        }
+        if (!hasValue) {
+            idSegments = null;
+            return;
+        }
+        idSegments = normalized;
     }
 
     @SuppressWarnings("unchecked")
