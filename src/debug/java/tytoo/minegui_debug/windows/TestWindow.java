@@ -1,7 +1,7 @@
 package tytoo.minegui_debug.windows;
 
-import imgui.ImGui;
 import tytoo.minegui.component.components.interactive.MGButton;
+import tytoo.minegui.component.components.display.MGText;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.component.id.IDScope;
 import tytoo.minegui.contraint.constraints.Constraints;
@@ -31,10 +31,11 @@ public class TestWindow extends MGWindow {
         int column = 0;
         for (ButtonSection section : ButtonSection.values()) {
             int columnX = startX + column * (COLUMN_WIDTH + COLUMN_SPACING);
-            ImGui.setCursorPos(columnX, startY - TITLE_OFFSET);
-            ImGui.text(section.title());
-
             try (IDScope.Scope ignored = IDScope.push(DemoIds.SECTION, section.name())) {
+                MGText.of(section.title())
+                        .pos(columnX, startY - TITLE_OFFSET)
+                        .id(DemoIds.SECTION_TITLE, section.name())
+                        .render();
                 renderSectionButtons(section, columnX, startY);
             }
 
@@ -59,6 +60,7 @@ public class TestWindow extends MGWindow {
 
     private enum DemoIds {
         SECTION,
+        SECTION_TITLE,
         BUTTON
     }
 

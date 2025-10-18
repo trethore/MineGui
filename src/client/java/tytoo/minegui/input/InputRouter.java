@@ -2,6 +2,8 @@ package tytoo.minegui.input;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
+import imgui.flag.ImGuiFocusedFlags;
+import imgui.flag.ImGuiHoveredFlags;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.client.MinecraftClient;
@@ -29,11 +31,13 @@ public final class InputRouter {
     }
 
     public boolean shouldPreventLock() {
+        if (!hasMouseConsumer()) {
+            return false;
+        }
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.currentScreen != null) return false;
-        UIManager ui = UIManager.getInstance();
-        if (!ui.isAnyWindowVisible()) return false;
-        boolean overNow = lastOverWindow;
+        boolean overNow = UIManager.getInstance().isAnyWindowVisible() ? lastOverWindow :
+                ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow) || ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
         return forceUnlockUntilRelease || overNow;
     }
 
@@ -83,8 +87,7 @@ public final class InputRouter {
     public void onFrame() {
         MinecraftClient mc = MinecraftClient.getInstance();
         updateSuppression(mc);
-        UIManager ui = UIManager.getInstance();
-        if (!ui.isAnyWindowVisible()) return;
+        if (!hasMouseConsumer()) return;
         boolean screenOpen = mc.currentScreen != null;
         if (screenOpen) return;
         if (forceUnlockUntilRelease) {
@@ -100,7 +103,8 @@ public final class InputRouter {
         boolean screenOpen = mc.currentScreen != null;
         updateSuppression(mc);
         boolean anyVisible = ui.isAnyWindowVisible();
-        if (!anyVisible) {
+        boolean hasMouseConsumer = hasMouseConsumer();
+        if (!hasMouseConsumer) {
             pressedMouse.remove(button);
             return false;
         }
@@ -113,14 +117,14 @@ public final class InputRouter {
         ImGuiIO io = ImGui.getIO();
         boolean wantMouse = io.getWantCaptureMouse();
         boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
-        boolean anyWindowFocused = ui.isAnyWindowFocused();
-        boolean overWindow = ui.isPointOverWindow(mouseX, mouseY);
+        boolean anyWindowFocused = ui.isAnyWindowFocused() || ImGui.isWindowFocused(ImGuiFocusedFlags.AnyWindow);
+        boolean overWindow = (anyVisible && ui.isPointOverWindow(mouseX, mouseY)) || ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow);
         lastOverWindow = overWindow;
 
         if (action == GLFW.GLFW_PRESS) {
             if (!screenOpen) {
                 boolean anyItemActive = ImGui.isAnyItemActive();
-                boolean capture = overWindow || anyItemActive || (wantMouse && anyWindowFocused);
+                boolean capture = overWindow || anyItemActive || (wantMouse && anyWindowFocused) || ImGui.isAnyItemFocused();
                 if (capture) {
                     if (mc.mouse.isCursorLocked()) ensureUnlocked(mc);
                     forceUnlockUntilRelease = true;
@@ -172,7 +176,8 @@ public final class InputRouter {
         }
         UIManager ui = UIManager.getInstance();
         boolean anyVisible = ui.isAnyWindowVisible();
-        if (!anyVisible) {
+        boolean hasMouseConsumer = hasMouseConsumer();
+        if (!hasMouseConsumer) {
             lastOverWindow = false;
             clearLatches();
             return false;
@@ -180,9 +185,10 @@ public final class InputRouter {
         ImGuiIO io = ImGui.getIO();
         boolean wantMouse = io.getWantCaptureMouse();
         boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
-        boolean overWindow = ui.isPointOverWindow((int) mouseX, (int) mouseY);
+        boolean overWindow = (anyVisible && ui.isPointOverWindow((int) mouseX, (int) mouseY)) ||
+                ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow);
         lastOverWindow = overWindow;
-        boolean anyWindowFocused = ui.isAnyWindowFocused();
+        boolean anyWindowFocused = ui.isAnyWindowFocused() || ImGui.isWindowFocused(ImGuiFocusedFlags.AnyWindow);
         boolean screenOpen = mc.currentScreen != null;
         boolean allowHover;
         if (screenOpen) {
@@ -201,12 +207,13 @@ public final class InputRouter {
         }
         UIManager ui = UIManager.getInstance();
         boolean anyVisible = ui.isAnyWindowVisible();
-        if (!anyVisible) return false;
+        if (!hasMouseConsumer()) return false;
         ImGuiIO io = ImGui.getIO();
         boolean wantMouse = io.getWantCaptureMouse();
         boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
-        boolean overWindow = ui.isPointOverWindow((int) mouseX, (int) mouseY);
-        boolean anyWindowFocused = ui.isAnyWindowFocused();
+        boolean overWindow = (anyVisible && ui.isPointOverWindow((int) mouseX, (int) mouseY)) ||
+                ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow);
+        boolean anyWindowFocused = ui.isAnyWindowFocused() || ImGui.isWindowFocused(ImGuiFocusedFlags.AnyWindow);
         boolean anyScroll = (horizontal != 0d) || (vertical != 0d);
         boolean allowHover = (mc.currentScreen != null) || anyWindowFocused;
         return allowHover && anyScroll && (anyItemActiveOrFocused || wantMouse || overWindow);
@@ -220,7 +227,7 @@ public final class InputRouter {
         MinecraftClient mc = MinecraftClient.getInstance();
         updateSuppression(mc);
 
-        if (!UIManager.getInstance().isAnyWindowVisible()) {
+        if (!hasKeyboardConsumer()) {
             pressedKeys.remove(normalizedKey);
             return false;
         }
@@ -255,10 +262,28 @@ public final class InputRouter {
             return false;
         }
         ImGuiIO io = ImGui.getIO();
-        boolean anyVisible = UIManager.getInstance().isAnyWindowVisible();
-        if (!anyVisible) return false;
+        if (!hasKeyboardConsumer()) return false;
         boolean wantText = io.getWantTextInput();
         boolean anyItemActiveOrFocused = ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
         return anyItemActiveOrFocused || wantText;
+    }
+
+    private boolean hasMouseConsumer() {
+        UIManager ui = UIManager.getInstance();
+        if (ui.isAnyWindowVisible()) {
+            return true;
+        }
+        ImGuiIO io = ImGui.getIO();
+        return io.getWantCaptureMouse() || ImGui.isAnyItemActive() || ImGui.isAnyItemFocused() ||
+                ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow) || ImGui.isWindowFocused(ImGuiFocusedFlags.AnyWindow);
+    }
+
+    private boolean hasKeyboardConsumer() {
+        UIManager ui = UIManager.getInstance();
+        if (ui.isAnyWindowVisible()) {
+            return true;
+        }
+        ImGuiIO io = ImGui.getIO();
+        return io.getWantTextInput() || io.getWantCaptureKeyboard() || ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
     }
 }
