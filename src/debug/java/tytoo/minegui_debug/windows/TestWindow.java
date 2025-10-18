@@ -41,6 +41,18 @@ public class TestWindow extends MGWindow {
 
             column++;
         }
+
+        float demoY = startY + ButtonSection.values().length * ROW_HEIGHT + 30f;
+        MGButton.of("Bounded Width")
+                .pos(Constraints.relative(0.5f, -90f), Constraints.pixels(demoY))
+                .dimensions(Constraints.relative(0.45f), Constraints.pixels(36))
+                .minWidth(180f)
+                .maxWidth(240f)
+                .minHeight(32f)
+                .maxHeight(40f)
+                .id(DemoIds.BOUNDED_BUTTON)
+                .onClick(() -> MineGuiDebugCore.LOGGER.info("Triggered bounded width demo"))
+                .render();
     }
 
     private void renderSectionButtons(ButtonSection section, int columnX, int startY) {
@@ -48,9 +60,9 @@ public class TestWindow extends MGWindow {
         for (String label : section.buttons()) {
             int buttonY = startY + row * ROW_HEIGHT;
             MGButton.of(label)
-                    .pos(columnX, buttonY)
-                    .width(Constraints.pixels(COLUMN_WIDTH))
-                    .height(Constraints.pixels(28))
+                    .x(columnX)
+                    .y(buttonY)
+                    .dimensions(COLUMN_WIDTH, 28)
                     .id(DemoIds.BUTTON, label)
                     .onClick(() -> MineGuiDebugCore.LOGGER.info("Clicked {} -> {}", section.name(), label))
                     .render();
@@ -61,7 +73,8 @@ public class TestWindow extends MGWindow {
     private enum DemoIds {
         SECTION,
         SECTION_TITLE,
-        BUTTON
+        BUTTON,
+        BOUNDED_BUTTON
     }
 
     private enum ButtonSection {

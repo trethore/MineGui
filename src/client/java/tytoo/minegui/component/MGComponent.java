@@ -3,6 +3,8 @@ package tytoo.minegui.component;
 import imgui.ImGui;
 import tytoo.minegui.component.behavior.Behavior;
 import tytoo.minegui.component.id.IDScope;
+import tytoo.minegui.contraint.HeightConstraint;
+import tytoo.minegui.contraint.WidthConstraint;
 import tytoo.minegui.contraint.XConstraint;
 import tytoo.minegui.contraint.YConstraint;
 import tytoo.minegui.contraint.constraints.AspectRatioConstraint;
@@ -149,12 +151,15 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         float requestedHeight = constraints.computeHeight(parentHeight);
 
         float width = resolveSize(requestedWidth, baselineWidth, parentWidth);
+        width = constraints.clampWidth(width, parentWidth);
         float height = resolveSize(requestedHeight, baselineHeight, parentHeight);
+        height = constraints.clampHeight(height, parentHeight);
 
         if (constraints.getHeightConstraint() instanceof AspectRatioConstraint(float ratio)) {
             if (ratio > 0f) {
                 float target = width / ratio;
                 height = resolveSize(target, baselineHeight, parentHeight);
+                height = constraints.clampHeight(height, parentHeight);
             }
         }
 
@@ -162,8 +167,12 @@ public abstract class MGComponent<T extends MGComponent<T>> {
             if (ratio > 0f) {
                 float target = height * ratio;
                 width = resolveSize(target, baselineWidth, parentWidth);
+                width = constraints.clampWidth(width, parentWidth);
             }
         }
+
+        width = constraints.clampWidth(width, parentWidth);
+        height = constraints.clampHeight(height, parentHeight);
 
         setMeasuredSize(width, height);
         float cursorX = constraints.computeX(parentWidth, width);
@@ -207,8 +216,82 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return self();
     }
 
+    public T pos(XConstraint xConstraint, YConstraint yConstraint) {
+        return x(xConstraint).y(yConstraint);
+    }
+
     public T pos(float x, float y) {
         return x(Constraints.pixels(x)).y(Constraints.pixels(y));
+    }
+
+    public T x(float value) {
+        return x(Constraints.pixels(value));
+    }
+
+    public T y(float value) {
+        return y(Constraints.pixels(value));
+    }
+
+    public T width(WidthConstraint constraint) {
+        constraints.setWidth(constraint);
+        return self();
+    }
+
+    public T width(float value) {
+        return width(Constraints.pixels(value));
+    }
+
+    public T height(HeightConstraint constraint) {
+        constraints.setHeight(constraint);
+        return self();
+    }
+
+    public T height(float value) {
+        return height(Constraints.pixels(value));
+    }
+
+    public T minWidth(WidthConstraint constraint) {
+        constraints.setMinWidth(constraint);
+        return self();
+    }
+
+    public T minWidth(float value) {
+        return minWidth(Constraints.pixels(value));
+    }
+
+    public T maxWidth(WidthConstraint constraint) {
+        constraints.setMaxWidth(constraint);
+        return self();
+    }
+
+    public T maxWidth(float value) {
+        return maxWidth(Constraints.pixels(value));
+    }
+
+    public T minHeight(HeightConstraint constraint) {
+        constraints.setMinHeight(constraint);
+        return self();
+    }
+
+    public T minHeight(float value) {
+        return minHeight(Constraints.pixels(value));
+    }
+
+    public T maxHeight(HeightConstraint constraint) {
+        constraints.setMaxHeight(constraint);
+        return self();
+    }
+
+    public T maxHeight(float value) {
+        return maxHeight(Constraints.pixels(value));
+    }
+
+    public T dimensions(WidthConstraint widthConstraint, HeightConstraint heightConstraint) {
+        return width(widthConstraint).height(heightConstraint);
+    }
+
+    public T dimensions(float widthValue, float heightValue) {
+        return width(widthValue).height(heightValue);
     }
 
     public T center() {
