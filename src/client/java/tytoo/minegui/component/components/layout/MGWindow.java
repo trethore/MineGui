@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.MGComponent;
 import tytoo.minegui.component.behavior.FocusMode;
 import tytoo.minegui.component.behavior.VisibilityMode;
+import tytoo.minegui.component.id.IDScope;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.utils.McUtils;
 
@@ -44,7 +45,7 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     }
 
     protected MGWindow(String title, boolean autoRegister) {
-        this.title = title;
+        this.title = visibleLabel(title);
         this.visible = new ImBoolean(true);
         this.isFocused = new ImBoolean(false);
         if (autoRegister && isTopLevel()) {
@@ -120,23 +121,40 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
             boundsInitialized = true;
         }
 
+        IDScope.ComponentScope scope = pushComponentScope();
+        boolean lifecycleStarted = false;
+        boolean windowFocused;
         boolean previousFocus = lastFocusedState;
-        boolean opened = disablesCloseButton ? ImGui.begin(title, flags) : ImGui.begin(title, visible, flags);
-        boolean windowFocused = ImGui.isWindowFocused();
-        isFocused.set(windowFocused);
-        if (opened) {
-            renderFrameContents();
-            super.render();
+        try {
+            String displayTitle = visibleLabel(title);
+            String widgetTitle = widgetLabelFromVisible(displayTitle);
+            boolean opened = disablesCloseButton ? ImGui.begin(widgetTitle, flags) : ImGui.begin(widgetTitle, visible, flags);
+            windowFocused = ImGui.isWindowFocused();
+            isFocused.set(windowFocused);
+            if (opened) {
+                beginRenderLifecycle();
+                lifecycleStarted = true;
+                try {
+                    renderFrameContents();
+                } finally {
+                    endRenderLifecycle();
+                }
+            }
+            float px = ImGui.getWindowPosX();
+            float py = ImGui.getWindowPosY();
+            float pw = ImGui.getWindowWidth();
+            float ph = ImGui.getWindowHeight();
+            currentX = Math.round(px);
+            currentY = Math.round(py);
+            currentWidth = Math.round(pw);
+            currentHeight = Math.max(1, Math.round(ph));
+            ImGui.end();
+        } finally {
+            scope.close();
+            if (lifecycleStarted) {
+                afterRender();
+            }
         }
-        float px = ImGui.getWindowPosX();
-        float py = ImGui.getWindowPosY();
-        float pw = ImGui.getWindowWidth();
-        float ph = ImGui.getWindowHeight();
-        currentX = Math.round(px);
-        currentY = Math.round(py);
-        currentWidth = Math.round(pw);
-        currentHeight = Math.max(1, Math.round(ph));
-        ImGui.end();
 
         if (windowFocused != previousFocus) {
             lastFocusedState = windowFocused;
@@ -219,7 +237,7 @@ public abstract class MGWindow extends MGComponent<MGWindow> {
     }
 
     public String setTitle(String title) {
-        return this.title = title;
+        return this.title = visibleLabel(title);
     }
 
     public boolean isVisible() {

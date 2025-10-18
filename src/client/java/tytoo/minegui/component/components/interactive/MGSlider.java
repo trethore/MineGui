@@ -16,7 +16,6 @@ import tytoo.minegui.state.State;
 import tytoo.minegui.utils.ImGuiUtils;
 
 import java.util.Arrays;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Function;
@@ -37,7 +36,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
     private static final ComponentPool<MGSlider<Double>> DOUBLE_POOL =
             new ComponentPool<>(() -> new MGSlider<>(SliderKind.DOUBLE), MGSlider::prepare);
     private final SliderKind kind;
-    private final String defaultLabel = "##MGSlider_" + UUID.randomUUID();
+    private final String defaultLabel = "";
     private final ImInt intValue;
     private final ImFloat floatValue;
     private final ImDouble doubleValue;
@@ -376,6 +375,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
 
         boolean scaled = scale != 1.0f;
         boolean disabledScope = disabled;
+        String widgetLabel = widgetLabel(label);
         layoutCommitFlag = false;
         withLayout(frameHeight * 6.0f, frameHeight, (width, height) -> {
             if (scaled) {
@@ -386,9 +386,9 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
             }
             try {
                 if (kind == SliderKind.ENUM) {
-                    renderEnumSlider();
+                    renderEnumSlider(widgetLabel);
                 } else {
-                    renderNumericSlider();
+                    renderNumericSlider(widgetLabel);
                 }
                 layoutCommitFlag = ImGui.isItemDeactivatedAfterEdit();
             } finally {
@@ -413,7 +413,7 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
         renderChildren();
     }
 
-    private void renderNumericSlider() {
+    private void renderNumericSlider(String widgetLabel) {
         if (kind == SliderKind.INTEGER) {
             double sliderMin = forwardTransform.applyAsDouble(minValue);
             double sliderMax = forwardTransform.applyAsDouble(maxValue);
@@ -421,9 +421,9 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
             int max = (int) Math.round(sliderMax);
             boolean activated;
             if (sliderFlags != 0) {
-                activated = ImGui.sliderScalar(label, ImGuiDataType.S32, intValue, min, max, format, sliderFlags);
+                activated = ImGui.sliderScalar(widgetLabel, ImGuiDataType.S32, intValue, min, max, format, sliderFlags);
             } else {
-                activated = ImGui.sliderScalar(label, ImGuiDataType.S32, intValue, min, max, format);
+                activated = ImGui.sliderScalar(widgetLabel, ImGuiDataType.S32, intValue, min, max, format);
             }
             if (activated) {
                 double raw = backwardTransform.applyAsDouble(intValue.get());
@@ -437,9 +437,9 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
             float max = (float) sliderMax;
             boolean activated;
             if (sliderFlags != 0) {
-                activated = ImGui.sliderScalar(label, ImGuiDataType.Float, floatValue, min, max, format, sliderFlags);
+                activated = ImGui.sliderScalar(widgetLabel, ImGuiDataType.Float, floatValue, min, max, format, sliderFlags);
             } else {
-                activated = ImGui.sliderScalar(label, ImGuiDataType.Float, floatValue, min, max, format);
+                activated = ImGui.sliderScalar(widgetLabel, ImGuiDataType.Float, floatValue, min, max, format);
             }
             if (activated) {
                 double raw = backwardTransform.applyAsDouble(floatValue.get());
@@ -451,9 +451,9 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
             double sliderMax = forwardTransform.applyAsDouble(maxValue);
             boolean activated;
             if (sliderFlags != 0) {
-                activated = ImGui.sliderScalar(label, ImGuiDataType.Double, doubleValue, sliderMin, sliderMax, format, sliderFlags);
+                activated = ImGui.sliderScalar(widgetLabel, ImGuiDataType.Double, doubleValue, sliderMin, sliderMax, format, sliderFlags);
             } else {
-                activated = ImGui.sliderScalar(label, ImGuiDataType.Double, doubleValue, sliderMin, sliderMax, format);
+                activated = ImGui.sliderScalar(widgetLabel, ImGuiDataType.Double, doubleValue, sliderMin, sliderMax, format);
             }
             if (activated) {
                 double raw = backwardTransform.applyAsDouble(doubleValue.get());
@@ -463,8 +463,8 @@ public class MGSlider<T> extends MGComponent<MGSlider<T>> implements Disableable
         }
     }
 
-    private void renderEnumSlider() {
-        boolean activated = ImGui.sliderInt(label, intValue.getData(), 0, enumValues.length - 1, "");
+    private void renderEnumSlider(String widgetLabel) {
+        boolean activated = ImGui.sliderInt(widgetLabel, intValue.getData(), 0, enumValues.length - 1, "");
         if (activated) {
             setInternalEnumIndex(intValue.get(), false, true);
         }

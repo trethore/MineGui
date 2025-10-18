@@ -111,13 +111,15 @@ public final class MGButton extends MGComponent<MGButton>
 
     @Override
     protected void renderComponent() {
-        String label = textSupplier.get();
+        String rawLabel = textSupplier.get();
+        String displayLabel = visibleLabel(rawLabel);
+        String widgetLabel = widgetLabelFromVisible(displayLabel);
         float appliedScale = scale;
         boolean applyScale = appliedScale != 1.0f;
         float stylePaddingX = ImGui.getStyle().getFramePaddingX();
         float stylePaddingY = ImGui.getStyle().getFramePaddingY();
-        float textWidth = ImGui.calcTextSize(label).x * appliedScale;
-        float textHeight = ImGui.calcTextSize(label).y * appliedScale;
+        float textWidth = ImGui.calcTextSize(displayLabel).x * appliedScale;
+        float textHeight = ImGui.calcTextSize(displayLabel).y * appliedScale;
         float baseWidth = textWidth + stylePaddingX * 2.0f;
         float baseHeight = textHeight + stylePaddingY * 2.0f;
 
@@ -130,7 +132,7 @@ public final class MGButton extends MGComponent<MGButton>
             }
             boolean pressed;
             try {
-                pressed = ImGui.button(label, width, height);
+                pressed = ImGui.button(widgetLabel, width, height);
             } finally {
                 if (repeatable) {
                     ImGui.popButtonRepeat();

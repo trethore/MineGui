@@ -1,6 +1,7 @@
 package tytoo.minegui.component;
 
 import imgui.ImGui;
+import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.component.behavior.Behavior;
 import tytoo.minegui.component.id.IDScope;
 import tytoo.minegui.contraint.HeightConstraint;
@@ -57,14 +58,49 @@ public abstract class MGComponent<T extends MGComponent<T>> {
         return currentId;
     }
 
+    protected final IDScope.ComponentScope pushComponentScope() {
+        IDScope.ComponentScope scope = IDScope.pushComponent(defaultIdSegment(), idSegments);
+        currentId = scope.id();
+        return scope;
+    }
+
+    protected String visibleLabel(@Nullable String raw) {
+        if (raw == null) {
+            return "";
+        }
+        int separator = raw.indexOf("##");
+        if (separator >= 0) {
+            return raw.substring(0, separator);
+        }
+        return raw;
+    }
+
+    protected String widgetLabel(@Nullable String raw) {
+        String visible = visibleLabel(raw);
+        return widgetLabelFromVisible(visible);
+    }
+
+    protected String widgetLabelFromVisible(@Nullable String visible) {
+        String display = visible != null ? visible : "";
+        if (display.isEmpty()) {
+            if (currentId == null || currentId.isEmpty()) {
+                return "";
+            }
+            return "##" + currentId;
+        }
+        if (currentId == null || currentId.isEmpty()) {
+            return display;
+        }
+        return display + "##" + currentId;
+    }
+
     protected void setMeasuredSize(float width, float height) {
         measuredWidth = width;
         measuredHeight = height;
     }
 
     public void render() {
-        IDScope.ComponentScope scope = IDScope.pushComponent(defaultIdSegment(), idSegments);
-        currentId = scope.id();
+        IDScope.ComponentScope scope = pushComponentScope();
         boolean lifecycleStarted = false;
         try {
             beginRenderLifecycle();

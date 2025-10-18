@@ -1,11 +1,15 @@
 package tytoo.minegui_debug.windows;
 
-import tytoo.minegui.component.components.interactive.MGButton;
 import tytoo.minegui.component.components.display.MGText;
+import tytoo.minegui.component.components.interactive.MGButton;
+import tytoo.minegui.component.components.interactive.MGCombo;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.component.id.IDScope;
 import tytoo.minegui.contraint.constraints.Constraints;
+import tytoo.minegui.state.State;
 import tytoo.minegui_debug.MineGuiDebugCore;
+
+import java.util.List;
 
 public class TestWindow extends MGWindow {
 
@@ -13,6 +17,11 @@ public class TestWindow extends MGWindow {
     private static final int COLUMN_SPACING = 30;
     private static final int ROW_HEIGHT = 34;
     private static final int TITLE_OFFSET = 20;
+    private static final List<String> DIFFICULTIES = List.of("Explorer", "Adventurer", "Veteran", "Nightmare");
+    private static final List<String> FACTIONS = List.of("Northwind Pact", "Sunforge Guild", "Duskveil Order", "Ironward Clan");
+
+    private final State<Integer> difficultyIndex = State.of(1);
+    private final State<String> factionSelection = State.of(FACTIONS.getFirst());
 
     public TestWindow() {
         super("test window");
@@ -53,6 +62,35 @@ public class TestWindow extends MGWindow {
                 .id(DemoIds.BOUNDED_BUTTON)
                 .onClick(() -> MineGuiDebugCore.LOGGER.info("Triggered bounded width demo"))
                 .render();
+
+        float comboRowY = demoY + 60f;
+        MGText.of("Difficulty Preset")
+                .pos(20, comboRowY)
+                .render();
+
+        MGCombo.of(DIFFICULTIES)
+                .pos(Constraints.pixels(160f), Constraints.pixels(comboRowY - 4f))
+                .width(210f)
+                .indexState(difficultyIndex)
+                .id(DemoIds.DIFFICULTY_COMBO)
+                .onChange(selection -> MineGuiDebugCore.LOGGER.info("Difficulty changed to {}", selection))
+                .render();
+
+        float factionRowY = comboRowY + 40f;
+        MGText.of("Faction Alignment")
+                .pos(20, factionRowY)
+                .render();
+
+        MGCombo.<String>of()
+                .items(() -> FACTIONS)
+                .pos(Constraints.pixels(160f), Constraints.pixels(factionRowY - 4f))
+                .width(210f)
+                .state(factionSelection)
+                .formatter(value -> value != null ? value.toUpperCase() : "")
+                .emptyPreview(() -> "Select faction")
+                .id(DemoIds.FACTION_COMBO)
+                .onCommit(selection -> MineGuiDebugCore.LOGGER.info("Faction committed to {}", selection))
+                .render();
     }
 
     private void renderSectionButtons(ButtonSection section, int columnX, int startY) {
@@ -74,7 +112,9 @@ public class TestWindow extends MGWindow {
         SECTION,
         SECTION_TITLE,
         BUTTON,
-        BOUNDED_BUTTON
+        BOUNDED_BUTTON,
+        DIFFICULTY_COMBO,
+        FACTION_COMBO
     }
 
     private enum ButtonSection {

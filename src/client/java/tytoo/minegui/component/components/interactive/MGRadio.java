@@ -149,11 +149,13 @@ public final class MGRadio<T> extends MGComponent<MGRadio<T>>
         boolean disabledScope = disabled;
         boolean scaled = scale != 1.0f;
         float scaleFactor = scaled ? scale : 1.0f;
-        String label = labelSupplier.get();
+        String rawLabel = labelSupplier.get();
+        String displayLabel = visibleLabel(rawLabel);
+        String widgetLabel = widgetLabelFromVisible(displayLabel);
         float indicatorSize = ImGui.getFrameHeight();
         float spacing = ImGui.getStyle().getItemInnerSpacingX();
-        float textWidth = ImGui.calcTextSize(label).x * scaleFactor;
-        float textHeight = ImGui.calcTextSize(label).y * scaleFactor;
+        float textWidth = ImGui.calcTextSize(displayLabel).x * scaleFactor;
+        float textHeight = ImGui.calcTextSize(displayLabel).y * scaleFactor;
         float baseWidth = indicatorSize + spacing + textWidth;
         float baseHeight = Math.max(indicatorSize, textHeight);
 
@@ -166,7 +168,7 @@ public final class MGRadio<T> extends MGComponent<MGRadio<T>>
                 ImGuiUtils.pushWindowFontScale(scale);
             }
             try {
-                layoutPressed = ImGui.radioButton(label, isSelected());
+                layoutPressed = ImGui.radioButton(widgetLabel, isSelected());
             } finally {
                 if (scaled) {
                     ImGuiUtils.popWindowFontScale();

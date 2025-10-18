@@ -17,7 +17,6 @@ import tytoo.minegui.utils.ImGuiUtils;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNumber<T>>
@@ -63,7 +62,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         if (typeClass == Double.class && this.componentCount != 1) {
             throw new IllegalArgumentException("InputDouble only supports a single component");
         }
-        this.defaultLabel = "##MGInputNumber_" + UUID.randomUUID();
+        this.defaultLabel = "";
         this.label = defaultLabel;
         this.values = new double[this.componentCount];
         this.scratchValues = new double[this.componentCount];
@@ -201,7 +200,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
     }
 
     public MGInputNumber<T> label(String label) {
-        this.label = label != null && !label.isBlank() ? label : defaultLabel;
+        this.label = visibleLabel(label);
         return self();
     }
 
@@ -355,6 +354,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         float componentWidth = frameHeight * 4.0f;
         boolean scaled = scale != 1.0f;
         boolean disabledScope = disabled;
+        String widgetLabel = widgetLabel(label);
         layoutActivated = false;
         withLayout(componentWidth * componentCount, frameHeight, (width, height) -> {
             if (scaled) {
@@ -364,7 +364,7 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
                 ImGui.beginDisabled(true);
             }
             try {
-                layoutActivated = renderWidget();
+                layoutActivated = renderWidget(widgetLabel);
             } finally {
                 if (disabledScope) {
                     ImGui.endDisabled();
@@ -381,22 +381,22 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         }
     }
 
-    private boolean renderWidget() {
+    private boolean renderWidget(String widgetLabel) {
         if (typeClass == Integer.class) {
-            return renderIntWidget();
+            return renderIntWidget(widgetLabel);
         } else if (typeClass == Float.class) {
-            return renderFloatWidget();
+            return renderFloatWidget(widgetLabel);
         } else if (typeClass == Double.class) {
-            return renderDoubleWidget();
+            return renderDoubleWidget(widgetLabel);
         }
         return false;
     }
 
-    private boolean renderIntWidget() {
+    private boolean renderIntWidget(String widgetLabel) {
         if (componentCount == 1 && intBuffer != null) {
             int stepValue = (int) Math.round(step);
             int fastStepValue = (int) Math.round(fastStep);
-            boolean activated = ImGui.inputInt(label, intBuffer, stepValue, fastStepValue, userFlags);
+            boolean activated = ImGui.inputInt(widgetLabel, intBuffer, stepValue, fastStepValue, userFlags);
             if (activated) {
                 scratchValues[0] = intBuffer.get();
                 setInternalValues(scratchValues);
@@ -408,11 +408,11 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         }
         boolean activated;
         if (componentCount == 2) {
-            activated = userFlags != 0 ? ImGui.inputInt2(label, intArrayBuffer, userFlags) : ImGui.inputInt2(label, intArrayBuffer);
+            activated = userFlags != 0 ? ImGui.inputInt2(widgetLabel, intArrayBuffer, userFlags) : ImGui.inputInt2(widgetLabel, intArrayBuffer);
         } else if (componentCount == 3) {
-            activated = userFlags != 0 ? ImGui.inputInt3(label, intArrayBuffer, userFlags) : ImGui.inputInt3(label, intArrayBuffer);
+            activated = userFlags != 0 ? ImGui.inputInt3(widgetLabel, intArrayBuffer, userFlags) : ImGui.inputInt3(widgetLabel, intArrayBuffer);
         } else {
-            activated = userFlags != 0 ? ImGui.inputInt4(label, intArrayBuffer, userFlags) : ImGui.inputInt4(label, intArrayBuffer);
+            activated = userFlags != 0 ? ImGui.inputInt4(widgetLabel, intArrayBuffer, userFlags) : ImGui.inputInt4(widgetLabel, intArrayBuffer);
         }
         if (activated) {
             for (int i = 0; i < componentCount; i++) {
@@ -423,11 +423,11 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         return activated;
     }
 
-    private boolean renderFloatWidget() {
+    private boolean renderFloatWidget(String widgetLabel) {
         if (componentCount == 1 && floatBuffer != null) {
             float stepValue = (float) step;
             float fastStepValue = (float) fastStep;
-            boolean activated = ImGui.inputFloat(label, floatBuffer, stepValue, fastStepValue, format, userFlags);
+            boolean activated = ImGui.inputFloat(widgetLabel, floatBuffer, stepValue, fastStepValue, format, userFlags);
             if (activated) {
                 scratchValues[0] = floatBuffer.get();
                 setInternalValues(scratchValues);
@@ -439,11 +439,11 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         }
         boolean activated;
         if (componentCount == 2) {
-            activated = userFlags != 0 ? ImGui.inputFloat2(label, floatArrayBuffer, format, userFlags) : ImGui.inputFloat2(label, floatArrayBuffer, format);
+            activated = userFlags != 0 ? ImGui.inputFloat2(widgetLabel, floatArrayBuffer, format, userFlags) : ImGui.inputFloat2(widgetLabel, floatArrayBuffer, format);
         } else if (componentCount == 3) {
-            activated = userFlags != 0 ? ImGui.inputFloat3(label, floatArrayBuffer, format, userFlags) : ImGui.inputFloat3(label, floatArrayBuffer, format);
+            activated = userFlags != 0 ? ImGui.inputFloat3(widgetLabel, floatArrayBuffer, format, userFlags) : ImGui.inputFloat3(widgetLabel, floatArrayBuffer, format);
         } else {
-            activated = userFlags != 0 ? ImGui.inputFloat4(label, floatArrayBuffer, format, userFlags) : ImGui.inputFloat4(label, floatArrayBuffer, format);
+            activated = userFlags != 0 ? ImGui.inputFloat4(widgetLabel, floatArrayBuffer, format, userFlags) : ImGui.inputFloat4(widgetLabel, floatArrayBuffer, format);
         }
         if (activated) {
             for (int i = 0; i < componentCount; i++) {
@@ -454,13 +454,13 @@ public final class MGInputNumber<T extends Number> extends MGComponent<MGInputNu
         return activated;
     }
 
-    private boolean renderDoubleWidget() {
+    private boolean renderDoubleWidget(String widgetLabel) {
         if (doubleBuffer == null) {
             return false;
         }
         double stepValue = step;
         double fastStepValue = fastStep;
-        boolean activated = ImGui.inputDouble(label, doubleBuffer, stepValue, fastStepValue, format, userFlags);
+        boolean activated = ImGui.inputDouble(widgetLabel, doubleBuffer, stepValue, fastStepValue, format, userFlags);
         if (activated) {
             scratchValues[0] = doubleBuffer.get();
             setInternalValues(scratchValues);

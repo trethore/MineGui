@@ -17,7 +17,6 @@ import tytoo.minegui.utils.ImGuiUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
@@ -76,7 +75,7 @@ public final class MGInputText extends MGComponent<MGInputText>
         int capacity = 64;
         buffer = new ImString("", capacity);
         buffer.inputData.isResizable = true;
-        defaultLabel = "##MGInputText_" + UUID.randomUUID();
+        defaultLabel = "";
         label = defaultLabel;
         hintSupplier = () -> "";
         disabled = false;
@@ -142,7 +141,7 @@ public final class MGInputText extends MGComponent<MGInputText>
     }
 
     public MGInputText label(String label) {
-        this.label = label != null && !label.isBlank() ? label : defaultLabel;
+        this.label = visibleLabel(label);
         return self();
     }
 
@@ -269,6 +268,8 @@ public final class MGInputText extends MGComponent<MGInputText>
         boolean disabledScope = disabled;
         int effectiveFlags = resolveFlags();
         ImGuiInputTextCallback callback = needsCallback(effectiveFlags) ? inputTextCallback : null;
+        String displayLabel = visibleLabel(label);
+        String widgetLabel = widgetLabelFromVisible(displayLabel);
 
         layoutActivated = false;
         withLayout(baseWidth, baseHeight, (width, height) -> {
@@ -280,9 +281,9 @@ public final class MGInputText extends MGComponent<MGInputText>
             }
             try {
                 if (hint == null || hint.isEmpty()) {
-                    layoutActivated = ImGui.inputText(label, buffer, effectiveFlags, callback);
+                    layoutActivated = ImGui.inputText(widgetLabel, buffer, effectiveFlags, callback);
                 } else {
-                    layoutActivated = ImGui.inputTextWithHint(label, hint, buffer, effectiveFlags, callback);
+                    layoutActivated = ImGui.inputTextWithHint(widgetLabel, hint, buffer, effectiveFlags, callback);
                 }
             } finally {
                 if (disabledScope) {
