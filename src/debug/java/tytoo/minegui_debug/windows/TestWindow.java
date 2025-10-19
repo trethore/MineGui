@@ -2,6 +2,7 @@ package tytoo.minegui_debug.windows;
 
 import tytoo.minegui.component.components.display.MGText;
 import tytoo.minegui.component.components.interactive.MGButton;
+import tytoo.minegui.component.components.interactive.MGColorPicker;
 import tytoo.minegui.component.components.interactive.MGCombo;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.component.id.IDScope;
@@ -10,6 +11,7 @@ import tytoo.minegui.state.State;
 import tytoo.minegui_debug.MineGuiDebugCore;
 
 import java.util.List;
+import java.util.Locale;
 
 public class TestWindow extends MGWindow {
 
@@ -22,6 +24,9 @@ public class TestWindow extends MGWindow {
 
     private final State<Integer> difficultyIndex = State.of(1);
     private final State<String> factionSelection = State.of(FACTIONS.getFirst());
+    private final State<float[]> accentColor = State.of(new float[]{0.18f, 0.55f, 0.91f, 1.0f});
+    private final State<Integer> accentColorPacked = State.of(0xFF2E8BE8);
+    private final State<String> accentHex = State.of(formatHex(0xFF2E8BE8));
 
     public TestWindow() {
         super("test window");
@@ -29,7 +34,7 @@ public class TestWindow extends MGWindow {
 
     @Override
     protected void onCreate() {
-        this.initialBounds(180, 160, 520, 260);
+        this.initialBounds(180, 160, 640, 520);
     }
 
     @Override
@@ -91,6 +96,25 @@ public class TestWindow extends MGWindow {
                 .id(DemoIds.FACTION_COMBO)
                 .onCommit(selection -> MineGuiDebugCore.LOGGER.info("Faction committed to {}", selection))
                 .render();
+
+        float colorRowY = factionRowY + 70f;
+        MGText.of("Accent Color")
+                .pos(20, colorRowY)
+                .render();
+
+        MGText.of(accentHex)
+                .pos(Constraints.pixels(200f), Constraints.pixels(colorRowY))
+                .id(DemoIds.ACCENT_HEX)
+                .render();
+
+        MGColorPicker.ofRgba()
+                .pos(Constraints.pixels(20f), Constraints.pixels(colorRowY + 24f))
+                .state(accentColor)
+                .packedState(accentColorPacked)
+                .id(DemoIds.ACCENT_PICKER)
+                .onPackedChange(color -> accentHex.set(formatHex(color)))
+                .onPackedCommit(color -> MineGuiDebugCore.LOGGER.info("Accent color committed {}", formatHex(color)))
+                .render();
     }
 
     private void renderSectionButtons(ButtonSection section, int columnX, int startY) {
@@ -114,7 +138,9 @@ public class TestWindow extends MGWindow {
         BUTTON,
         BOUNDED_BUTTON,
         DIFFICULTY_COMBO,
-        FACTION_COMBO
+        FACTION_COMBO,
+        ACCENT_PICKER,
+        ACCENT_HEX
     }
 
     private enum ButtonSection {
@@ -137,5 +163,9 @@ public class TestWindow extends MGWindow {
         public String[] buttons() {
             return buttons;
         }
+    }
+
+    private static String formatHex(int rgba) {
+        return String.format(Locale.ROOT, "#%08X", rgba);
     }
 }
