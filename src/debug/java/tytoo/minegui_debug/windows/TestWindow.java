@@ -1,9 +1,8 @@
 package tytoo.minegui_debug.windows;
 
+import imgui.flag.ImGuiColorEditFlags;
 import tytoo.minegui.component.components.display.MGText;
-import tytoo.minegui.component.components.interactive.MGButton;
-import tytoo.minegui.component.components.interactive.MGColorPicker;
-import tytoo.minegui.component.components.interactive.MGCombo;
+import tytoo.minegui.component.components.interactive.*;
 import tytoo.minegui.component.components.layout.MGWindow;
 import tytoo.minegui.component.id.IDScope;
 import tytoo.minegui.contraint.constraints.Constraints;
@@ -30,6 +29,10 @@ public class TestWindow extends MGWindow {
 
     public TestWindow() {
         super("test window");
+    }
+
+    private static String formatHex(int rgba) {
+        return String.format(Locale.ROOT, "#%08X", rgba);
     }
 
     @Override
@@ -115,6 +118,38 @@ public class TestWindow extends MGWindow {
                 .onPackedChange(color -> accentHex.set(formatHex(color)))
                 .onPackedCommit(color -> MineGuiDebugCore.LOGGER.info("Accent color committed {}", formatHex(color)))
                 .render();
+
+        MGColorEdit.ofRgba()
+                .pos(Constraints.pixels(360f), Constraints.pixels(colorRowY + 24f))
+                .width(210f)
+                .state(accentColor)
+                .packedState(accentColorPacked)
+                .display(MGColorEdit.DisplayMode.RGB)
+                .input(MGColorEdit.InputMode.RGB)
+                .picker(MGColorEdit.PickerMode.HUE_BAR)
+                .alphaBar(true)
+                .alphaPreview(MGColorEdit.AlphaPreviewMode.FULL)
+                .id(DemoIds.ACCENT_EDITOR)
+                .onPackedCommit(color -> MineGuiDebugCore.LOGGER.info("Accent color edited {}", formatHex(color)))
+                .render();
+
+        MGText.of("Accent Swatch")
+                .pos(Constraints.pixels(600f), Constraints.pixels(colorRowY))
+                .render();
+
+        MGColorButton.ofRgba()
+                .pos(Constraints.pixels(600f), Constraints.pixels(colorRowY + 24f))
+                .width(54f)
+                .scale(1.25f)
+                .state(accentColor)
+                .packedState(accentColorPacked)
+                .alphaPreview(MGColorButton.AlphaPreviewMode.FULL)
+                .showTooltip(true)
+                .withPicker(false)
+                .pickerFlags(ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.AlphaBar)
+                .id(DemoIds.ACCENT_BUTTON)
+                .onPackedClick(color -> MineGuiDebugCore.LOGGER.info("Accent swatch pressed {}", formatHex(color)))
+                .render();
     }
 
     private void renderSectionButtons(ButtonSection section, int columnX, int startY) {
@@ -140,6 +175,8 @@ public class TestWindow extends MGWindow {
         DIFFICULTY_COMBO,
         FACTION_COMBO,
         ACCENT_PICKER,
+        ACCENT_EDITOR,
+        ACCENT_BUTTON,
         ACCENT_HEX
     }
 
@@ -163,9 +200,5 @@ public class TestWindow extends MGWindow {
         public String[] buttons() {
             return buttons;
         }
-    }
-
-    private static String formatHex(int rgba) {
-        return String.format(Locale.ROOT, "#%08X", rgba);
     }
 }

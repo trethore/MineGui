@@ -9,49 +9,28 @@ import tytoo.minegui.component.traits.Scalable;
 import tytoo.minegui.component.traits.Sizable;
 import tytoo.minegui.component.traits.Stateful;
 import tytoo.minegui.state.State;
-import tytoo.minegui.utils.ColorUtils;
 import tytoo.minegui.utils.ImGuiUtils;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 public final class MGColorPicker extends MGComponent<MGColorPicker>
         implements Disableable<MGColorPicker>, Stateful<float[], MGColorPicker>, Scalable<MGColorPicker>, Sizable<MGColorPicker> {
 
     private static final ComponentPool<MGColorPicker> RGB_POOL =
-            new ComponentPool<>(() -> new MGColorPicker(ColorModel.RGB), MGColorPicker::prepare);
+            new ComponentPool<>(() -> new MGColorPicker(ColorSlice.Model.RGB), MGColorPicker::prepare);
     private static final ComponentPool<MGColorPicker> RGBA_POOL =
-            new ComponentPool<>(() -> new MGColorPicker(ColorModel.RGBA), MGColorPicker::prepare);
+            new ComponentPool<>(() -> new MGColorPicker(ColorSlice.Model.RGBA), MGColorPicker::prepare);
 
-    private final ColorModel model;
+    private final ColorSlice color;
     private final String defaultLabel;
-    private final float[] value;
-    private final float[] buffer;
-    private final float[] scratch;
     private String label;
     private boolean disabled;
     private float scale;
     private int flags;
-    @Nullable
-    private State<float[]> state;
-    @Nullable
-    private State<Integer> packedState;
-    @Nullable
-    private Consumer<float[]> onChange;
-    @Nullable
-    private Consumer<float[]> onCommit;
-    @Nullable
-    private Consumer<Integer> onPackedChange;
-    @Nullable
-    private Consumer<Integer> onPackedCommit;
 
-    private MGColorPicker(ColorModel model) {
-        this.model = model;
+    private MGColorPicker(ColorSlice.Model model) {
+        this.color = new ColorSlice(model);
         this.defaultLabel = "";
-        int components = model.components();
-        this.value = new float[components];
-        this.buffer = new float[components];
-        this.scratch = new float[Math.max(components, 4)];
         this.label = defaultLabel;
         prepare();
     }
@@ -81,18 +60,7 @@ public final class MGColorPicker extends MGComponent<MGColorPicker>
         disabled = false;
         scale = 1.0f;
         flags = 0;
-        state = null;
-        packedState = null;
-        onChange = null;
-        onCommit = null;
-        onPackedChange = null;
-        onPackedCommit = null;
-        for (int i = 0; i < model.components(); i++) {
-            float channelDefault = model.defaultValue(i);
-            value[i] = channelDefault;
-            buffer[i] = channelDefault;
-        }
-        Arrays.fill(scratch, 0.0f);
+        color.reset();
     }
 
     public MGColorPicker label(@Nullable String label) {
@@ -116,81 +84,77 @@ public final class MGColorPicker extends MGComponent<MGColorPicker>
     }
 
     public MGColorPicker value(float[] color) {
-        setInternalColor(color, UpdateOrigin.PROGRAMMATIC);
+        this.color.setColor(color, ColorSlice.UpdateOrigin.PROGRAMMATIC);
         return self();
     }
 
     public MGColorPicker value(float r, float g, float b) {
+        float[] scratch = color.scratch();
         scratch[0] = r;
         scratch[1] = g;
         scratch[2] = b;
-        if (model.components() == 4) {
-            scratch[3] = value[3];
+        if (color.components() == 4) {
+            scratch[3] = color.valueBuffer()[3];
         }
-        setInternalColor(scratch, UpdateOrigin.PROGRAMMATIC);
+        color.setColor(scratch, ColorSlice.UpdateOrigin.PROGRAMMATIC);
         return self();
     }
 
     public MGColorPicker value(float r, float g, float b, float a) {
-        if (model != ColorModel.RGBA) {
+        if (color.model() != ColorSlice.Model.RGBA) {
             throw new IllegalStateException("RGB picker does not support alpha channel");
         }
+        float[] scratch = color.scratch();
         scratch[0] = r;
         scratch[1] = g;
         scratch[2] = b;
         scratch[3] = a;
-        setInternalColor(scratch, UpdateOrigin.PROGRAMMATIC);
+        color.setColor(scratch, ColorSlice.UpdateOrigin.PROGRAMMATIC);
         return self();
     }
 
     public MGColorPicker value(int packed) {
-        model.unpack(packed, scratch);
-        setInternalColor(scratch, UpdateOrigin.PROGRAMMATIC);
+        float[] scratch = color.scratch();
+        color.model().unpack(packed, scratch);
+        color.setColor(scratch, ColorSlice.UpdateOrigin.PROGRAMMATIC);
         return self();
     }
 
     public MGColorPicker onChange(@Nullable Consumer<float[]> consumer) {
-        onChange = consumer;
+        color.onChange(consumer);
         return self();
     }
 
     public MGColorPicker onCommit(@Nullable Consumer<float[]> consumer) {
-        onCommit = consumer;
+        color.onCommit(consumer);
         return self();
     }
 
     public MGColorPicker onPackedChange(@Nullable Consumer<Integer> consumer) {
-        onPackedChange = consumer;
+        color.onPackedChange(consumer);
         return self();
     }
 
     public MGColorPicker onPackedCommit(@Nullable Consumer<Integer> consumer) {
-        onPackedCommit = consumer;
+        color.onPackedCommit(consumer);
         return self();
     }
 
     public MGColorPicker packedState(@Nullable State<Integer> state) {
-        packedState = state;
-        if (state != null) {
-            Integer snapshot = state.get();
-            if (snapshot != null) {
-                model.unpack(snapshot, scratch);
-                setInternalColor(scratch, UpdateOrigin.STATE_PACKED);
-            }
-        }
+        color.setPackedState(state);
         return self();
     }
 
     public int components() {
-        return model.components();
+        return color.components();
     }
 
     public float[] snapshotColor() {
-        return Arrays.copyOf(value, model.components());
+        return color.snapshotColor();
     }
 
     public int snapshotPacked() {
-        return model.pack(value);
+        return color.snapshotPacked();
     }
 
     @Override
@@ -206,18 +170,12 @@ public final class MGColorPicker extends MGComponent<MGColorPicker>
     @Override
     @Nullable
     public State<float[]> getState() {
-        return state;
+        return color.getState();
     }
 
     @Override
     public void setState(@Nullable State<float[]> state) {
-        this.state = state;
-        if (state != null) {
-            float[] snapshot = state.get();
-            if (snapshot != null) {
-                setInternalColor(snapshot, UpdateOrigin.STATE_FLOAT);
-            }
-        }
+        color.setState(state);
     }
 
     @Override
@@ -232,9 +190,9 @@ public final class MGColorPicker extends MGComponent<MGColorPicker>
 
     @Override
     protected void renderComponent() {
-        boolean stateChanged = refreshFromStates();
+        boolean stateChanged = color.refreshFromStates();
         if (stateChanged) {
-            updateBuffersFromValue();
+            System.arraycopy(color.valueBuffer(), 0, color.uiBuffer(), 0, color.components());
         }
 
         float frameHeight = ImGui.getFrameHeight();
@@ -263,165 +221,21 @@ public final class MGColorPicker extends MGComponent<MGColorPicker>
         });
         boolean committed = ImGui.isItemDeactivatedAfterEdit();
         if (committed && !disabled) {
-            notifyCommit();
+            color.notifyCommit();
         }
         renderChildren();
     }
 
-    private boolean renderPicker(String widgetLabel) {
-        updateBuffersFromValue();
+    private void renderPicker(String widgetLabel) {
+        System.arraycopy(color.valueBuffer(), 0, color.uiBuffer(), 0, color.components());
         boolean changed;
-        if (model == ColorModel.RGB) {
-            changed = flags != 0 ? ImGui.colorPicker3(widgetLabel, buffer, flags) : ImGui.colorPicker3(widgetLabel, buffer);
+        if (color.model() == ColorSlice.Model.RGB) {
+            changed = flags != 0 ? ImGui.colorPicker3(widgetLabel, color.uiBuffer(), flags) : ImGui.colorPicker3(widgetLabel, color.uiBuffer());
         } else {
-            changed = flags != 0 ? ImGui.colorPicker4(widgetLabel, buffer, flags) : ImGui.colorPicker4(widgetLabel, buffer);
+            changed = flags != 0 ? ImGui.colorPicker4(widgetLabel, color.uiBuffer(), flags) : ImGui.colorPicker4(widgetLabel, color.uiBuffer());
         }
         if (changed && !disabled) {
-            setInternalColor(buffer, UpdateOrigin.INTERACTION);
+            color.setColor(color.uiBuffer(), ColorSlice.UpdateOrigin.INTERACTION);
         }
-        return changed;
-    }
-
-    private boolean refreshFromStates() {
-        boolean changed = false;
-        if (state != null) {
-            float[] snapshot = state.get();
-            if (snapshot != null) {
-                changed |= setInternalColor(snapshot, UpdateOrigin.STATE_FLOAT);
-            }
-        }
-        if (packedState != null) {
-            Integer snapshot = packedState.get();
-            if (snapshot != null) {
-                model.unpack(snapshot, scratch);
-                changed |= setInternalColor(scratch, UpdateOrigin.STATE_PACKED);
-            }
-        }
-        return changed;
-    }
-
-    private boolean setInternalColor(float[] source, UpdateOrigin origin) {
-        boolean changed = false;
-        for (int i = 0; i < model.components(); i++) {
-            float incoming = source != null && i < source.length ? source[i] : model.defaultValue(i);
-            float sanitized = ColorUtils.clampUnit(incoming);
-            if (Float.floatToIntBits(value[i]) != Float.floatToIntBits(sanitized)) {
-                value[i] = sanitized;
-                changed = true;
-            }
-        }
-        if (!changed) {
-            if (origin == UpdateOrigin.INTERACTION) {
-                notifyChange();
-            }
-            return false;
-        }
-        updateBuffersFromValue();
-        if (origin == UpdateOrigin.INTERACTION) {
-            pushStates();
-            notifyChange();
-            return true;
-        }
-        if (origin == UpdateOrigin.PROGRAMMATIC) {
-            pushStates();
-        }
-        return true;
-    }
-
-    private void notifyChange() {
-        if (onChange != null) {
-            onChange.accept(snapshotColor());
-        }
-        if (onPackedChange != null) {
-            onPackedChange.accept(model.pack(value));
-        }
-    }
-
-    private void notifyCommit() {
-        if (onCommit != null) {
-            onCommit.accept(snapshotColor());
-        }
-        if (onPackedCommit != null) {
-            onPackedCommit.accept(model.pack(value));
-        }
-    }
-
-    private void pushStates() {
-        pushFloatState();
-        pushPackedState();
-    }
-
-    private void pushFloatState() {
-        if (state != null) {
-            state.set(snapshotColor());
-        }
-    }
-
-    private void pushPackedState() {
-        if (packedState != null) {
-            packedState.set(model.pack(value));
-        }
-    }
-
-    private void updateBuffersFromValue() {
-        System.arraycopy(value, 0, buffer, 0, model.components());
-    }
-
-    private enum UpdateOrigin {
-        STATE_FLOAT,
-        STATE_PACKED,
-        PROGRAMMATIC,
-        INTERACTION
-    }
-
-    private enum ColorModel {
-        RGB(3) {
-            @Override
-            float defaultValue(int component) {
-                return 0.0f;
-            }
-
-            @Override
-            int pack(float[] color) {
-                return ColorUtils.packRgb(color);
-            }
-
-            @Override
-            void unpack(int packed, float[] target) {
-                ColorUtils.unpackRgb(packed, target);
-            }
-        },
-        RGBA(4) {
-            @Override
-            float defaultValue(int component) {
-                return component == 3 ? 1.0f : 0.0f;
-            }
-
-            @Override
-            int pack(float[] color) {
-                return ColorUtils.packRgba(color);
-            }
-
-            @Override
-            void unpack(int packed, float[] target) {
-                ColorUtils.unpackRgba(packed, target);
-            }
-        };
-
-        private final int components;
-
-        ColorModel(int components) {
-            this.components = components;
-        }
-
-        int components() {
-            return components;
-        }
-
-        abstract float defaultValue(int component);
-
-        abstract int pack(float[] color);
-
-        abstract void unpack(int packed, float[] target);
     }
 }
