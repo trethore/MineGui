@@ -1,8 +1,14 @@
 package tytoo.minegui;
 
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tytoo.minegui.utils.ImGuiImageUtils;
 
 import java.nio.file.Path;
 
@@ -16,7 +22,16 @@ public final class MineGuiCore {
     }
 
     public static void init() {
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+            @Override
+            public Identifier getFabricId() {
+                return Identifier.of(ID, "imgui_images");
+            }
 
-
+            @Override
+            public void reload(ResourceManager manager) {
+                ImGuiImageUtils.invalidateAll();
+            }
+        });
     }
 }
