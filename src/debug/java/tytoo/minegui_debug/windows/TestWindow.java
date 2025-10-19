@@ -11,6 +11,7 @@ import tytoo.minegui_debug.MineGuiDebugCore;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.IntStream;
 
 public class TestWindow extends MGWindow {
 
@@ -20,9 +21,14 @@ public class TestWindow extends MGWindow {
     private static final int TITLE_OFFSET = 20;
     private static final List<String> DIFFICULTIES = List.of("Explorer", "Adventurer", "Veteran", "Nightmare");
     private static final List<String> FACTIONS = List.of("Northwind Pact", "Sunforge Guild", "Duskveil Order", "Ironward Clan");
+    private static final List<String> REALMS = IntStream.rangeClosed(1, 48)
+            .mapToObj(index -> String.format(Locale.ROOT, "Realm %02d", index))
+            .toList();
 
     private final State<Integer> difficultyIndex = State.of(1);
     private final State<String> factionSelection = State.of(FACTIONS.getFirst());
+    private final State<Integer> realmIndex = State.of(0);
+    private final State<String> realmSelection = State.of(REALMS.getFirst());
     private final State<float[]> accentColor = State.of(new float[]{0.18f, 0.55f, 0.91f, 1.0f});
     private final State<Integer> accentColorPacked = State.of(0xFF2E8BE8);
     private final State<String> accentHex = State.of(formatHex(0xFF2E8BE8));
@@ -100,7 +106,28 @@ public class TestWindow extends MGWindow {
                 .onCommit(selection -> MineGuiDebugCore.LOGGER.info("Faction committed to {}", selection))
                 .render();
 
-        float colorRowY = factionRowY + 70f;
+        float listRowY = factionRowY + 44f;
+        MGText.of("Realm Browser")
+                .pos(20, listRowY)
+                .render();
+
+        MGListBox.<String>of()
+                .items(() -> REALMS)
+                .pos(Constraints.pixels(160f), Constraints.pixels(listRowY - 4f))
+                .width(210f)
+                .heightInItems(8)
+                .indexState(realmIndex)
+                .state(realmSelection)
+                .id(DemoIds.REALM_LIST)
+                .onChange(selection -> MineGuiDebugCore.LOGGER.info("Realm changed to {}", selection))
+                .render();
+
+        MGText.of(realmSelection)
+                .pos(Constraints.pixels(400f), Constraints.pixels(listRowY))
+                .id(DemoIds.REALM_SELECTED)
+                .render();
+
+        float colorRowY = listRowY + 180f;
         MGText.of("Accent Color")
                 .pos(20, colorRowY)
                 .render();
@@ -177,7 +204,9 @@ public class TestWindow extends MGWindow {
         ACCENT_PICKER,
         ACCENT_EDITOR,
         ACCENT_BUTTON,
-        ACCENT_HEX
+        ACCENT_HEX,
+        REALM_LIST,
+        REALM_SELECTED
     }
 
     private enum ButtonSection {
