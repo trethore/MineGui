@@ -55,7 +55,7 @@ public final class ViewSaveManager {
         if (view == null) {
             return;
         }
-        if (!view.isSavable()) {
+        if (!view.isShouldSave()) {
             entries.remove(view);
             return;
         }
@@ -100,7 +100,7 @@ public final class ViewSaveManager {
             return;
         }
         Map<String, ViewEntry> activeEntries = entries.entrySet().stream()
-                .filter(entry -> entry.getKey().isSavable())
+                .filter(entry -> entry.getKey().isShouldSave())
                 .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue, (first, second) -> first));
         if (activeEntries.isEmpty()) {
             return;
@@ -163,7 +163,7 @@ public final class ViewSaveManager {
     }
 
     private Path resolvePath(String viewId) {
-        Path directory = GlobalConfigManager.getViewSavesDirectory();
+        Path directory = GlobalConfigManager.getViewSavesDirectory(MineGuiCore.getConfigNamespace());
         String sanitized = sanitizeId(viewId);
         return directory.resolve(sanitized + ".ini");
     }

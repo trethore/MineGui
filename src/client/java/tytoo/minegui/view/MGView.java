@@ -5,7 +5,7 @@ import tytoo.minegui.manager.ViewSaveManager;
 public abstract class MGView {
     private boolean visible;
     private String id;
-    private boolean savable;
+    private boolean shouldSave;
 
     protected MGView() {
         this.id = deriveDefaultId();
@@ -16,9 +16,9 @@ public abstract class MGView {
         setId(id);
     }
 
-    protected MGView(String id, boolean savable) {
+    protected MGView(String id, boolean shouldSave) {
         this(id);
-        setSavable(savable);
+        setShouldSave(shouldSave);
     }
 
     public final void render() {
@@ -43,7 +43,7 @@ public abstract class MGView {
             onOpen();
         } else {
             onClose();
-            if (savable) {
+            if (shouldSave) {
                 ViewSaveManager.getInstance().requestSave();
             }
         }
@@ -79,12 +79,12 @@ public abstract class MGView {
         this.id = id;
     }
 
-    public boolean isSavable() {
-        return savable;
+    public boolean isShouldSave() {
+        return shouldSave;
     }
 
-    public void setSavable(boolean savable) {
-        this.savable = savable;
+    public void setShouldSave(boolean shouldSave) {
+        this.shouldSave = shouldSave;
     }
 
     protected String deriveDefaultId() {

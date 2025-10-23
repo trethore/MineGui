@@ -13,89 +13,149 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public final class GlobalConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path DEFAULT_CONFIG_FILE = MineGuiCore.CONFIG_DIR.resolve("global_config.json");
-    private static final Path DEFAULT_VIEW_SAVES_DIR = MineGuiCore.CONFIG_DIR.resolve(GlobalConfig.getDefaultViewSavesPath());
-
-    private static GlobalConfig config = new GlobalConfig();
-    private static Path activeConfigPath = DEFAULT_CONFIG_FILE;
-    private static Path activeViewSavesPath = DEFAULT_VIEW_SAVES_DIR;
-    private static boolean loaded;
+    private static final String DEFAULT_NAMESPACE = MineGuiCore.ID;
+    private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
+    private static String defaultNamespace = DEFAULT_NAMESPACE;
+    private static boolean autoLoadEnabled = true;
 
     private GlobalConfigManager() {
     }
 
+    public static synchronized void configureDefaultNamespace(String namespace) {
+        defaultNamespace = sanitizeNamespace(namespace);
+    }
+
+    public static synchronized boolean isAutoLoadEnabled() {
+        return autoLoadEnabled;
+    }
+
+    public static synchronized void setAutoLoadEnabled(boolean enabled) {
+        autoLoadEnabled = enabled;
+    }
+
+    public static synchronized void ensureContext(String namespace) {
+        context(namespace);
+    }
+
     public static synchronized GlobalConfig getConfig() {
-        if (!loaded) {
-            load();
+        return getConfig(defaultNamespace);
+    }
+
+    public static synchronized GlobalConfig getConfig(String namespace) {
+        ConfigState state = context(namespace);
+        if (autoLoadEnabled && !state.loaded) {
+            load(namespace);
         }
-        return config;
+        return state.config;
     }
 
     public static synchronized void load() {
-        if (loaded) {
+        load(defaultNamespace);
+    }
+
+    public static synchronized void load(String namespace) {
+        ConfigState state = context(namespace);
+        if (state.loaded) {
             return;
         }
-        ensureDirectory(DEFAULT_CONFIG_FILE.getParent());
-        GlobalConfig baseConfig = readConfig(DEFAULT_CONFIG_FILE);
-        config = Objects.requireNonNullElseGet(baseConfig, GlobalConfig::new);
-        ensureViewPath(config);
-        activeConfigPath = resolveConfigPath(config.getConfigPath());
-        GlobalConfig overrideConfig = readConfig(activeConfigPath);
+        ensureDirectory(state.defaultConfigFile.getParent());
+        GlobalConfig baseConfig = readConfig(state.defaultConfigFile);
+        state.config = Objects.requireNonNullElseGet(baseConfig, GlobalConfig::new);
+        ensureViewPath(state);
+        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
+        GlobalConfig overrideConfig = readConfig(state.activeConfigPath);
         if (overrideConfig != null) {
-            config = overrideConfig;
-            activeConfigPath = resolveConfigPath(config.getConfigPath());
-            ensureViewPath(config);
+            state.config = overrideConfig;
+            ensureViewPath(state);
+            state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
         }
-        ensureDirectory(activeConfigPath.getParent());
-        activeViewSavesPath = resolveViewSavesPath(config.getViewSavesPath());
-        ensureDirectory(activeViewSavesPath);
-        if (!Files.exists(activeConfigPath)) {
-            writeConfig(activeConfigPath, config);
+        ensureDirectory(state.activeConfigPath.getParent());
+        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
+        ensureDirectory(state.activeViewSavesPath);
+        if (!Files.exists(state.activeConfigPath)) {
+            writeConfig(state.activeConfigPath, state.config, state);
         }
-        loaded = true;
+        state.loaded = true;
     }
 
     public static synchronized void save() {
-        if (!loaded) {
-            load();
+        save(defaultNamespace);
+    }
+
+    public static synchronized void save(String namespace) {
+        ConfigState state = context(namespace);
+        if (autoLoadEnabled && !state.loaded) {
+            load(namespace);
         }
-        activeConfigPath = resolveConfigPath(config.getConfigPath());
-        ensureViewPath(config);
-        ensureDirectory(activeConfigPath.getParent());
-        activeViewSavesPath = resolveViewSavesPath(config.getViewSavesPath());
-        ensureDirectory(activeViewSavesPath);
-        writeConfig(activeConfigPath, config);
+        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
+        ensureViewPath(state);
+        ensureDirectory(state.activeConfigPath.getParent());
+        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
+        ensureDirectory(state.activeViewSavesPath);
+        writeConfig(state.activeConfigPath, state.config, state);
+        state.loaded = true;
     }
 
     public static synchronized void reset() {
-        if (!loaded) {
-            load();
-        }
-        Path currentPath = resolveConfigPath(config.getConfigPath());
+        reset(defaultNamespace);
+    }
+
+    public static synchronized void reset(String namespace) {
+        ConfigState state = context(namespace);
+        Path currentPath = resolveConfigPath(state.config.getConfigPath(), state);
         deleteIfExists(currentPath);
-        if (!Objects.equals(currentPath, DEFAULT_CONFIG_FILE)) {
-            deleteIfExists(DEFAULT_CONFIG_FILE);
+        if (!Objects.equals(currentPath, state.defaultConfigFile)) {
+            deleteIfExists(state.defaultConfigFile);
         }
-        config = new GlobalConfig();
-        activeConfigPath = resolveConfigPath(config.getConfigPath());
-        ensureViewPath(config);
-        activeViewSavesPath = resolveViewSavesPath(config.getViewSavesPath());
-        loaded = true;
+        state.config = new GlobalConfig();
+        ensureViewPath(state);
+        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
+        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
+        state.loaded = false;
     }
 
-    public static Path getActiveConfigPath() {
-        return activeConfigPath;
+    public static synchronized Path getActiveConfigPath() {
+        return getActiveConfigPath(defaultNamespace);
     }
 
-    public static Path getViewSavesDirectory() {
-        if (!loaded) {
-            load();
+    public static synchronized Path getActiveConfigPath(String namespace) {
+        ConfigState state = context(namespace);
+        if (autoLoadEnabled && !state.loaded) {
+            load(namespace);
         }
-        return activeViewSavesPath;
+        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
+        return state.activeConfigPath;
+    }
+
+    public static synchronized Path getViewSavesDirectory() {
+        return getViewSavesDirectory(defaultNamespace);
+    }
+
+    public static synchronized Path getViewSavesDirectory(String namespace) {
+        ConfigState state = context(namespace);
+        if (autoLoadEnabled && !state.loaded) {
+            load(namespace);
+        }
+        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
+        return state.activeViewSavesPath;
+    }
+
+    private static ConfigState context(String namespace) {
+        String sanitized = sanitizeNamespace(namespace);
+        return CONTEXTS.computeIfAbsent(sanitized, ConfigState::new);
+    }
+
+    private static String sanitizeNamespace(String namespace) {
+        if (namespace == null || namespace.isBlank()) {
+            return DEFAULT_NAMESPACE;
+        }
+        return namespace;
     }
 
     private static void ensureDirectory(Path directory) {
@@ -124,7 +184,9 @@ public final class GlobalConfigManager {
             if (parsed.getConfigPath() == null || parsed.getConfigPath().isBlank()) {
                 parsed.setConfigPath(path.toString());
             }
-            ensureViewPath(parsed);
+            if (parsed.getViewSavesPath() == null || parsed.getViewSavesPath().isBlank()) {
+                parsed.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
+            }
             return parsed;
         } catch (IOException | JsonParseException e) {
             MineGuiCore.LOGGER.error("Failed to read global config from {}", path, e);
@@ -132,26 +194,26 @@ public final class GlobalConfigManager {
         }
     }
 
-    private static Path resolveConfigPath(String configuredPath) {
+    private static Path resolveConfigPath(String configuredPath, ConfigState state) {
         if (configuredPath == null || configuredPath.isBlank()) {
-            return DEFAULT_CONFIG_FILE;
+            return state.defaultConfigFile;
         }
         try {
             Path path = Path.of(configuredPath);
             if (!path.isAbsolute()) {
-                path = MineGuiCore.CONFIG_DIR.resolve(path);
+                path = state.baseDirectory.resolve(path);
             }
             return path.normalize();
         } catch (InvalidPathException e) {
             MineGuiCore.LOGGER.warn("Invalid config path '{}', using default", configuredPath);
-            return DEFAULT_CONFIG_FILE;
+            return state.defaultConfigFile;
         }
     }
 
-    private static void writeConfig(Path path, GlobalConfig value) {
+    private static void writeConfig(Path path, GlobalConfig value, ConfigState state) {
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
             value.setConfigPath(path.toString());
-            Path resolvedViewPath = resolveViewSavesPath(value.getViewSavesPath());
+            Path resolvedViewPath = resolveViewSavesPath(value.getViewSavesPath(), state);
             value.setViewSavesPath(resolvedViewPath.toString());
             GSON.toJson(value, writer);
         } catch (IOException e) {
@@ -170,25 +232,49 @@ public final class GlobalConfigManager {
         }
     }
 
-    private static Path resolveViewSavesPath(String configuredPath) {
+    private static Path resolveViewSavesPath(String configuredPath, ConfigState state) {
         if (configuredPath == null || configuredPath.isBlank()) {
-            return DEFAULT_VIEW_SAVES_DIR;
+            return state.defaultViewSavesDir;
         }
         try {
             Path path = Path.of(configuredPath);
             if (!path.isAbsolute()) {
-                path = MineGuiCore.CONFIG_DIR.resolve(path);
+                path = state.baseDirectory.resolve(path);
             }
             return path.normalize();
         } catch (InvalidPathException e) {
             MineGuiCore.LOGGER.warn("Invalid view saves path '{}', using default", configuredPath);
-            return DEFAULT_VIEW_SAVES_DIR;
+            return state.defaultViewSavesDir;
         }
     }
 
-    private static void ensureViewPath(GlobalConfig value) {
-        if (value.getViewSavesPath() == null || value.getViewSavesPath().isBlank()) {
-            value.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
+    private static void ensureViewPath(ConfigState state) {
+        if (state.config.getViewSavesPath() == null || state.config.getViewSavesPath().isBlank()) {
+            state.config.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
+        }
+    }
+
+    private static final class ConfigState {
+        private final Path baseDirectory;
+        private final Path defaultConfigFile;
+        private final Path defaultViewSavesDir;
+        private GlobalConfig config;
+        private Path activeConfigPath;
+        private Path activeViewSavesPath;
+        private boolean loaded;
+
+        private ConfigState(String namespace) {
+            if (DEFAULT_NAMESPACE.equals(namespace)) {
+                this.baseDirectory = MineGuiCore.CONFIG_DIR;
+            } else {
+                this.baseDirectory = MineGuiCore.CONFIG_DIR.resolve(namespace);
+            }
+            this.defaultConfigFile = baseDirectory.resolve("global_config.json");
+            this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
+            this.config = new GlobalConfig();
+            this.activeConfigPath = defaultConfigFile;
+            this.activeViewSavesPath = defaultViewSavesDir;
+            this.loaded = false;
         }
     }
 }

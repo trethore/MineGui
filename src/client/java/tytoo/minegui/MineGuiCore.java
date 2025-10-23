@@ -12,18 +12,39 @@ import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.util.ImGuiImageUtils;
 
 import java.nio.file.Path;
+import java.util.Objects;
 
 @SuppressWarnings("unused")
 public final class MineGuiCore {
     public static final String ID = "minegui";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
+    private static boolean reloadListenerRegistered;
+    private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults();
 
     private MineGuiCore() {
     }
 
     public static void init() {
-        loadConfig();
+        init(MineGuiInitializationOptions.defaults());
+    }
+
+    public static synchronized void init(MineGuiInitializationOptions options) {
+        initializationOptions = Objects.requireNonNull(options, "options");
+        GlobalConfigManager.configureDefaultNamespace(initializationOptions.configNamespace());
+        GlobalConfigManager.setAutoLoadEnabled(initializationOptions.loadGlobalConfig());
+        if (initializationOptions.loadGlobalConfig()) {
+            GlobalConfigManager.load(initializationOptions.configNamespace());
+        } else {
+            GlobalConfigManager.ensureContext(initializationOptions.configNamespace());
+        }
+        registerReloadListener();
+    }
+
+    private static synchronized void registerReloadListener() {
+        if (reloadListenerRegistered) {
+            return;
+        }
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public Identifier getFabricId() {
@@ -35,9 +56,25 @@ public final class MineGuiCore {
                 ImGuiImageUtils.invalidateAll();
             }
         });
+        reloadListenerRegistered = true;
     }
 
     public static void loadConfig() {
-        GlobalConfigManager.load();
+        if (!initializationOptions.loadGlobalConfig()) {
+            return;
+        }
+        GlobalConfigManager.load(initializationOptions.configNamespace());
+    }
+
+    public static String getConfigNamespace() {
+        return initializationOptions.configNamespace();
+    }
+
+    public static boolean isGlobalConfigAutoLoaded() {
+        return initializationOptions.loadGlobalConfig();
+    }
+
+    public static MineGuiInitializationOptions getInitializationOptions() {
+        return initializationOptions;
     }
 }

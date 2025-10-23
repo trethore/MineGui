@@ -1,9 +1,7 @@
 package tytoo.minegui.config;
 
-import tytoo.minegui.MineGuiCore;
-
 public final class GlobalConfig {
-    private static final String DEFAULT_CONFIG_PATH = MineGuiCore.CONFIG_DIR.resolve("global_config.json").toString();
+    private static final String DEFAULT_CONFIG_PATH = "global_config.json";
     private static final String DEFAULT_VIEW_SAVES_PATH = "views";
 
     private boolean viewport = true;

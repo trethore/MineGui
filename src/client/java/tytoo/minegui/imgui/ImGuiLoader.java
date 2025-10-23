@@ -59,7 +59,7 @@ public class ImGuiLoader {
     }
 
     private static void renderDockSpace() {
-        GlobalConfig config = GlobalConfigManager.getConfig();
+        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
         if (!config.isDockspaceEnabled()) {
             return;
         }
@@ -84,7 +84,7 @@ public class ImGuiLoader {
         ImGui.createContext();
 
         final ImGuiIO io = ImGui.getIO();
-        final GlobalConfig config = GlobalConfigManager.getConfig();
+        final GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
 
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
