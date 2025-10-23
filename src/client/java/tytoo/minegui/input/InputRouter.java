@@ -44,7 +44,7 @@ public final class InputRouter {
         return wantsMouseInput();
     }
 
-    public boolean onMouseButton(double mouseX, double mouseY, int button, int action) {
+    public boolean onMouseButton(int button, int action) {
         MinecraftClient mc = MinecraftClient.getInstance();
         boolean wantsMouse = wantsMouseInput();
         if (!wantsMouse) {
@@ -66,11 +66,11 @@ public final class InputRouter {
         return !pressedMouse.isEmpty();
     }
 
-    public boolean onMouseMove(double mouseX, double mouseY) {
+    public boolean onMouseMove() {
         return wantsMouseInput();
     }
 
-    public boolean onScroll(double mouseX, double mouseY, double horizontal, double vertical) {
+    public boolean onScroll(double horizontal, double vertical) {
         boolean wantsMouse = wantsMouseInput();
         if (!wantsMouse) {
             return false;
