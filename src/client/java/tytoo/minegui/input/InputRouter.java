@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.utils.CursorLockUtils;
 import tytoo.minegui.utils.InputHelper;
 
 public final class InputRouter {
@@ -25,26 +26,19 @@ public final class InputRouter {
 
     public void onFrame() {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null) {
+        if (mc == null || mc.mouse == null) {
             return;
         }
-        if (mc.currentScreen != null) {
-            return;
-        }
-        if (mc.mouse == null) {
+        if (!CursorLockUtils.clientWantsLockCursor()) {
             return;
         }
         if (shouldPreventLock() && mc.mouse.isCursorLocked()) {
-            mc.mouse.unlockCursor();
+            CursorLockUtils.applyCursorLock(mc.mouse, false);
         }
     }
 
     public boolean shouldPreventLock() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null) {
-            return false;
-        }
-        if (mc.currentScreen != null) {
+        if (!CursorLockUtils.clientWantsLockCursor()) {
             return false;
         }
         return wantsMouseInput();
@@ -62,7 +56,7 @@ public final class InputRouter {
         if (action == GLFW.GLFW_PRESS) {
             pressedMouse.add(button);
             if (mc != null && mc.mouse != null && mc.mouse.isCursorLocked()) {
-                mc.mouse.unlockCursor();
+                CursorLockUtils.applyCursorLock(mc.mouse, false);
             }
             return true;
         }

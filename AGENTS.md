@@ -4,28 +4,28 @@ MineGui is a lightweight Minecraft library that lets you build modern user inter
 It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 
 ## Project Overview & Architecture
-- MineGui is a Fabric client library for Minecraft 1.21.4 that provides an immediate mode GUI system through imgui-java, enabling reactive component-based UIs integrated into game logic.
-- Source modules live under `src/client/java/tytoo/minegui/**` covering component hierarchy, constraint-based layout, state management, ImGui loader, input routing, and UI management; keep public APIs and runtime code within this tree.
-- Resources, mixin configs, and packaged assets reside in `src/client/resources/`, including `assets/minegui/` for shipped assets and `minegui.client.mixins.json` for wiring client mixins.
-- Development scaffolding, demo windows, and debug assets stay under `src/debug/` with Java entrypoints in `src/debug/java/tytoo/minegui_debug/**` and resources inside `src/debug/resources/assets/minegui_debug/`.
-- The runtime flow boots through `MineGuiCore` and `ImGuiLoader`, which initialize imgui-java natives (loaded from libs/ folder via shadow), manage the ImGui rendering context, and integrate with Minecraft's render loop.
-- UI windows extend `MGWindow` component to create reusable interfaces, with `UIManager` handling window registration and lifecycle, while components like `MGButton` and `MGText` compose UIs through the constraint system and state reactivity.
+- MineGui is a Fabric client library for Minecraft 1.21.4 that wraps imgui-java (Dear ImGui) with lightweight helpers so mod developers can build immediate-mode interfaces directly in game code.
+- Source modules live under `src/client/java/tytoo/minegui/**`.
+- Resources, mixin configs, and packaged assets remain in `src/client/resources/`, including `assets/minegui/` and `minegui.client.mixins.json` for client mixins.
+- Development scaffolding and debug samples stay under `src/debug/` with Java entrypoints in `src/debug/java/tytoo/minegui_debug/**` and supporting assets in `src/debug/resources/assets/minegui_debug/`.
+- The runtime flow boots through `MineGuiCore` and `ImGuiLoader`, which initialize imgui-java natives, prepare the ImGui context, and integrate with Minecraft's render loop. `UIManager` manages registered `MGView` instances and renders them each frame.
+- Views extend `tytoo.minegui.view.MGView`, rendering raw ImGui calls inside `renderView()`. Layout helpers, cursor controls, and drawing utilities live in `utils` and `contraint`; there are no reusable component subclasses or state containers.
 
 ## Design & Philosophy
 
-- Foundation-first: Thin, reliable base you compose—not a closed framework.
-- Future-proof: Separate component hierarchy, constraint system, state management, and input routing.
-- Pluggable: Extensible component system, custom constraints, reactive state bindings, and layout composition.
-- Stable API surface: Small, documented interfaces; semantic versioning; clean component abstractions.
-- Configurable: Layout constraints, state reactivity, window management—all via fluent builder APIs.
-- Lightweight: Minimal idle footprint; immediate mode rendering with efficient state updates.
+- Immediate-first: Keep the core thin and let authors drive raw ImGui calls directly.
+- Utility-driven: Provide small, composable helpers (cursor locking, texture loading, constraint math) instead of declarative component trees.
+- Opt-in layout: Offer optional constraint utilities and future layout helpers without imposing structure on callers.
+- Stable surface: Maintain a small, well-documented API focused on ImGui integration and lifecycle management.
+- Lightweight runtime: Avoid hidden state machines; emphasise direct ImGui usage with minimal overhead.
 
 ## General Coding Conventions
 - Target Java 21 with 4-space indentation and packages under `tytoo.minegui.*`.
 - Use PascalCase for classes, camelCase for methods and fields, and UPPER_SNAKE_CASE for constants.
 - Declare explicit types and avoid `var`; prefer descriptive names over one-letter identifiers.
 - Bring types into scope with imports; do not use fully qualified class names inside method bodies.
-- Continue the fluent builder and chainable setter patterns established in existing components.
+- Prefer straightforward helper methods over fluent builders; keep APIs explicit and readable.
+- When adding shared utilities, document behaviour through clear method names and focused Javadoc rather than abstract component hierarchies.
 - Assume contributors are working in IntelliJ IDEA; keep code free of IDE warnings.
 - Never add code comments unless the user explicitly requests documentation.
 - Keep edits minimal and stylistically aligned with surrounding code; do not introduce new formatting tools or unrelated refactors.
@@ -45,10 +45,10 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Never reference loaders, mappings, or game versions beyond the configured target without explicit user approval.
 
 ## Dependencies & External Sources
-- imgui-java (Dear ImGui bindings) is bundled as JAR files in the `libs/` directory and included via shadow dependency configuration in build.gradle.
+- imgui-java (Dear ImGui bindings) is bundled as JAR files in the `libs/` directory and included via shadow dependency configuration in `build.gradle`.
 - ImGui natives are loaded at runtime by `ImGuiLoader`, which handles platform-specific native library initialization.
-- Keep ImGui usage behind component abstractions so public APIs remain clean and focused on layout/state concerns rather than raw ImGui calls.
-- When you need to inspect imgui-java sources, look for them under `project-sources/`; if they are missing, tell the user to run `./gradlew generateProjectSources` and explain why the source view is necessary (for example, to verify APIs or trace rendering hooks).
+- ImGui usage is primarily direct; rely on helpers such as `CursorLockUtils`, `ImGuiImageUtils`, and constraint utilities to integrate cleanly with Minecraft.
+- When you need to inspect imgui-java sources, look for them under `project-sources/`; if they are missing, ask the user to run `./gradlew generateProjectSources` and explain the verification need (API lookup, rendering hook trace, etc.).
 
 ## Testing & Verification
 - Do not run Gradle commands yourself; provide the exact command so the user can execute it.
