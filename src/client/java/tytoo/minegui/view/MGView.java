@@ -4,7 +4,6 @@ public abstract class MGView {
     private boolean visible;
 
     protected MGView() {
-        this.visible = true;
     }
 
     public final void render() {
@@ -21,7 +20,15 @@ public abstract class MGView {
     }
 
     public void setVisible(boolean visible) {
+        if (this.visible == visible) {
+            return;
+        }
         this.visible = visible;
+        if (visible) {
+            onOpen();
+        } else {
+            onClose();
+        }
     }
 
     public void show() {
@@ -32,7 +39,13 @@ public abstract class MGView {
         setVisible(false);
     }
 
-    public void toggle() {
+    public void toggleVisibility() {
         setVisible(!visible);
+    }
+
+    protected void onOpen() {
+    }
+
+    protected void onClose() {
     }
 }

@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.input.InputRouter;
-import tytoo.minegui.manager.UIManager;
 
 @Mixin(Mouse.class)
 public abstract class MGMouseMixin {
@@ -33,12 +32,4 @@ public abstract class MGMouseMixin {
         }
     }
 
-    @Inject(method = "lockCursor", at = @At("HEAD"), cancellable = true)
-    private void minegui$lockCursor(CallbackInfo ci) {
-        if (!UIManager.getInstance().hasVisibleViews()) return;
-
-        if (InputRouter.getInstance().shouldPreventLock()) {
-            ci.cancel();
-        }
-    }
 }

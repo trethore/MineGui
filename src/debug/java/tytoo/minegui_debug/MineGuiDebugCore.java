@@ -34,7 +34,7 @@ public final class MineGuiDebugCore {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (openTestViewKeybind != null && openTestViewKeybind.wasPressed()) {
                 if (client != null && client.currentScreen == null) {
-                    testView.toggle();
+                    testView.toggleVisibility();
                 }
                 LOGGER.info("Toggled Test View: {}", testView.isVisible() ? "Open" : "Closed");
             }

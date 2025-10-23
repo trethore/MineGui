@@ -9,7 +9,8 @@ import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.input.InputRouter;
+import tytoo.minegui.config.GlobalConfig;
+import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.util.InputHelper;
 
@@ -28,6 +29,7 @@ public class ImGuiLoader {
     private static int mcWindowY;
 
     public static void onGlfwInit(long handle) {
+        MineGuiCore.loadConfig();
         initializeImGui();
         imGuiGlfw.init(handle, false);
         imGuiGl3.init(GLSL_VERSION);
@@ -45,9 +47,6 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
-        InputRouter router = InputRouter.getInstance();
-        router.onFrame();
-
         imGuiGlfw.newFrame();
 
         ImGui.newFrame();
@@ -59,6 +58,10 @@ public class ImGuiLoader {
     }
 
     private static void renderDockSpace() {
+        GlobalConfig config = GlobalConfigManager.getConfig();
+        if (!config.isDockspaceEnabled()) {
+            return;
+        }
         ImGui.setNextWindowPos(mcWindowX, mcWindowY);
         ImGui.setNextWindowSize(mcWindowWidth, mcWindowHeight);
         final int windowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
@@ -80,12 +83,19 @@ public class ImGuiLoader {
         ImGui.createContext();
 
         final ImGuiIO io = ImGui.getIO();
+        final GlobalConfig config = GlobalConfigManager.getConfig();
 
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
-        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
-        io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
-        io.setConfigViewportsNoTaskBarIcon(true);
+        if (config.isDockspaceEnabled()) {
+            io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
+        }
+        if (config.isViewportEnabled()) {
+            io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+            io.setConfigViewportsNoTaskBarIcon(true);
+        } else {
+            io.setConfigViewportsNoTaskBarIcon(false);
+        }
 
         // Load default font with specific ranges
         final ImFontConfig fontConfig = new ImFontConfig();

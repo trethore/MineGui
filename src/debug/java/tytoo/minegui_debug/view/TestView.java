@@ -10,9 +10,7 @@ import tytoo.minegui_debug.MineGuiDebugCore;
 public final class TestView extends MGView {
     private static final Identifier ICON = Identifier.of(MineGuiCore.ID, "icon.png");
 
-    public TestView() {
-        hide();
-    }
+    public TestView() {}
 
     @Override
     protected void renderView() {

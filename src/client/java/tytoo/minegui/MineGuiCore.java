@@ -8,6 +8,7 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.util.ImGuiImageUtils;
 
 import java.nio.file.Path;
@@ -22,6 +23,7 @@ public final class MineGuiCore {
     }
 
     public static void init() {
+        loadConfig();
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public Identifier getFabricId() {
@@ -33,5 +35,9 @@ public final class MineGuiCore {
                 ImGuiImageUtils.invalidateAll();
             }
         });
+    }
+
+    public static void loadConfig() {
+        GlobalConfigManager.load();
     }
 }
