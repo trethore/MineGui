@@ -14,6 +14,8 @@ import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.util.InputHelper;
+import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +53,7 @@ public class ImGuiLoader {
         imGuiGlfw.newFrame();
 
         ImGui.newFrame();
+        StyleManager.getInstance().apply();
         renderDockSpace();
         UIManager.getInstance().render();
 
@@ -114,6 +117,7 @@ public class ImGuiLoader {
             style.setWindowRounding(0.0f);
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
+        StyleManager.getInstance().setGlobalDescriptor(MGStyleDescriptor.capture(ImGui.getStyle()));
     }
 
     private static void endFrame() {
