@@ -10,10 +10,7 @@ import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
-import tytoo.minegui.style.MGColorPalette;
-import tytoo.minegui.style.MGFontLibrary;
-import tytoo.minegui.style.MGStyleDescriptor;
-import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.style.*;
 import tytoo.minegui.util.InputHelper;
 
 public class ImGuiLoader {
@@ -152,14 +149,14 @@ public class ImGuiLoader {
         ImGuiStyle style = ImGui.getStyle();
         MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
         Float fontSize = defaultFont != null ? defaultFont.getFontSize() : null;
-        StyleManager.getInstance().setGlobalDescriptor(
-                MGStyleDescriptor.capture(
-                        style,
-                        MGColorPalette.fromStyle(style),
-                        fontLibrary.getDefaultFontKey(),
-                        fontSize
-                )
+        MGStyleDescriptor descriptor = MGStyleDescriptor.capture(
+                style,
+                MGColorPalette.fromStyle(style),
+                fontLibrary.getDefaultFontKey(),
+                fontSize
         );
+        StyleManager.getInstance().setGlobalDescriptor(descriptor);
+        NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {

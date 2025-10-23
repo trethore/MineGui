@@ -1,0 +1,68 @@
+package tytoo.minegui.command;
+
+import imgui.ImGui;
+import imgui.ImGuiStyle;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.style.MGColorPalette;
+import tytoo.minegui.style.MGFontLibrary;
+import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.NamedStyleRegistry;
+import tytoo.minegui.style.StyleManager;
+
+public final class MineGuiClientCommands {
+    private MineGuiClientCommands() {
+    }
+
+    public static void register() {
+        if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            return;
+        }
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                dispatcher.register(
+                        ClientCommandManager.literal("minegui")
+                                .then(ClientCommandManager.literal("reload")
+                                        .then(ClientCommandManager.literal("config")
+                                                .executes(context -> {
+                                                    MinecraftClient.getInstance().execute(MineGuiCore::loadConfig);
+                                                    context.getSource().sendFeedback(Text.literal("MineGui configuration reloaded."));
+                                                    return 1;
+                                                }))
+                                        .then(ClientCommandManager.literal("style")
+                                                .executes(context -> {
+                                                    MinecraftClient.getInstance().execute(MineGuiClientCommands::reloadStyles);
+                                                    context.getSource().sendFeedback(Text.literal("MineGui styles rebuilt."));
+                                                    return 1;
+                                                })))
+                                .executes(context -> {
+                                    context.getSource().sendFeedback(Text.literal("Usage: /minegui reload <config|style>"));
+                                    return 1;
+                                })
+                )
+        );
+    }
+
+    private static void reloadStyles() {
+        StyleManager styleManager = StyleManager.getInstance();
+        MGStyleDescriptor currentDescriptor = styleManager.getGlobalDescriptor().orElse(null);
+        Identifier fontKey = currentDescriptor != null ? currentDescriptor.getFontKey() : MGFontLibrary.getInstance().getDefaultFontKey();
+        Float fontSize = currentDescriptor != null ? currentDescriptor.getFontSize() : null;
+
+        ImGuiStyle nativeStyle = ImGui.getStyle();
+        MGStyleDescriptor refreshedDescriptor = MGStyleDescriptor.capture(
+                nativeStyle,
+                MGColorPalette.fromStyle(nativeStyle),
+                fontKey,
+                fontSize
+        );
+
+        styleManager.setGlobalDescriptor(refreshedDescriptor);
+        NamedStyleRegistry.getInstance().registerBasePresets(refreshedDescriptor);
+        styleManager.apply();
+    }
+}

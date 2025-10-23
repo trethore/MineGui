@@ -5,10 +5,7 @@ import imgui.ImGui;
 import imgui.ImGuiStyle;
 import net.minecraft.util.Identifier;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -126,6 +123,10 @@ public final class StyleManager {
         }
         ImGui.getIO().setFontDefault(targetFont);
         activeFont.set(targetFont);
+    }
+
+    public Map<Identifier, MGStyleDescriptor> snapshotDescriptors() {
+        return Collections.unmodifiableMap(new HashMap<>(descriptorRegistry));
     }
 
     public final class StyleScope implements AutoCloseable {
