@@ -8,7 +8,7 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.utils.ImGuiImageUtils;
+import tytoo.minegui.util.ImGuiImageUtils;
 
 import java.nio.file.Path;
 

@@ -1,4 +1,4 @@
-package tytoo.minegui.utils;
+package tytoo.minegui.util;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import imgui.ImColor;

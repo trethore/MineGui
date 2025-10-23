@@ -1,4 +1,4 @@
-package tytoo.minegui.utils;
+package tytoo.minegui.util;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;

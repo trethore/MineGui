@@ -11,7 +11,7 @@ import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.input.InputRouter;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.utils.InputHelper;
+import tytoo.minegui.util.InputHelper;
 
 import java.io.IOException;
 import java.io.InputStream;

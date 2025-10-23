@@ -1,4 +1,4 @@
-package tytoo.minegui.utils;
+package tytoo.minegui.util;
 
 public final class ColorUtils {
     private static final float INV_255 = 1.0f / 255.0f;

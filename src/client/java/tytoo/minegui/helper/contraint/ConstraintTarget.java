@@ -1,4 +1,4 @@
-package tytoo.minegui.contraint;
+package tytoo.minegui.helper.contraint;
 
 public interface ConstraintTarget {
     ConstraintTarget EMPTY = new ConstraintTarget() {

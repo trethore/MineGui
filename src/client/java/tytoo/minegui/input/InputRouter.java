@@ -8,8 +8,8 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.utils.CursorLockUtils;
-import tytoo.minegui.utils.InputHelper;
+import tytoo.minegui.util.CursorLockUtils;
+import tytoo.minegui.util.InputHelper;
 
 public final class InputRouter {
     private static final InputRouter INSTANCE = new InputRouter();

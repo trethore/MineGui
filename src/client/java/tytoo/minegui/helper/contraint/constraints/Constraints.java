@@ -1,6 +1,7 @@
-package tytoo.minegui.contraint.constraints;
+package tytoo.minegui.helper.contraint.constraints;
 
-import tytoo.minegui.contraint.*;
+import tytoo.minegui.helper.contraint.*;
+import tytoo.minegui.helper.contraint.*;
 
 @SuppressWarnings("unused")
 public class Constraints {

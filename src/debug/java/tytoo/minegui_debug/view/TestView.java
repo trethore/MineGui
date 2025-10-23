@@ -3,7 +3,7 @@ package tytoo.minegui_debug.view;
 import imgui.ImGui;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.utils.ImGuiImageUtils;
+import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.view.MGView;
 import tytoo.minegui_debug.MineGuiDebugCore;
 

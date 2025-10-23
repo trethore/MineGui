@@ -1,4 +1,4 @@
-package tytoo.minegui.utils;
+package tytoo.minegui.util;
 
 import net.minecraft.client.Mouse;
 
