@@ -1,9 +1,6 @@
 package tytoo.minegui.imgui;
 
-import imgui.ImFontConfig;
-import imgui.ImGui;
-import imgui.ImGuiIO;
-import imgui.ImGuiStyle;
+import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
@@ -13,12 +10,11 @@ import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
-import tytoo.minegui.util.InputHelper;
+import tytoo.minegui.style.MGColorPalette;
+import tytoo.minegui.style.MGFontLibrary;
 import tytoo.minegui.style.MGStyleDescriptor;
 import tytoo.minegui.style.StyleManager;
-
-import java.io.IOException;
-import java.io.InputStream;
+import tytoo.minegui.util.InputHelper;
 
 public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
@@ -101,23 +97,14 @@ public class ImGuiLoader {
             io.setConfigViewportsNoTaskBarIcon(false);
         }
 
-        final ImFontConfig fontConfig = new ImFontConfig();
-        try {
-            fontConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
-            fontConfig.setPixelSnapH(true);
-            io.getFonts().addFontDefault(fontConfig);
-        } finally {
-            fontConfig.destroy();
-        }
-
-        initFont("proxima.ttf", 20.0f);
+        ImFont defaultFont = configureDefaultFonts(io);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             final ImGuiStyle style = ImGui.getStyle();
             style.setWindowRounding(0.0f);
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
-        StyleManager.getInstance().setGlobalDescriptor(MGStyleDescriptor.capture(ImGui.getStyle()));
+        finalizeInitialStyle(defaultFont);
     }
 
     private static void endFrame() {
@@ -132,28 +119,47 @@ public class ImGuiLoader {
         }
     }
 
-    private static void initFont(String fontName, float fontSize) {
-        final ImGuiIO io = ImGui.getIO();
-        final String fontPath = String.format("assets/%s/fonts/%s", MineGuiCore.ID, fontName);
-
-        try (InputStream fontStream = MineGuiCore.class.getClassLoader().getResourceAsStream(fontPath)) {
-            if (fontStream == null) {
-                MineGuiCore.LOGGER.warn("Font not found: {}", fontPath);
-                return;
-            }
-
-            final byte[] fontBytes = fontStream.readAllBytes();
-
-            final ImFontConfig fontConfig = new ImFontConfig();
-            try {
-                fontConfig.setPixelSnapH(true);
-                io.getFonts().addFontFromMemoryTTF(fontBytes, fontSize, fontConfig);
-            } finally {
-                fontConfig.destroy();
-            }
-        } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to load font: {}", fontPath, e);
+    private static ImFont configureDefaultFonts(ImGuiIO io) {
+        final ImFontConfig defaultConfig = new ImFontConfig();
+        try {
+            defaultConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
+            defaultConfig.setPixelSnapH(true);
+            io.getFonts().addFontDefault(defaultConfig);
+        } finally {
+            defaultConfig.destroy();
         }
+
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        fontLibrary.registerFont(
+                fontLibrary.getDefaultFontKey(),
+                new MGFontLibrary.FontDescriptor(
+                        MGFontLibrary.FontSource.asset("proxima.ttf"),
+                        20.0f,
+                        config -> {
+                            config.setPixelSnapH(true);
+                            config.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
+                        }
+                )
+        );
+        ImFont defaultFont = fontLibrary.ensureFont(fontLibrary.getDefaultFontKey(), null);
+        if (defaultFont != null) {
+            io.setFontDefault(defaultFont);
+        }
+        return defaultFont;
+    }
+
+    private static void finalizeInitialStyle(ImFont defaultFont) {
+        ImGuiStyle style = ImGui.getStyle();
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        Float fontSize = defaultFont != null ? defaultFont.getFontSize() : null;
+        StyleManager.getInstance().setGlobalDescriptor(
+                MGStyleDescriptor.capture(
+                        style,
+                        MGColorPalette.fromStyle(style),
+                        fontLibrary.getDefaultFontKey(),
+                        fontSize
+                )
+        );
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {

@@ -43,6 +43,10 @@ public final class MGColorPalette {
         return new MGColorPalette(captured);
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Map<Integer, Integer> getColors() {
         return colors;
     }
@@ -74,10 +78,6 @@ public final class MGColorPalette {
         Map<Integer, Integer> result = new HashMap<>(colors);
         result.put(index, color);
         return new MGColorPalette(result);
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static final class Builder {

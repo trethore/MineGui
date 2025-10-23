@@ -1,5 +1,6 @@
 package tytoo.minegui.style;
 
+import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
 import net.minecraft.util.Identifier;
@@ -15,9 +16,10 @@ public final class StyleManager {
     private static final StyleManager INSTANCE = new StyleManager();
 
     private final ConcurrentMap<Identifier, MGStyleDescriptor> descriptorRegistry = new ConcurrentHashMap<>();
+    private final ThreadLocal<Deque<MGStyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
+    private final ThreadLocal<ImFont> activeFont = new ThreadLocal<>();
     private volatile MGStyleDescriptor globalDescriptor;
     private volatile Identifier globalStyleKey;
-    private final ThreadLocal<Deque<MGStyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
 
     private StyleManager() {
     }
@@ -26,12 +28,12 @@ public final class StyleManager {
         return INSTANCE;
     }
 
-    public void setGlobalDescriptor(MGStyleDescriptor descriptor) {
-        this.globalDescriptor = Objects.requireNonNull(descriptor, "descriptor");
-    }
-
     public Optional<MGStyleDescriptor> getGlobalDescriptor() {
         return Optional.ofNullable(globalDescriptor);
+    }
+
+    public void setGlobalDescriptor(MGStyleDescriptor descriptor) {
+        this.globalDescriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
     public void registerDescriptor(Identifier key, MGStyleDescriptor descriptor) {
@@ -51,45 +53,56 @@ public final class StyleManager {
         return Optional.empty();
     }
 
-    public void setGlobalStyleKey(Identifier key) {
-        this.globalStyleKey = key;
-    }
-
     public Identifier getGlobalStyleKey() {
         return globalStyleKey;
     }
 
-    public StyleScope push(MGStyleDelta delta) {
+    public void setGlobalStyleKey(Identifier key) {
+        this.globalStyleKey = key;
+    }
+
+    StyleScope pushRaw(MGStyleDelta delta) {
         Objects.requireNonNull(delta, "delta");
         styleStack.get().push(delta);
+        apply();
         return new StyleScope(delta);
     }
 
-    public void pop(MGStyleDelta expected) {
+    void pop(MGStyleDelta expected) {
         Deque<MGStyleDelta> stack = styleStack.get();
         if (stack.isEmpty()) {
+            apply();
             return;
         }
         MGStyleDelta popped = stack.pop();
         if (popped != expected) {
             stack.clear();
         }
+        apply();
     }
 
     public void apply() {
         ImGuiStyle nativeStyle = ImGui.getStyle();
         MGStyleDescriptor descriptor = resolveDescriptor();
+        Identifier fontKey = descriptor != null ? descriptor.getFontKey() : null;
+        Float fontSize = descriptor != null ? descriptor.getFontSize() : null;
         if (descriptor != null) {
             descriptor.applyTo(nativeStyle);
         }
         Deque<MGStyleDelta> stack = styleStack.get();
-        if (stack.isEmpty()) {
-            return;
+        if (!stack.isEmpty()) {
+            for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+                MGStyleDelta delta = iterator.next();
+                delta.applyTo(nativeStyle);
+                if (delta.getFontKey() != null) {
+                    fontKey = delta.getFontKey();
+                }
+                if (delta.getFontSize() != null) {
+                    fontSize = delta.getFontSize();
+                }
+            }
         }
-        for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
-            MGStyleDelta delta = iterator.next();
-            delta.applyTo(nativeStyle);
-        }
+        applyFont(fontKey, fontSize);
     }
 
     private MGStyleDescriptor resolveDescriptor() {
@@ -102,6 +115,17 @@ public final class StyleManager {
             }
         }
         return descriptor;
+    }
+
+    private void applyFont(Identifier fontKey, Float fontSize) {
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        ImFont targetFont = fontLibrary.ensureFont(fontKey, fontSize);
+        ImFont currentFont = activeFont.get();
+        if (targetFont == null || targetFont == currentFont) {
+            return;
+        }
+        ImGui.getIO().setFontDefault(targetFont);
+        activeFont.set(targetFont);
     }
 
     public final class StyleScope implements AutoCloseable {

@@ -1,6 +1,11 @@
 package tytoo.minegui.manager;
 
+import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profilers;
+import tytoo.minegui.style.MGStyleDelta;
+import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.style.StyleScope;
 import tytoo.minegui.view.MGView;
 
 import java.util.List;
@@ -50,12 +55,40 @@ public final class UIManager {
                 continue;
             }
             ViewSaveManager.getInstance().prepareView(view);
+            Identifier originalKey = StyleManager.getInstance().getGlobalStyleKey();
+            MGStyleDescriptor originalDescriptor = StyleManager.getInstance().getGlobalDescriptor().orElse(null);
+            applyViewBaseStyle(view, originalDescriptor);
             Profilers.get().push(view.getClass().getSimpleName());
-            try {
+            MGStyleDelta delta = view.configureStyleDelta();
+            try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
                 view.render();
             } finally {
                 Profilers.get().pop();
+                restoreBaseStyle(originalKey, originalDescriptor);
             }
         }
+    }
+
+    private void applyViewBaseStyle(MGView view, MGStyleDescriptor fallbackDescriptor) {
+        StyleManager styleManager = StyleManager.getInstance();
+        Identifier styleKey = view.getStyleKey();
+        styleManager.setGlobalStyleKey(styleKey);
+        MGStyleDescriptor descriptor = fallbackDescriptor != null ? fallbackDescriptor : styleManager.getGlobalDescriptor().orElse(null);
+        if (descriptor != null) {
+            MGStyleDescriptor updated = view.configureBaseStyle(descriptor);
+            if (updated != null && updated != descriptor) {
+                styleManager.setGlobalDescriptor(updated);
+            }
+        }
+        styleManager.apply();
+    }
+
+    private void restoreBaseStyle(Identifier originalKey, MGStyleDescriptor originalDescriptor) {
+        StyleManager styleManager = StyleManager.getInstance();
+        styleManager.setGlobalStyleKey(originalKey);
+        if (originalDescriptor != null) {
+            styleManager.setGlobalDescriptor(originalDescriptor);
+        }
+        styleManager.apply();
     }
 }

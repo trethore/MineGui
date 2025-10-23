@@ -1,11 +1,15 @@
 package tytoo.minegui.view;
 
+import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
+import tytoo.minegui.style.MGStyleDelta;
+import tytoo.minegui.style.MGStyleDescriptor;
 
 public abstract class MGView {
     private boolean visible;
     private String id;
     private boolean shouldSave;
+    private Identifier styleKey;
 
     protected MGView() {
         this.id = deriveDefaultId();
@@ -29,6 +33,22 @@ public abstract class MGView {
     }
 
     protected abstract void renderView();
+
+    public MGStyleDelta configureStyleDelta() {
+        return null;
+    }
+
+    public Identifier getStyleKey() {
+        return styleKey;
+    }
+
+    public void setStyleKey(Identifier styleKey) {
+        this.styleKey = styleKey;
+    }
+
+    public MGStyleDescriptor configureBaseStyle(MGStyleDescriptor descriptor) {
+        return descriptor;
+    }
 
     public boolean isVisible() {
         return visible;
