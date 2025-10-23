@@ -1,16 +1,15 @@
 package tytoo.minegui.manager;
 
 import net.minecraft.util.profiler.Profilers;
-import tytoo.minegui.component.components.layout.MGWindow;
-import tytoo.minegui.component.id.IDScope;
+import tytoo.minegui.view.MGView;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class UIManager {
+public final class UIManager {
     private static final UIManager INSTANCE = new UIManager();
 
-    private final List<MGWindow> windows = new CopyOnWriteArrayList<>();
+    private final List<MGView> views = new CopyOnWriteArrayList<>();
 
     private UIManager() {
     }
@@ -19,70 +18,41 @@ public class UIManager {
         return INSTANCE;
     }
 
-    @Deprecated
-    public void registerWindow(MGWindow window) {
-        autoRegister(window);
-    }
-
-    public void autoRegister(MGWindow window) {
-        if (window.isTopLevel() && !windows.contains(window)) {
-            windows.add(window);
+    public void register(MGView view) {
+        if (view == null) {
+            return;
+        }
+        if (!views.contains(view)) {
+            views.add(view);
         }
     }
 
-    public void unregister(MGWindow window) {
-        windows.remove(window);
+    public void unregister(MGView view) {
+        views.remove(view);
     }
 
-    public boolean isAnyWindowVisible() {
-        return windows.stream().anyMatch(MGWindow::isVisible);
+    public boolean hasVisibleViews() {
+        return views.stream().anyMatch(MGView::isVisible);
     }
 
-    public boolean isPointOverWindow(double mouseX, double mouseY) {
-        for (int i = windows.size() - 1; i >= 0; i--) {
-            MGWindow window = windows.get(i);
-            if (window == null || !window.isVisible()) continue;
-            if (!window.isTopLevel()) continue;
-            if (isPointInWindow(window, mouseX, mouseY)) {
-                return true;
-            }
-            for (MGWindow subWindow : window.getSubWindows()) {
-                if (subWindow.isVisible() && isPointInWindow(subWindow, mouseX, mouseY)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean isPointInWindow(MGWindow window, double mouseX, double mouseY) {
-        int x = window.getX();
-        int y = window.getY();
-        int w = window.getWidth();
-        int h = window.getHeight();
-        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-    }
-
-    public boolean isAnyWindowFocused() {
-        for (MGWindow window : windows) {
-            if (window.isFocused()) {
-                return true;
-            }
-            for (MGWindow subWindow : window.getSubWindows()) {
-                if (subWindow.isFocused()) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    public boolean hasViews() {
+        return !views.isEmpty();
     }
 
     public void render() {
-        IDScope.reset();
-        for (MGWindow window : windows) {
-            Profilers.get().push(window.getTitle() + " " + window.hashCode());
-            window.render();
-            Profilers.get().pop();
+        for (MGView view : views) {
+            if (view == null) {
+                continue;
+            }
+            if (!view.isVisible()) {
+                continue;
+            }
+            Profilers.get().push(view.getClass().getSimpleName());
+            try {
+                view.render();
+            } finally {
+                Profilers.get().pop();
+            }
         }
     }
 }

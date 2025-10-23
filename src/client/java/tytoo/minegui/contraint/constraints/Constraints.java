@@ -1,14 +1,10 @@
 package tytoo.minegui.contraint.constraints;
 
-import tytoo.minegui.component.MGComponent;
-import tytoo.minegui.contraint.HeightConstraint;
-import tytoo.minegui.contraint.WidthConstraint;
-import tytoo.minegui.contraint.XConstraint;
-import tytoo.minegui.contraint.YConstraint;
+import tytoo.minegui.contraint.*;
 
 @SuppressWarnings("unused")
 public class Constraints {
-    private final MGComponent<?> component;
+    private ConstraintTarget target;
 
     private XConstraint x = new PixelConstraint(0);
     private YConstraint y = new PixelConstraint(0);
@@ -19,8 +15,12 @@ public class Constraints {
     private HeightConstraint minHeight;
     private HeightConstraint maxHeight;
 
-    public Constraints(MGComponent<?> component) {
-        this.component = component;
+    public Constraints() {
+        this(ConstraintTarget.EMPTY);
+    }
+
+    public Constraints(ConstraintTarget target) {
+        this.target = target != null ? target : ConstraintTarget.EMPTY;
     }
 
     public static CenterConstraint center() {
@@ -60,7 +60,7 @@ public class Constraints {
     }
 
     public float computeX(float parentWidth, float componentWidth) {
-        return x.calculateX(component, parentWidth, componentWidth);
+        return x.calculateX(target, parentWidth, componentWidth);
     }
 
     public void setX(XConstraint x) {
@@ -68,7 +68,7 @@ public class Constraints {
     }
 
     public float computeY(float parentHeight, float componentHeight) {
-        return y.calculateY(component, parentHeight, componentHeight);
+        return y.calculateY(target, parentHeight, componentHeight);
     }
 
     public void setY(YConstraint y) {
@@ -76,7 +76,7 @@ public class Constraints {
     }
 
     public float computeWidth(float parentWidth) {
-        return width.calculateWidth(component, parentWidth);
+        return width.calculateWidth(target, parentWidth);
     }
 
     public void setWidth(WidthConstraint width) {
@@ -84,7 +84,7 @@ public class Constraints {
     }
 
     public float computeHeight(float parentHeight) {
-        return height.calculateHeight(component, parentHeight);
+        return height.calculateHeight(target, parentHeight);
     }
 
     public void setHeight(HeightConstraint height) {
@@ -171,7 +171,7 @@ public class Constraints {
         if (constraint == null) {
             return Float.NaN;
         }
-        float result = constraint.calculateWidth(component, parentWidth);
+        float result = constraint.calculateWidth(target, parentWidth);
         return Float.isFinite(result) ? result : Float.NaN;
     }
 
@@ -179,7 +179,7 @@ public class Constraints {
         if (constraint == null) {
             return Float.NaN;
         }
-        float result = constraint.calculateHeight(component, parentHeight);
+        float result = constraint.calculateHeight(target, parentHeight);
         return Float.isFinite(result) ? result : Float.NaN;
     }
 
@@ -190,8 +190,12 @@ public class Constraints {
         return 0f;
     }
 
-    public MGComponent<?> getComponent() {
-        return component;
+    public ConstraintTarget getTarget() {
+        return target;
+    }
+
+    public void setTarget(ConstraintTarget target) {
+        this.target = target != null ? target : ConstraintTarget.EMPTY;
     }
 
     public void reset() {

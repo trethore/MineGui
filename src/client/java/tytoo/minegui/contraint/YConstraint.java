@@ -1,7 +1,5 @@
 package tytoo.minegui.contraint;
 
-import tytoo.minegui.component.MGComponent;
-
 public interface YConstraint {
-    float calculateY(MGComponent<?> component, float parentHeight, float componentHeight);
+    float calculateY(ConstraintTarget target, float parentHeight, float contentHeight);
 }

@@ -50,18 +50,8 @@ public class ImGuiLoader {
 
         imGuiGlfw.newFrame();
 
-        if (router.shouldMaskImGuiIO()) {
-            ImGuiIO io = ImGui.getIO();
-            io.setMousePos(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY);
-            io.setMouseDown(new boolean[]{false, false, false, false, false});
-            io.setMouseWheel(0.0f);
-            io.setMouseWheelH(0.0f);
-            io.clearInputCharacters();
-        }
-
         ImGui.newFrame();
         renderDockSpace();
-        ImGui.showDemoWindow();
         UIManager.getInstance().render();
 
         ImGui.render();

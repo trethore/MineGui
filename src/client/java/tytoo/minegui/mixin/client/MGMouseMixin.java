@@ -51,7 +51,7 @@ public abstract class MGMouseMixin {
 
     @Inject(method = "lockCursor", at = @At("HEAD"), cancellable = true)
     private void minegui$lockCursor(CallbackInfo ci) {
-        if (!UIManager.getInstance().isAnyWindowVisible()) return;
+        if (!UIManager.getInstance().hasVisibleViews()) return;
 
         if (InputRouter.getInstance().shouldPreventLock()) {
             ci.cancel();

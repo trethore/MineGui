@@ -13,7 +13,7 @@ import tytoo.minegui.manager.UIManager;
 public abstract class MGRenderSystemMixin {
     @Inject(at = @At("HEAD"), method = "flipFrame")
     private static void runTickTail(CallbackInfo ci) {
-        if (!UIManager.getInstance().isAnyWindowVisible()) {
+        if (!UIManager.getInstance().hasVisibleViews()) {
             return;
         }
         Profilers.get().push("MineGui Render");

@@ -1,17 +1,17 @@
 package tytoo.minegui.contraint.constraints;
 
-import tytoo.minegui.component.MGComponent;
+import tytoo.minegui.contraint.ConstraintTarget;
 import tytoo.minegui.contraint.XConstraint;
 import tytoo.minegui.contraint.YConstraint;
 
 public class CenterConstraint implements XConstraint, YConstraint {
     @Override
-    public float calculateX(MGComponent<?> component, float parentWidth, float componentWidth) {
-        return (parentWidth / 2f) - (componentWidth / 2f);
+    public float calculateX(ConstraintTarget target, float parentWidth, float contentWidth) {
+        return (parentWidth / 2f) - (contentWidth / 2f);
     }
 
     @Override
-    public float calculateY(MGComponent<?> component, float parentHeight, float componentHeight) {
-        return (parentHeight / 2f) - (componentHeight / 2f);
+    public float calculateY(ConstraintTarget target, float parentHeight, float contentHeight) {
+        return (parentHeight / 2f) - (contentHeight / 2f);
     }
 }

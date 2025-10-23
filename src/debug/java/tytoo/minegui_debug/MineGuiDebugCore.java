@@ -7,8 +7,8 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.component.components.layout.MGWindow;
-import tytoo.minegui_debug.windows.TestWindow;
+import tytoo.minegui.manager.UIManager;
+import tytoo.minegui_debug.view.TestView;
 
 @SuppressWarnings("unused")
 public final class MineGuiDebugCore {
@@ -23,17 +23,20 @@ public final class MineGuiDebugCore {
     }
 
     private static void test() {
-        TestWindow testWindow = MGWindow.create(TestWindow::new);
-        KeyBinding openTestWindowKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        TestView testView = new TestView();
+        UIManager.getInstance().register(testView);
+        KeyBinding openTestViewKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.minegui.open_gui",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
                 "category.weave.test"
         ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (openTestWindowKeybind != null && openTestWindowKeybind.wasPressed()) {
-                testWindow.toggleDependingOnScreen();
-                LOGGER.info("Toggled Test Window: {}", testWindow.isVisible() ? "Open" : "Closed");
+            if (openTestViewKeybind != null && openTestViewKeybind.wasPressed()) {
+                if (client != null && client.currentScreen == null) {
+                    testView.toggle();
+                }
+                LOGGER.info("Toggled Test View: {}", testView.isVisible() ? "Open" : "Closed");
             }
         });
     }
