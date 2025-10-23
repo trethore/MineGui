@@ -24,11 +24,13 @@ public final class UIManager {
         }
         if (!views.contains(view)) {
             views.add(view);
+            ViewSaveManager.getInstance().register(view);
         }
     }
 
     public void unregister(MGView view) {
         views.remove(view);
+        ViewSaveManager.getInstance().unregister(view);
     }
 
     public boolean hasVisibleViews() {
@@ -47,6 +49,7 @@ public final class UIManager {
             if (!view.isVisible()) {
                 continue;
             }
+            ViewSaveManager.getInstance().prepareView(view);
             Profilers.get().push(view.getClass().getSimpleName());
             try {
                 view.render();

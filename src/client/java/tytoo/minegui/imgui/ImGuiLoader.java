@@ -12,6 +12,7 @@ import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.util.InputHelper;
 
 import java.io.IOException;
@@ -97,7 +98,6 @@ public class ImGuiLoader {
             io.setConfigViewportsNoTaskBarIcon(false);
         }
 
-        // Load default font with specific ranges
         final ImFontConfig fontConfig = new ImFontConfig();
         try {
             fontConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
@@ -107,7 +107,6 @@ public class ImGuiLoader {
             fontConfig.destroy();
         }
 
-        // Load custom fonts
         initFont("proxima.ttf", 20.0f);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
@@ -118,8 +117,7 @@ public class ImGuiLoader {
     }
 
     private static void endFrame() {
-        // After Dear ImGui prepared a draw data, we use it in the LWJGL3 renderer.
-        // At that moment ImGui will be rendered to the current OpenGL context.
+        ViewSaveManager.getInstance().onFrameRendered();
         imGuiGl3.renderDrawData(ImGui.getDrawData());
 
         if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
@@ -128,9 +126,6 @@ public class ImGuiLoader {
             ImGui.renderPlatformWindowsDefault();
             GLFW.glfwMakeContextCurrent(backupWindowPtr);
         }
-
-        //glfwSwapBuffers(windowPtr);
-        //glfwPollEvents();
     }
 
     private static void initFont(String fontName, float fontSize) {
