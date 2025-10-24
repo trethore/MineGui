@@ -11,11 +11,7 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
-import tytoo.minegui.style.MGColorPalette;
-import tytoo.minegui.style.MGFontLibrary;
-import tytoo.minegui.style.MGStyleDescriptor;
-import tytoo.minegui.style.NamedStyleRegistry;
-import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.style.*;
 
 public final class MineGuiClientCommands {
     private MineGuiClientCommands() {

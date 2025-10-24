@@ -2,9 +2,9 @@ package tytoo.minegui.imgui;
 
 import imgui.*;
 import imgui.flag.*;
-import net.minecraft.util.Identifier;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;

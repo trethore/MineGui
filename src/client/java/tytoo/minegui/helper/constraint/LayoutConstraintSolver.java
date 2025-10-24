@@ -1,8 +1,8 @@
 package tytoo.minegui.helper.constraint;
 
-import java.util.Objects;
-
 import tytoo.minegui.helper.constraint.constraints.Constraints;
+
+import java.util.Objects;
 
 public final class LayoutConstraintSolver {
     private LayoutConstraintSolver() {
@@ -93,10 +93,6 @@ public final class LayoutConstraintSolver {
             contentHeight = sanitizeLength(contentHeight);
         }
 
-        public LayoutFrame withTarget(ConstraintTarget newTarget) {
-            return new LayoutFrame(parentWidth, parentHeight, contentWidth, contentHeight, newTarget);
-        }
-
         public static LayoutFrame of(float parentWidth, float parentHeight, float contentWidth, float contentHeight) {
             return new LayoutFrame(parentWidth, parentHeight, contentWidth, contentHeight, null);
         }
@@ -106,6 +102,10 @@ public final class LayoutConstraintSolver {
                 return 0f;
             }
             return value;
+        }
+
+        public LayoutFrame withTarget(ConstraintTarget newTarget) {
+            return new LayoutFrame(parentWidth, parentHeight, contentWidth, contentHeight, newTarget);
         }
     }
 
