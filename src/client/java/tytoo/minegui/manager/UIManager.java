@@ -62,6 +62,7 @@ public final class UIManager {
             MGStyleDelta delta = view.configureStyleDelta();
             try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
                 view.render();
+                ViewSaveManager.getInstance().captureViewStyle(view);
             } finally {
                 Profilers.get().pop();
                 restoreBaseStyle(originalKey, originalDescriptor);
@@ -72,7 +73,7 @@ public final class UIManager {
     private void applyViewBaseStyle(MGView view, MGStyleDescriptor fallbackDescriptor) {
         StyleManager styleManager = StyleManager.getInstance();
         Identifier styleKey = view.getStyleKey();
-        styleManager.setGlobalStyleKey(styleKey);
+        styleManager.setGlobalStyleKeyTransient(styleKey);
         MGStyleDescriptor descriptor = fallbackDescriptor != null ? fallbackDescriptor : styleManager.getGlobalDescriptor().orElse(null);
         if (descriptor != null) {
             MGStyleDescriptor updated = view.configureBaseStyle(descriptor);
@@ -85,7 +86,7 @@ public final class UIManager {
 
     private void restoreBaseStyle(Identifier originalKey, MGStyleDescriptor originalDescriptor) {
         StyleManager styleManager = StyleManager.getInstance();
-        styleManager.setGlobalStyleKey(originalKey);
+        styleManager.setGlobalStyleKeyTransient(originalKey);
         if (originalDescriptor != null) {
             styleManager.setGlobalDescriptor(originalDescriptor);
         }

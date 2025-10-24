@@ -9,6 +9,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.config.GlobalConfig;
+import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.style.MGColorPalette;
 import tytoo.minegui.style.MGFontLibrary;
 import tytoo.minegui.style.MGStyleDescriptor;
@@ -29,7 +31,10 @@ public final class MineGuiClientCommands {
                                 .then(ClientCommandManager.literal("reload")
                                         .then(ClientCommandManager.literal("config")
                                                 .executes(context -> {
-                                                    MinecraftClient.getInstance().execute(MineGuiCore::loadConfig);
+                                                    MinecraftClient.getInstance().execute(() -> {
+                                                        MineGuiCore.loadConfig();
+                                                        applyConfiguredStyle();
+                                                    });
                                                     context.getSource().sendFeedback(Text.literal("MineGui configuration reloaded."));
                                                     return 1;
                                                 }))
@@ -63,6 +68,16 @@ public final class MineGuiClientCommands {
 
         styleManager.setGlobalDescriptor(refreshedDescriptor);
         NamedStyleRegistry.getInstance().registerBasePresets(refreshedDescriptor);
+        applyConfiguredStyle();
+    }
+
+    private static void applyConfiguredStyle() {
+        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        String configured = config.getGlobalStyleKey();
+        Identifier styleKey = (configured == null || configured.isBlank()) ? null : Identifier.tryParse(configured);
+        StyleManager styleManager = StyleManager.getInstance();
+        styleManager.setGlobalStyleKey(styleKey);
         styleManager.apply();
+        // when styleKey is null, StyleManager persists clearing via setGlobalStyleKey
     }
 }

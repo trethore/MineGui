@@ -1,8 +1,8 @@
-package tytoo.minegui.helper.contraint.constraints;
+package tytoo.minegui.helper.constraint.constraints;
 
-import tytoo.minegui.helper.contraint.ConstraintTarget;
-import tytoo.minegui.helper.contraint.HeightConstraint;
-import tytoo.minegui.helper.contraint.WidthConstraint;
+import tytoo.minegui.helper.constraint.ConstraintTarget;
+import tytoo.minegui.helper.constraint.HeightConstraint;
+import tytoo.minegui.helper.constraint.WidthConstraint;
 
 public record AspectRatioConstraint(float ratio) implements WidthConstraint, HeightConstraint {
 

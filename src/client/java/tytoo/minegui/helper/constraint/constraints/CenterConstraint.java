@@ -1,8 +1,8 @@
-package tytoo.minegui.helper.contraint.constraints;
+package tytoo.minegui.helper.constraint.constraints;
 
-import tytoo.minegui.helper.contraint.ConstraintTarget;
-import tytoo.minegui.helper.contraint.XConstraint;
-import tytoo.minegui.helper.contraint.YConstraint;
+import tytoo.minegui.helper.constraint.ConstraintTarget;
+import tytoo.minegui.helper.constraint.XConstraint;
+import tytoo.minegui.helper.constraint.YConstraint;
 
 public class CenterConstraint implements XConstraint, YConstraint {
     @Override

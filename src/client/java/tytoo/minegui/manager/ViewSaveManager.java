@@ -2,6 +2,7 @@ package tytoo.minegui.manager;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
+import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.view.MGView;
@@ -75,6 +76,7 @@ public final class ViewSaveManager {
             ImGui.loadIniSettingsFromDisk(targetPath.toString());
         }
         entry.loaded = true;
+        restoreViewStyle(view, entry);
     }
 
     public void requestSave() {
@@ -83,16 +85,18 @@ public final class ViewSaveManager {
 
     public void onFrameRendered() {
         if (entries.isEmpty()) {
+            persistViewStyles();
             forceSave = false;
             return;
         }
         ImGuiIO io = ImGui.getIO();
-        if (!forceSave && !io.getWantSaveIniSettings()) {
-            return;
+        boolean shouldPersistIni = forceSave || io.getWantSaveIniSettings();
+        if (shouldPersistIni) {
+            String iniContent = ImGui.saveIniSettingsToMemory();
+            persistEntries(iniContent);
+            forceSave = false;
         }
-        String iniContent = ImGui.saveIniSettingsToMemory();
-        persistEntries(iniContent);
-        forceSave = false;
+        persistViewStyles();
     }
 
     private void persistEntries(String iniContent) {
@@ -149,6 +153,77 @@ public final class ViewSaveManager {
         }
     }
 
+    public void captureViewStyle(MGView view) {
+        if (view == null || !view.isShouldSave()) {
+            return;
+        }
+        ViewEntry entry = entries.get(view);
+        if (entry == null) {
+            return;
+        }
+        String currentKey = normalizeStyleKey(view.getStyleKey());
+        if (!Objects.equals(entry.pendingStyleKey, currentKey)) {
+            entry.pendingStyleKey = currentKey;
+            entry.styleDirty = true;
+        }
+    }
+
+    private void restoreViewStyle(MGView view, ViewEntry entry) {
+        Map<String, String> styles = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()).getViewStyles();
+        String saved = styles.get(view.getId());
+        if (saved != null && saved.isBlank()) {
+            saved = null;
+        }
+        String current = normalizeStyleKey(view.getStyleKey());
+        if (saved != null && !Objects.equals(saved, current)) {
+            Identifier identifier = Identifier.tryParse(saved);
+            if (identifier != null) {
+                view.setStyleKey(identifier);
+                current = saved;
+            }
+        }
+        entry.persistedStyleKey = saved;
+        entry.pendingStyleKey = current;
+        entry.styleDirty = false;
+    }
+
+    private void persistViewStyles() {
+        boolean changed = false;
+        Map<String, String> styles = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()).getViewStyles();
+        for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
+            MGView view = entry.getKey();
+            ViewEntry state = entry.getValue();
+            if (view == null || !view.isShouldSave() || state == null || !state.styleDirty) {
+                continue;
+            }
+            state.styleDirty = false;
+            String key = state.pendingStyleKey;
+            String viewId = view.getId();
+            if (key == null || key.isBlank()) {
+                if (styles.remove(viewId) != null) {
+                    changed = true;
+                }
+                state.persistedStyleKey = null;
+                continue;
+            }
+            if (!key.equals(styles.get(viewId))) {
+                styles.put(viewId, key);
+                changed = true;
+            }
+            state.persistedStyleKey = key;
+        }
+        if (changed) {
+            GlobalConfigManager.save(MineGuiCore.getConfigNamespace());
+        }
+    }
+
+    private String normalizeStyleKey(Identifier identifier) {
+        if (identifier == null) {
+            return null;
+        }
+        return identifier.toString();
+    }
+
     private String extractViewId(String headerLine) {
         Matcher matcher = WINDOW_HEADER_PATTERN.matcher(headerLine);
         if (!matcher.matches()) {
@@ -195,5 +270,8 @@ public final class ViewSaveManager {
         private boolean loaded;
         private String loadedId;
         private Path loadedPath;
+        private String pendingStyleKey;
+        private String persistedStyleKey;
+        private boolean styleDirty;
     }
 }

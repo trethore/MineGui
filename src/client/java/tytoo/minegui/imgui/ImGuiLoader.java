@@ -2,6 +2,7 @@ package tytoo.minegui.imgui;
 
 import imgui.*;
 import imgui.flag.*;
+import net.minecraft.util.Identifier;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import org.lwjgl.glfw.GLFW;
@@ -157,6 +158,15 @@ public class ImGuiLoader {
         );
         StyleManager.getInstance().setGlobalDescriptor(descriptor);
         NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
+        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        String configuredStyleKey = config.getGlobalStyleKey();
+        if (configuredStyleKey != null && !configuredStyleKey.isBlank()) {
+            Identifier styleKey = Identifier.tryParse(configuredStyleKey);
+            if (styleKey != null) {
+                StyleManager.getInstance().setGlobalStyleKey(styleKey);
+            }
+        }
+        StyleManager.getInstance().apply();
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {

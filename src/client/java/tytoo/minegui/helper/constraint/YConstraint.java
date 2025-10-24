@@ -1,4 +1,4 @@
-package tytoo.minegui.helper.contraint;
+package tytoo.minegui.helper.constraint;
 
 public interface YConstraint {
     float calculateY(ConstraintTarget target, float parentHeight, float contentHeight);

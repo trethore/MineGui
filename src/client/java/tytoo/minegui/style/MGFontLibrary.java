@@ -60,6 +60,7 @@ public final class MGFontLibrary {
             }
         }
         float targetSize = sizeOverride != null ? sizeOverride : descriptor.size();
+        targetSize = sanitizeRequestedSize(targetSize, descriptor.size());
         float normalizedSize = normalizeSize(targetSize);
         ImFont cached = findCachedFont(descriptorKey, normalizedSize);
         if (cached != null) {
@@ -86,9 +87,14 @@ public final class MGFontLibrary {
             }
             return cached;
         }
-        ImFont font = descriptor.load(size);
+        float sanitizedSize = size > 0f ? size : sanitizeRequestedSize(size, descriptor.size());
+        if (sanitizedSize <= 0f) {
+            MineGuiCore.LOGGER.error("Unable to resolve positive font size for {}; skipping load", key);
+            return cached;
+        }
+        ImFont font = descriptor.load(sanitizedSize);
         if (font != null) {
-            loadedFonts.put(variant, font);
+            loadedFonts.put(new FontVariant(key, sanitizedSize), font);
         }
         return font;
     }
@@ -106,6 +112,17 @@ public final class MGFontLibrary {
             }
         }
         return null;
+    }
+
+    private float sanitizeRequestedSize(float requested, float fallback) {
+        float candidate = requested;
+        if (!Float.isFinite(candidate) || candidate <= 0f) {
+            candidate = fallback;
+        }
+        if (!Float.isFinite(candidate) || candidate <= 0f) {
+            candidate = 16.0f;
+        }
+        return candidate;
     }
 
     @FunctionalInterface

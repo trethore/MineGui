@@ -187,6 +187,9 @@ public final class GlobalConfigManager {
             if (parsed.getViewSavesPath() == null || parsed.getViewSavesPath().isBlank()) {
                 parsed.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
             }
+            if (parsed.getViewStyles() == null) {
+                parsed.setViewStyles(new HashMap<>());
+            }
             return parsed;
         } catch (IOException | JsonParseException e) {
             MineGuiCore.LOGGER.error("Failed to read global config from {}", path, e);

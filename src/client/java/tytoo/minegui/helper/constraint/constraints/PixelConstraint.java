@@ -1,6 +1,6 @@
-package tytoo.minegui.helper.contraint.constraints;
+package tytoo.minegui.helper.constraint.constraints;
 
-import tytoo.minegui.helper.contraint.*;
+import tytoo.minegui.helper.constraint.*;
 
 public record PixelConstraint(float value)
         implements XConstraint, YConstraint, WidthConstraint, HeightConstraint {

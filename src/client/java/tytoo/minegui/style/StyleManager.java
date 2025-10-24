@@ -4,6 +4,9 @@ import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
 import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.config.GlobalConfig;
+import tytoo.minegui.config.GlobalConfigManager;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,7 +58,11 @@ public final class StyleManager {
     }
 
     public void setGlobalStyleKey(Identifier key) {
-        this.globalStyleKey = key;
+        applyStyleKey(key, true);
+    }
+
+    public void setGlobalStyleKeyTransient(Identifier key) {
+        applyStyleKey(key, false);
     }
 
     StyleScope pushRaw(MGStyleDelta delta) {
@@ -127,6 +134,25 @@ public final class StyleManager {
 
     public Map<Identifier, MGStyleDescriptor> snapshotDescriptors() {
         return Collections.unmodifiableMap(new HashMap<>(descriptorRegistry));
+    }
+
+    private void persistGlobalStyle(Identifier key) {
+        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        String value = key != null ? key.toString() : null;
+        if (!Objects.equals(config.getGlobalStyleKey(), value)) {
+            config.setGlobalStyleKey(value);
+            GlobalConfigManager.save(MineGuiCore.getConfigNamespace());
+        }
+    }
+
+    private void applyStyleKey(Identifier key, boolean persist) {
+        if (Objects.equals(this.globalStyleKey, key)) {
+            return;
+        }
+        this.globalStyleKey = key;
+        if (persist) {
+            persistGlobalStyle(key);
+        }
     }
 
     public final class StyleScope implements AutoCloseable {
