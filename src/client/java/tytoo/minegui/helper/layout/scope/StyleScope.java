@@ -1,12 +1,12 @@
-package tytoo.minegui.helper.layout;
+package tytoo.minegui.helper.layout.scope;
 
 import imgui.ImGui;
 
-final class StyleScope implements StyleHandle {
+public final class StyleScope implements StyleHandle {
     private final int count;
     private boolean closed;
 
-    StyleScope(int count) {
+    public StyleScope(int count) {
         this.count = count;
     }
 

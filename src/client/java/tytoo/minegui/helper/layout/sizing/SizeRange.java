@@ -1,4 +1,4 @@
-package tytoo.minegui.helper.layout;
+package tytoo.minegui.helper.layout.sizing;
 
 public record SizeRange(Float min, Float max) {
     public SizeRange {

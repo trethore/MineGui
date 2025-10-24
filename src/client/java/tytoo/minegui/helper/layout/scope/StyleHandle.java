@@ -1,4 +1,4 @@
-package tytoo.minegui.helper.layout;
+package tytoo.minegui.helper.layout.scope;
 
 public interface StyleHandle extends AutoCloseable {
     @Override

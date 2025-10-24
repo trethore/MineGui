@@ -1,8 +1,10 @@
-package tytoo.minegui.helper.layout;
+package tytoo.minegui.helper.layout.sizing;
 
 import imgui.ImGui;
 import tytoo.minegui.helper.constraint.LayoutConstraintSolver;
 import tytoo.minegui.helper.constraint.constraints.Constraints;
+import tytoo.minegui.helper.layout.LayoutConstraints;
+import tytoo.minegui.helper.layout.cursor.LayoutContext;
 
 public final class SizeHints {
     private SizeHints() {
@@ -123,7 +125,7 @@ public final class SizeHints {
         }
         float resolvedWidth = widthOverride;
         float resolvedHeight = heightOverride;
-        Constraints constraints = request.directConstraints();
+        Constraints constraints = request.constraints().orElse(null);
         LayoutConstraintSolver.LayoutResult result = null;
         if (constraints != null) {
             LayoutConstraintSolver.LayoutFrame frame = context != null

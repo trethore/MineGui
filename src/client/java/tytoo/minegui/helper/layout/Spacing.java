@@ -2,6 +2,9 @@ package tytoo.minegui.helper.layout;
 
 import imgui.ImGui;
 import imgui.flag.ImGuiStyleVar;
+import tytoo.minegui.helper.layout.scope.StyleHandle;
+import tytoo.minegui.helper.layout.scope.StyleScope;
+import tytoo.minegui.helper.layout.sizing.ScaleUnit;
 import tytoo.minegui.style.MGStyleDescriptor;
 import tytoo.minegui.style.MGVec2;
 

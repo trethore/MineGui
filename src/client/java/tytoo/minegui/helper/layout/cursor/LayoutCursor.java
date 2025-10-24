@@ -1,7 +1,9 @@
-package tytoo.minegui.helper.layout;
+package tytoo.minegui.helper.layout.cursor;
 
 import imgui.ImGui;
 import tytoo.minegui.helper.constraint.LayoutConstraintSolver;
+import tytoo.minegui.helper.constraint.constraints.Constraints;
+import tytoo.minegui.helper.layout.LayoutConstraints;
 
 public final class LayoutCursor {
     private LayoutCursor() {
@@ -20,14 +22,15 @@ public final class LayoutCursor {
     public static void moveTo(LayoutConstraints request, LayoutContext context) {
         LayoutConstraints constraints = request != null ? request : LayoutConstraints.empty();
         LayoutContext layoutContext = context != null ? context : LayoutContext.capture();
-        float rawX = constraints.rawXOrNaN();
-        float rawY = constraints.rawYOrNaN();
+        float rawX = constraints.rawX().orElse(Float.NaN);
+        float rawY = constraints.rawY().orElse(Float.NaN);
         boolean hasRawX = Float.isFinite(rawX);
         boolean hasRawY = Float.isFinite(rawY);
         LayoutConstraintSolver.LayoutResult result = null;
-        if (constraints.directConstraints() != null && (!hasRawX || !hasRawY)) {
+        Constraints constraintSet = constraints.constraints().orElse(null);
+        if (constraintSet != null && (!hasRawX || !hasRawY)) {
             LayoutConstraintSolver.LayoutFrame frame = layoutContext.toLayoutFrame(constraints);
-            result = LayoutConstraintSolver.resolve(constraints.directConstraints(), frame);
+            result = LayoutConstraintSolver.resolve(constraintSet, frame);
         }
         float targetX = hasRawX ? rawX : resolveAxis(result != null ? result.x() : Float.NaN, ImGui.getCursorPosX());
         float targetY = hasRawY ? rawY : resolveAxis(result != null ? result.y() : Float.NaN, ImGui.getCursorPosY());

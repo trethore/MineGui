@@ -2,6 +2,11 @@ package tytoo.minegui.helper.layout;
 
 import imgui.ImGui;
 import imgui.ImGuiStyle;
+import tytoo.minegui.helper.layout.cursor.LayoutContext;
+import tytoo.minegui.helper.layout.cursor.LayoutCursor;
+import tytoo.minegui.helper.layout.sizing.ScaleUnit;
+import tytoo.minegui.helper.layout.sizing.SizeHints;
+import tytoo.minegui.helper.layout.sizing.SizeRange;
 
 import java.util.Objects;
 

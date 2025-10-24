@@ -1,6 +1,8 @@
 package tytoo.minegui.helper.layout;
 
 import imgui.ImGui;
+import tytoo.minegui.helper.layout.cursor.LayoutCursor;
+import tytoo.minegui.helper.layout.sizing.ScaleUnit;
 
 public final class Margin {
     private Margin() {

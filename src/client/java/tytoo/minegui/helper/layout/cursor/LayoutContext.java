@@ -1,9 +1,10 @@
-package tytoo.minegui.helper.layout;
+package tytoo.minegui.helper.layout.cursor;
 
 import imgui.ImGui;
 import imgui.ImVec2;
 import tytoo.minegui.helper.constraint.ConstraintTarget;
 import tytoo.minegui.helper.constraint.LayoutConstraintSolver;
+import tytoo.minegui.helper.layout.LayoutConstraints;
 
 public final class LayoutContext {
     private final float windowPosX;
@@ -158,11 +159,13 @@ public final class LayoutContext {
 
     public LayoutConstraintSolver.LayoutFrame toLayoutFrame(LayoutConstraints request) {
         LayoutConstraints safeRequest = request != null ? request : LayoutConstraints.empty();
-        ConstraintTarget target = safeRequest.targetOrDefault(constraintTarget());
+        ConstraintTarget target = safeRequest
+                .targetOverride()
+                .orElseGet(this::constraintTarget);
         float parentWidth = contentRegionWidth();
         float parentHeight = contentRegionHeight();
-        float contentWidth = safeRequest.widthOverrideOrZero();
-        float contentHeight = safeRequest.heightOverrideOrZero();
+        float contentWidth = safeRequest.widthOverride().orElse(0f);
+        float contentHeight = safeRequest.heightOverride().orElse(0f);
         return new LayoutConstraintSolver.LayoutFrame(
                 parentWidth,
                 parentHeight,

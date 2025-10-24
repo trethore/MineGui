@@ -4,8 +4,8 @@ import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
 import tytoo.minegui.helper.layout.HStack;
-import tytoo.minegui.helper.layout.SizeHints;
 import tytoo.minegui.helper.layout.VStack;
+import tytoo.minegui.helper.layout.sizing.SizeHints;
 import tytoo.minegui.view.MGView;
 
 public final class TestView extends MGView {
