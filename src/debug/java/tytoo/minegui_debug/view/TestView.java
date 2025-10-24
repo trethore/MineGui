@@ -3,19 +3,17 @@ package tytoo.minegui_debug.view;
 import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
-import net.minecraft.util.Identifier;
-import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.helper.constraint.constraints.Constraints;
-import tytoo.minegui.helper.layout.*;
-import tytoo.minegui.util.ImGuiImageUtils;
+import tytoo.minegui.helper.layout.HStack;
+import tytoo.minegui.helper.layout.SizeHints;
+import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.view.MGView;
-import tytoo.minegui_debug.MineGuiDebugCore;
 
 public final class TestView extends MGView {
-    private static final Identifier ICON = Identifier.of(MineGuiCore.ID, "icon.png");
-    private final ImString textValue = new ImString("", 256);
-    private final ImString widthDemoValue = new ImString("Scaled width", 128);
+    private final ImString nameValue = new ImString("Alex", 64);
+    private final ImString emailValue = new ImString("alex@example.com", 96);
+    private final ImString notesValue = new ImString("Collect layout feedback here.", 512);
     private boolean clearFocusOnOpen;
+    private String lastAction = "Awaiting input";
 
     public TestView() {
         super("minegui_debug:test_view", true);
@@ -28,8 +26,7 @@ public final class TestView extends MGView {
 
     @Override
     protected void renderView() {
-        SizeHints.windowSize(420f, 260f);
-        if (!ImGui.begin(scopedWindowTitle("TestWindow"), ImGuiWindowFlags.NoFocusOnAppearing)) {
+        if (!ImGui.begin(scopedWindowTitle("VStack Demo"), ImGuiWindowFlags.NoFocusOnAppearing)) {
             ImGui.end();
             return;
         }
@@ -39,76 +36,76 @@ public final class TestView extends MGView {
             clearFocusOnOpen = false;
         }
 
-        ImGui.text("Immediate-mode debug view");
+        ImGui.text("Vertical stack layout");
         ImGui.separator();
-        ImGui.inputText("Text value", textValue);
-        SizeHints.itemWidth(220f, ScaleUnit.SCALED);
-        ImGui.inputText("Scaled width input", widthDemoValue);
-        ImGui.spacing();
 
-        ImGuiImageUtils.TextureInfo info = ImGuiImageUtils.getTextureInfo(ICON);
-        float width = Math.min(128.0f, info.width());
-        float height = Math.min(128.0f, info.height());
-        ImGui.image(info.textureId(), width, height);
+        try (VStack layout = VStack.begin(new VStack.Options().spacing(12f).fillMode(VStack.FillMode.MATCH_WIDEST))) {
+            try (VStack.ItemScope intro = layout.next()) {
+                ImGui.textWrapped("VStack scopes arrange content vertically with consistent spacing and optional width matching.");
+            }
 
-        ImGui.spacing();
-        if (ImGui.button("Log click")) {
-            MineGuiDebugCore.LOGGER.info("Clicked MineGui icon button");
-        }
-
-        ImGui.separator();
-        ImGui.text("Layout cursor demo");
-        ImGui.setNextItemWidth(-1f);
-        if (ImGui.beginChild("MineGuiLayoutDemo", 0f, 180f, true, ImGuiWindowFlags.NoScrollbar)) {
-            LayoutContext layoutContext = LayoutContext.capture();
-
-            LayoutCursor.moveTo(LayoutConstraints.builder().rawX(16f).rawY(32f).build(), layoutContext);
-            ImGui.text("Raw move to (16, 32)");
-
-            Constraints centeredConstraints = new Constraints(layoutContext.constraintTarget());
-            centeredConstraints.setX(Constraints.relative(0.5f, -60f));
-            centeredConstraints.setY(Constraints.relative(0.5f, -15f));
-            LayoutCursor.moveTo(
-                    LayoutConstraints.builder()
-                            .constraints(centeredConstraints)
-                            .width(120f)
-                            .height(30f)
-                            .build(),
-                    layoutContext
-            );
-            ImGui.button("Centered button", 120f, 30f);
-
-            LayoutCursor.moveBy(0f, 40f);
-            ImGui.text("Offset by moveBy(0, 40)");
-
-            ImGui.separator();
-            ImGui.text("Size hints");
-            Constraints halfWidthConstraints = new Constraints(layoutContext.constraintTarget());
-            halfWidthConstraints.setWidth(Constraints.relative(0.5f, -20f));
-            LayoutConstraints sizeRequest = LayoutConstraints.builder()
-                    .constraints(halfWidthConstraints)
-                    .height(36f)
-                    .build();
-            SizeRange widthRange = SizeRange.of(120f, 260f);
-            SizeHints.NextSize buttonSize = SizeHints.itemSize(sizeRequest, widthRange, null, layoutContext);
-            float buttonHeight = buttonSize.height() > 0f ? buttonSize.height() : 36f;
-            ImGui.button("Half width button", buttonSize.width(), buttonHeight);
-            ImGui.text("Computed width: " + buttonSize.width());
-
-            ImGui.separator();
-            ImGui.text("Spacing and padding");
-            try (StyleHandle spacing = Spacing.stack(12f, 8f)) {
-                try (StyleHandle padding = Padding.frame(6f, 6f)) {
-                    ImGui.text("Scoped spacing 12x8 with frame padding 6x6");
+            try (VStack.ItemScope nameRow = layout.next()) {
+                float labelWidth = 90f;
+                float fieldWidth = 220f;
+                float fieldHeight = ImGui.getFrameHeight();
+                try (HStack row = HStack.begin(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER))) {
+                    try (HStack.ItemScope label = row.next(new HStack.ItemRequest().estimateWidth(labelWidth).estimateHeight(fieldHeight))) {
+                        ImGui.alignTextToFramePadding();
+                        ImGui.text("Name");
+                    }
+                    try (HStack.ItemScope field = row.next(new HStack.ItemRequest().estimateWidth(fieldWidth).estimateHeight(fieldHeight))) {
+                        SizeHints.itemWidth(fieldWidth);
+                        ImGui.inputText("##vstack_name", nameValue);
+                    }
                 }
-                ImGui.text("Spacing restored after padding scope");
             }
 
-            try (Margin.Scope margin = Margin.apply(4f, 12f, 10f, 12f)) {
-                ImGui.text("Block with margin top 4, right 12, bottom 10, left 12");
+            try (VStack.ItemScope emailRow = layout.next()) {
+                float labelWidth = 90f;
+                float fieldWidth = 220f;
+                float fieldHeight = ImGui.getFrameHeight();
+                try (HStack row = HStack.begin(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER))) {
+                    try (HStack.ItemScope label = row.next(new HStack.ItemRequest().estimateWidth(labelWidth).estimateHeight(fieldHeight))) {
+                        ImGui.alignTextToFramePadding();
+                        ImGui.text("Email");
+                    }
+                    try (HStack.ItemScope field = row.next(new HStack.ItemRequest().estimateWidth(fieldWidth).estimateHeight(fieldHeight))) {
+                        SizeHints.itemWidth(fieldWidth);
+                        ImGui.inputText("##vstack_email", emailValue);
+                    }
+                }
+            }
+
+            try (VStack.ItemScope notesBlock = layout.next(new VStack.ItemRequest().estimateHeight(140f))) {
+                ImGui.text("Notes");
+                ImGui.separator();
+                ImGui.inputTextMultiline("##vstack_notes", notesValue, -1f, 110f);
+            }
+
+            float buttonHeight = ImGui.getFrameHeight();
+            try (VStack.ItemScope actionRow = layout.next(new VStack.ItemRequest().estimateHeight(buttonHeight))) {
+                float buttonWidth = 120f;
+                try (HStack row = HStack.begin(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER))) {
+                    try (HStack.ItemScope submit = row.next(new HStack.ItemRequest().estimateWidth(buttonWidth).estimateHeight(buttonHeight))) {
+                        if (ImGui.button("Submit", buttonWidth, buttonHeight)) {
+                            lastAction = "Submit clicked";
+                        }
+                    }
+                    try (HStack.ItemScope reset = row.next(new HStack.ItemRequest().estimateWidth(buttonWidth).estimateHeight(buttonHeight))) {
+                        if (ImGui.button("Reset", buttonWidth, buttonHeight)) {
+                            nameValue.set("");
+                            emailValue.set("");
+                            notesValue.set("");
+                            lastAction = "Fields cleared";
+                        }
+                    }
+                }
+            }
+
+            try (VStack.ItemScope status = layout.next()) {
+                ImGui.text("Last action: " + lastAction);
             }
         }
-        ImGui.endChild();
 
         ImGui.end();
     }
