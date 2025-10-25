@@ -24,8 +24,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Use PascalCase for classes, camelCase for methods and fields, and UPPER_SNAKE_CASE for constants.
 - Declare explicit types and avoid `var`; prefer descriptive names over one-letter identifiers.
 - Bring types into scope with imports; do not use fully qualified class names inside method bodies.
-- Prefer straightforward helper methods over fluent builders; keep APIs explicit and readable.
-- When adding shared utilities, document behaviour through clear method names and focused Javadoc rather than abstract component hierarchies.
+- When adding shared utilities, document behaviour through clear method names and arguments rather than abstract component hierarchies.
 - Assume contributors are working in IntelliJ IDEA; keep code free of IDE warnings.
 - Never add code comments unless the user explicitly requests documentation.
 - Keep edits minimal and stylistically aligned with surrounding code; do not introduce new formatting tools or unrelated refactors.
@@ -35,7 +34,6 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Assume the runtime is Java 21; rely only on features that are stable in this release and avoid preview or incubator APIs.
 - Leverage modern Java 21 standard-library utilities (Streams, Optional, records) when they improve clarity and maintainability.
 - Maintain explicit, readable control flow; avoid overly clever constructs that impair comprehension.
-- Preserve binary compatibility for consumers when adjusting public APIs, and surface any intentional breaking changes to the user before proceeding.
 
 ## Minecraft Integration Rules
 - The codebase targets Fabric for Minecraft 1.21.4 with Yarn mappings `1.21.4+build.8`; use APIs that exist in this combination.
@@ -51,15 +49,14 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - When you need to inspect imgui-java sources, look for them under `project-sources/`; if they are missing, ask the user to run `./gradlew generateProjectSources` and explain the verification need (API lookup, rendering hook trace, etc.).
 
 ## Testing & Verification
-- Do not run Gradle commands yourself; provide the exact command so the user can execute it.
-- Encourage the user to run `./gradlew compileJava` after code changes to catch compilation errors early.
-- Prompt or guide the user to run `./gradlew build` for full validation when feasible, and rely on `./gradlew runClient` or `./gradlew runDebugClient` to exercise UI flows in development environments.
-- When tooling restrictions prevent the agent from running Gradle tasks, plainly state the limitation and provide the exact commands so the user can execute them.
-- Document manual validation steps (such as running a command or opening a window) and enumerate any remaining risks before finishing.
-- ImGui natives are loaded from the bundled libs/ folder; no external downloads are required.
+- Do not run Gradle commands yourself; provide the exact command so the user can execute it and state tooling limitations up front.
+- Encourage the user to run `./gradlew compileJava` after changes, `./gradlew build` for full validation, and `./gradlew runClient` or `./gradlew runDebugClient` to exercise UI flows.
+- Document manual validation steps and remaining risks before finishing.
+- For detailed checklists and edge cases, consult `agents/testing_and_verification.md` when testing or verifying work.
+- Note that ImGui natives are loaded from the provided `libs/` folder.
 
 ## Pull Requests
 - Keep PRs focused on a single concern and avoid unrelated cleanups.
-- Provide clear summaries, rationale, and manual test steps; include screenshots or GIFs for UI changes when applicable.
-- Use Conventional Commit conventions (e.g., `feat(ui): add slider snap support`) for commit messages.
-- Flag breaking API changes and coordinate versioning with the user before merging.
+- Provide clear summaries, rationale, and manual test steps; include visuals for UI changes when applicable.
+- Use Conventional Commit conventions (e.g., `feat(ui): add slider snap support`) and flag breaking API changes early.
+- Refer to `agents/pull_requests.md` for detailed workflows, templates, and reviewer expectations.
