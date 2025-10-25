@@ -111,7 +111,7 @@ public abstract class MGView {
         return getClass().getName();
     }
 
-    protected String scopedWindowTitle(String displayTitle) {
+    public String scopedWindowTitle(String displayTitle) {
         String base = displayTitle != null ? displayTitle : "";
         if (base.contains("##")) {
             return base;
