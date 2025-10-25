@@ -41,6 +41,7 @@ When drafting or updating `plan.txt`, mirror this structure:
 4. **After completion**: Summarize outcomes, archive or clear `plan.txt`, and link any follow-ups in the main conversation.
 
 ## Tips
+- Before writing a plan, try to understand how the codebase currently handles related concerns
 - Keep plans concise—favor bullet points over long paragraphs.
 - Link back to relevant specs, issues, or design discussions so context remains discoverable.
 - Note explicit trade-offs when selecting between approaches to inform future iterations.
