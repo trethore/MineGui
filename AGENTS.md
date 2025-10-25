@@ -55,6 +55,10 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - For detailed checklists and edge cases, consult `agents/testing_and_verification.md` when testing or verifying work.
 - Note that ImGui natives are loaded from the provided `libs/` folder.
 
+## Planning & Brainstorming
+- When asked to plan use `agents/plan.md` to correctly structure your ideas and implementation steps.
+- Complete planning before starting implementation.
+
 ## Pull Requests
 - Keep PRs focused on a single concern and avoid unrelated cleanups.
 - Provide clear summaries, rationale, and manual test steps; include visuals for UI changes when applicable.
