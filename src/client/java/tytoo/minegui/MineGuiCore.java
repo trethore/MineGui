@@ -24,6 +24,7 @@ public final class MineGuiCore {
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
+    private static boolean defaultNamespaceConfigured;
     private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults();
 
     private MineGuiCore() {
@@ -36,11 +37,19 @@ public final class MineGuiCore {
     public static synchronized void init(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = options.configNamespace();
-        MineGuiNamespaces.initialize(options);
-        if (ID.equals(namespace)) {
+        if (!defaultNamespaceConfigured) {
             initializationOptions = options;
             GlobalConfigManager.configureDefaultNamespace(namespace);
+            defaultNamespaceConfigured = true;
+        } else {
+            String defaultNamespace = GlobalConfigManager.getDefaultNamespace();
+            if (namespace.equals(defaultNamespace)) {
+                initializationOptions = options;
+            } else {
+                LOGGER.info("MineGui default namespace remains '{}'; additional namespace '{}' registered without overriding the default.", defaultNamespace, namespace);
+            }
         }
+        MineGuiNamespaces.initialize(options);
         registerReloadListener();
         registerLifecycleHandlers();
         MineGuiClientCommands.register();
@@ -77,6 +86,9 @@ public final class MineGuiCore {
     }
 
     public static void loadConfig() {
+        if (!defaultNamespaceConfigured) {
+            return;
+        }
         if (initializationOptions.ignoreGlobalConfig() || !initializationOptions.loadGlobalConfig()) {
             return;
         }
@@ -84,14 +96,20 @@ public final class MineGuiCore {
     }
 
     public static String getConfigNamespace() {
-        return initializationOptions.configNamespace();
+        return GlobalConfigManager.getDefaultNamespace();
     }
 
     public static boolean isGlobalConfigAutoLoaded() {
+        if (!defaultNamespaceConfigured) {
+            return false;
+        }
         return initializationOptions.loadGlobalConfig() && !initializationOptions.ignoreGlobalConfig();
     }
 
     public static boolean isGlobalConfigIgnored() {
+        if (!defaultNamespaceConfigured) {
+            return false;
+        }
         return initializationOptions.ignoreGlobalConfig();
     }
 

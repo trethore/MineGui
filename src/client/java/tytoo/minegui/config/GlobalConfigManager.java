@@ -3,6 +3,7 @@ package tytoo.minegui.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
+import net.fabricmc.loader.api.FabricLoader;
 import tytoo.minegui.MineGuiCore;
 
 import java.io.IOException;
@@ -21,6 +22,8 @@ public final class GlobalConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String DEFAULT_NAMESPACE = MineGuiCore.ID;
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
+    private static final Path CONFIG_ROOT = determineConfigRoot();
+    private static final Path NAMESPACE_ROOT = CONFIG_ROOT.resolve(MineGuiCore.ID).normalize();
     private static String defaultNamespace = DEFAULT_NAMESPACE;
 
     private GlobalConfigManager() {
@@ -222,6 +225,14 @@ public final class GlobalConfigManager {
         return namespace;
     }
 
+    private static Path determineConfigRoot() {
+        Path configDir = FabricLoader.getInstance().getConfigDir();
+        if (configDir != null) {
+            return configDir.toAbsolutePath().normalize();
+        }
+        return Path.of("config").toAbsolutePath().normalize();
+    }
+
     private static void ensureDirectory(Path directory) {
         if (directory == null) {
             return;
@@ -245,11 +256,17 @@ public final class GlobalConfigManager {
             if (parsed == null) {
                 return null;
             }
-            if (parsed.getConfigPath() == null || parsed.getConfigPath().isBlank()) {
-                parsed.setConfigPath(path.toString());
+            String storedConfigPath = sanitizeStoredPath(parsed.getConfigPath());
+            if (storedConfigPath == null) {
+                parsed.setConfigPath(relativizeToConfigRoot(path));
+            } else {
+                parsed.setConfigPath(storedConfigPath);
             }
-            if (parsed.getViewSavesPath() == null || parsed.getViewSavesPath().isBlank()) {
+            String storedViewPath = sanitizeStoredPath(parsed.getViewSavesPath());
+            if (storedViewPath == null) {
                 parsed.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
+            } else {
+                parsed.setViewSavesPath(storedViewPath);
             }
             if (parsed.getViewStyles() == null) {
                 parsed.setViewStyles(new HashMap<>());
@@ -263,26 +280,18 @@ public final class GlobalConfigManager {
     }
 
     private static Path resolveConfigPath(String configuredPath, ConfigState state) {
-        if (configuredPath == null || configuredPath.isBlank()) {
-            return state.defaultConfigFile;
-        }
-        try {
-            Path path = Path.of(configuredPath);
-            if (!path.isAbsolute()) {
-                path = state.baseDirectory.resolve(path);
-            }
-            return path.normalize();
-        } catch (InvalidPathException e) {
-            MineGuiCore.LOGGER.warn("Invalid config path '{}', using default", configuredPath);
-            return state.defaultConfigFile;
-        }
+        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultConfigFile, "config path");
+        state.config.setConfigPath(relativizeToConfigRoot(resolved));
+        return resolved;
     }
 
     private static void writeConfig(Path path, GlobalConfig value, ConfigState state) {
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-            value.setConfigPath(path.toString());
+            String relativeConfigPath = relativizeToConfigRoot(path);
             Path resolvedViewPath = resolveViewSavesPath(value.getViewSavesPath(), state);
-            value.setViewSavesPath(resolvedViewPath.toString());
+            String relativeViewPath = relativizeToConfigRoot(resolvedViewPath);
+            value.setConfigPath(relativeConfigPath);
+            value.setViewSavesPath(relativeViewPath);
             value.setGlobalScale(value.getGlobalScale());
             GSON.toJson(value, writer);
         } catch (IOException e) {
@@ -302,25 +311,75 @@ public final class GlobalConfigManager {
     }
 
     private static Path resolveViewSavesPath(String configuredPath, ConfigState state) {
-        if (configuredPath == null || configuredPath.isBlank()) {
-            return state.defaultViewSavesDir;
-        }
-        try {
-            Path path = Path.of(configuredPath);
-            if (!path.isAbsolute()) {
-                path = state.baseDirectory.resolve(path);
-            }
-            return path.normalize();
-        } catch (InvalidPathException e) {
-            MineGuiCore.LOGGER.warn("Invalid view saves path '{}', using default", configuredPath);
-            return state.defaultViewSavesDir;
-        }
+        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultViewSavesDir, "view saves path");
+        state.config.setViewSavesPath(relativizeToConfigRoot(resolved));
+        return resolved;
     }
 
     private static void ensureViewPath(ConfigState state) {
         if (state.config.getViewSavesPath() == null || state.config.getViewSavesPath().isBlank()) {
             state.config.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
         }
+    }
+
+    private static Path resolveWithinConfigRoot(String configuredPath, ConfigState state, Path defaultPath, String label) {
+        if (configuredPath == null || configuredPath.isBlank()) {
+            return defaultPath;
+        }
+        String sanitizedInput = sanitizeStoredPath(configuredPath);
+        if (sanitizedInput == null) {
+            return defaultPath;
+        }
+        Path candidate;
+        try {
+            candidate = Path.of(sanitizedInput);
+        } catch (InvalidPathException e) {
+            MineGuiCore.LOGGER.warn("Invalid {} '{}', using default", label, sanitizedInput);
+            return defaultPath;
+        }
+        Path resolved;
+        if (candidate.isAbsolute()) {
+            resolved = candidate.normalize();
+        } else if (isSimpleName(candidate)) {
+            resolved = state.baseDirectory.resolve(candidate).normalize();
+        } else {
+            resolved = CONFIG_ROOT.resolve(candidate).normalize();
+        }
+        if (!resolved.startsWith(NAMESPACE_ROOT)) {
+            MineGuiCore.LOGGER.warn("{} '{}' resolves outside of the MineGui config directory; using default", label, sanitizedInput);
+            return defaultPath;
+        }
+        return resolved;
+    }
+
+    private static boolean isSimpleName(Path path) {
+        if (path.getNameCount() != 1) {
+            return false;
+        }
+        String name = path.getFileName().toString();
+        return !".".equals(name) && !"..".equals(name);
+    }
+
+    private static String relativizeToConfigRoot(Path path) {
+        if (path == null) {
+            return null;
+        }
+        Path normalized = path.normalize();
+        if (normalized.startsWith(CONFIG_ROOT)) {
+            return CONFIG_ROOT.relativize(normalized).toString().replace('\\', '/');
+        }
+        return normalized.toString().replace('\\', '/');
+    }
+
+    private static String sanitizeStoredPath(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.replace('\\', '/');
     }
 
     private static final class ConfigState {
@@ -335,11 +394,7 @@ public final class GlobalConfigManager {
         private boolean loaded;
 
         private ConfigState(String namespace) {
-            if (DEFAULT_NAMESPACE.equals(namespace)) {
-                this.baseDirectory = MineGuiCore.CONFIG_DIR;
-            } else {
-                this.baseDirectory = MineGuiCore.CONFIG_DIR.resolve(namespace);
-            }
+            this.baseDirectory = NAMESPACE_ROOT.resolve(namespace).normalize();
             this.defaultConfigFile = baseDirectory.resolve("global_config.json");
             this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
             this.config = new GlobalConfig();

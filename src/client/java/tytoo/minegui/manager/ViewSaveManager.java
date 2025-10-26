@@ -19,11 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.HexFormat;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -81,17 +77,20 @@ public final class ViewSaveManager {
         }
         ViewEntry entry = entries.computeIfAbsent(view, unused -> new ViewEntry());
         String currentId = view.getId();
+        String scopedId = scopedId(view);
         Path hashedLayoutPath = resolveLayoutPath(currentId);
-        if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedPath, hashedLayoutPath)) {
+        if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedScopedId, scopedId) || !Objects.equals(entry.loadedPath, hashedLayoutPath)) {
             entry.loaded = false;
             entry.persistedStyleSnapshotJson = readPersistedStyleSnapshot(currentId);
             entry.styleSnapshotJson = null;
             entry.descriptorDirty = false;
+            entry.loadedScopedId = null;
         }
         if (entry.loaded) {
             return;
         }
         entry.loadedId = currentId;
+        entry.loadedScopedId = scopedId;
         entry.loadedPath = hashedLayoutPath;
         ensureParentDirectory(hashedLayoutPath);
         Path legacyLayoutPath = resolveLegacyLayoutPath(currentId);
@@ -153,7 +152,7 @@ public final class ViewSaveManager {
         }
         Map<String, ViewEntry> activeEntries = entries.entrySet().stream()
                 .filter(entry -> entry.getKey().isShouldSave())
-                .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue, (first, second) -> first));
+                .collect(Collectors.toMap(entry -> scopedId(entry.getKey()), Map.Entry::getValue, (first, second) -> first));
         if (activeEntries.isEmpty()) {
             return;
         }
@@ -322,6 +321,14 @@ public final class ViewSaveManager {
         return identifier.toString();
     }
 
+    private String scopedId(MGView view) {
+        String viewNamespace = view.getNamespace();
+        if (viewNamespace == null || viewNamespace.isBlank()) {
+            return view.getId();
+        }
+        return viewNamespace + "/" + view.getId();
+    }
+
     private String extractViewId(String headerLine) {
         Matcher matcher = WINDOW_HEADER_PATTERN.matcher(headerLine);
         if (!matcher.matches()) {
@@ -403,6 +410,7 @@ public final class ViewSaveManager {
     private static final class ViewEntry {
         private boolean loaded;
         private String loadedId;
+        private String loadedScopedId;
         private Path loadedPath;
         private String pendingStyleKey;
         private boolean styleDirty;

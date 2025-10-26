@@ -23,10 +23,14 @@ public record MineGuiInitializationOptions(boolean loadGlobalConfig, boolean ign
     }
 
     private static String normalizeNamespace(String namespace) {
-        if (namespace == null || namespace.isBlank()) {
-            return MineGuiCore.ID;
+        if (namespace == null) {
+            throw new IllegalArgumentException("MineGui namespace cannot be null");
         }
-        return namespace;
+        String trimmed = namespace.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("MineGui namespace cannot be blank");
+        }
+        return trimmed;
     }
 
     public MineGuiInitializationOptions withNamespace(String namespace) {

@@ -23,18 +23,19 @@ public final class MineGuiExportStyleCommand {
                 .executes(context -> execute(context.getSource(), null, false))
                 .then(ClientCommandManager.literal("force")
                         .executes(context -> execute(context.getSource(), null, true)))
-                .then(ClientCommandManager.argument("namespace", StringArgumentType.string())
-                        .executes(context -> execute(
-                                context.getSource(),
-                                StringArgumentType.getString(context, "namespace"),
-                                false
-                        ))
-                        .then(ClientCommandManager.literal("force")
+                .then(ClientCommandManager.literal("namespace")
+                        .then(ClientCommandManager.argument("namespace", StringArgumentType.string())
                                 .executes(context -> execute(
                                         context.getSource(),
                                         StringArgumentType.getString(context, "namespace"),
-                                        true
-                                )))));
+                                        false
+                                ))
+                                .then(ClientCommandManager.literal("force")
+                                        .executes(context -> execute(
+                                                context.getSource(),
+                                                StringArgumentType.getString(context, "namespace"),
+                                                true
+                                        ))))));
         return export;
     }
 
