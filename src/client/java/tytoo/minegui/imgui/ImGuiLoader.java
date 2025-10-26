@@ -4,6 +4,7 @@ import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import imgui.internal.ImGuiContext;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
@@ -18,6 +19,7 @@ public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
     private static final String GLSL_VERSION = "#version 150";
+    private static float appliedGlobalScale = Float.NaN;
 
     private static long windowHandle;
     private static int mcWindowWidth;
@@ -45,6 +47,7 @@ public class ImGuiLoader {
 
     public static void onFrameRender() {
         imGuiGlfw.newFrame();
+        applyGlobalScale(GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()));
 
         ImGui.newFrame();
         StyleManager.getInstance().apply();
@@ -79,6 +82,7 @@ public class ImGuiLoader {
 
     private static void initializeImGui() {
         ImGui.createContext();
+        appliedGlobalScale = Float.NaN;
 
         final ImGuiIO io = ImGui.getIO();
         final GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
@@ -96,6 +100,7 @@ public class ImGuiLoader {
         }
 
         ImFont defaultFont = configureDefaultFonts(io);
+        applyGlobalScale(config);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             final ImGuiStyle style = ImGui.getStyle();
@@ -189,5 +194,28 @@ public class ImGuiLoader {
             return;
         }
         imGuiGlfw.charCallback(window, codePoint);
+    }
+
+    public static void refreshGlobalScale() {
+        applyGlobalScale(GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()));
+    }
+
+    private static void applyGlobalScale(GlobalConfig config) {
+        if (config == null) {
+            return;
+        }
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (context == null || context.isNotValidPtr()) {
+            return;
+        }
+        float configuredScale = config.getGlobalScale();
+        if (!Float.isFinite(configuredScale) || configuredScale <= 0.0f) {
+            configuredScale = 1.0f;
+        }
+        if (Float.compare(configuredScale, appliedGlobalScale) == 0) {
+            return;
+        }
+        ImGui.getIO().setFontGlobalScale(configuredScale);
+        appliedGlobalScale = configuredScale;
     }
 }

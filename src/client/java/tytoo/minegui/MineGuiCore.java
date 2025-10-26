@@ -33,8 +33,12 @@ public final class MineGuiCore {
     public static synchronized void init(MineGuiInitializationOptions options) {
         initializationOptions = Objects.requireNonNull(options, "options");
         GlobalConfigManager.configureDefaultNamespace(initializationOptions.configNamespace());
-        GlobalConfigManager.setAutoLoadEnabled(initializationOptions.loadGlobalConfig());
-        if (initializationOptions.loadGlobalConfig()) {
+        GlobalConfigManager.setConfigIgnored(initializationOptions.ignoreGlobalConfig());
+        boolean shouldAutoLoad = initializationOptions.loadGlobalConfig() && !initializationOptions.ignoreGlobalConfig();
+        GlobalConfigManager.setAutoLoadEnabled(shouldAutoLoad);
+        if (initializationOptions.ignoreGlobalConfig()) {
+            GlobalConfigManager.ensureContext(initializationOptions.configNamespace());
+        } else if (shouldAutoLoad) {
             GlobalConfigManager.load(initializationOptions.configNamespace());
         } else {
             GlobalConfigManager.ensureContext(initializationOptions.configNamespace());
@@ -62,7 +66,7 @@ public final class MineGuiCore {
     }
 
     public static void loadConfig() {
-        if (!initializationOptions.loadGlobalConfig()) {
+        if (initializationOptions.ignoreGlobalConfig() || !initializationOptions.loadGlobalConfig()) {
             return;
         }
         GlobalConfigManager.load(initializationOptions.configNamespace());
@@ -73,7 +77,11 @@ public final class MineGuiCore {
     }
 
     public static boolean isGlobalConfigAutoLoaded() {
-        return initializationOptions.loadGlobalConfig();
+        return initializationOptions.loadGlobalConfig() && !initializationOptions.ignoreGlobalConfig();
+    }
+
+    public static boolean isGlobalConfigIgnored() {
+        return initializationOptions.ignoreGlobalConfig();
     }
 
     public static MineGuiInitializationOptions getInitializationOptions() {

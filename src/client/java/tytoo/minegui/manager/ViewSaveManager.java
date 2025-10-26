@@ -169,6 +169,12 @@ public final class ViewSaveManager {
     }
 
     private void restoreViewStyle(MGView view, ViewEntry entry) {
+        if (GlobalConfigManager.isConfigIgnored()) {
+            entry.persistedStyleKey = null;
+            entry.pendingStyleKey = normalizeStyleKey(view.getStyleKey());
+            entry.styleDirty = false;
+            return;
+        }
         Map<String, String> styles = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()).getViewStyles();
         String saved = styles.get(view.getId());
         if (saved != null && saved.isBlank()) {
@@ -188,6 +194,9 @@ public final class ViewSaveManager {
     }
 
     private void persistViewStyles() {
+        if (GlobalConfigManager.isConfigIgnored()) {
+            return;
+        }
         boolean changed = false;
         Map<String, String> styles = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()).getViewStyles();
         for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {

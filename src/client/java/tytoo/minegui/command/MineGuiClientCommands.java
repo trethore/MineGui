@@ -1,9 +1,11 @@
 package tytoo.minegui.command;
 
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
@@ -11,6 +13,7 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.style.*;
 
 public final class MineGuiClientCommands {
@@ -21,31 +24,36 @@ public final class MineGuiClientCommands {
         if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
             return;
         }
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                dispatcher.register(
-                        ClientCommandManager.literal("minegui")
-                                .then(ClientCommandManager.literal("reload")
-                                        .then(ClientCommandManager.literal("config")
-                                                .executes(context -> {
-                                                    MinecraftClient.getInstance().execute(() -> {
-                                                        MineGuiCore.loadConfig();
-                                                        applyConfiguredStyle();
-                                                    });
-                                                    context.getSource().sendFeedback(Text.literal("MineGui configuration reloaded."));
-                                                    return 1;
-                                                }))
-                                        .then(ClientCommandManager.literal("style")
-                                                .executes(context -> {
-                                                    MinecraftClient.getInstance().execute(MineGuiClientCommands::reloadStyles);
-                                                    context.getSource().sendFeedback(Text.literal("MineGui styles rebuilt."));
-                                                    return 1;
-                                                })))
-                                .executes(context -> {
-                                    context.getSource().sendFeedback(Text.literal("Usage: /minegui reload <config|style>"));
-                                    return 1;
-                                })
-                )
-        );
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            boolean configIgnored = MineGuiCore.isGlobalConfigIgnored();
+            LiteralArgumentBuilder<FabricClientCommandSource> reload = ClientCommandManager.literal("reload");
+            if (!configIgnored) {
+                reload = reload.then(ClientCommandManager.literal("config")
+                        .executes(context -> {
+                            MinecraftClient.getInstance().execute(() -> {
+                                MineGuiCore.loadConfig();
+                                applyConfiguredStyle();
+                            });
+                            context.getSource().sendFeedback(Text.literal("MineGui configuration reloaded."));
+                            return 1;
+                        }));
+            }
+            reload = reload.then(ClientCommandManager.literal("style")
+                    .executes(context -> {
+                        MinecraftClient.getInstance().execute(MineGuiClientCommands::reloadStyles);
+                        context.getSource().sendFeedback(Text.literal("MineGui styles rebuilt."));
+                        return 1;
+                    }));
+            final String usage = configIgnored ? "Usage: /minegui reload style" : "Usage: /minegui reload <config|style>";
+            dispatcher.register(
+                    ClientCommandManager.literal("minegui")
+                            .then(reload)
+                            .executes(context -> {
+                                context.getSource().sendFeedback(Text.literal(usage));
+                                return 1;
+                            })
+            );
+        });
     }
 
     private static void reloadStyles() {
@@ -74,6 +82,7 @@ public final class MineGuiClientCommands {
         StyleManager styleManager = StyleManager.getInstance();
         styleManager.setGlobalStyleKey(styleKey);
         styleManager.apply();
+        ImGuiLoader.refreshGlobalScale();
         // when styleKey is null, StyleManager persists clearing via setGlobalStyleKey
     }
 }

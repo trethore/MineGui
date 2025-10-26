@@ -23,6 +23,7 @@ public final class GlobalConfigManager {
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
     private static String defaultNamespace = DEFAULT_NAMESPACE;
     private static boolean autoLoadEnabled = true;
+    private static boolean configIgnored;
 
     private GlobalConfigManager() {
     }
@@ -32,11 +33,29 @@ public final class GlobalConfigManager {
     }
 
     public static synchronized boolean isAutoLoadEnabled() {
+        if (configIgnored) {
+            return false;
+        }
         return autoLoadEnabled;
     }
 
     public static synchronized void setAutoLoadEnabled(boolean enabled) {
+        if (configIgnored) {
+            autoLoadEnabled = false;
+            return;
+        }
         autoLoadEnabled = enabled;
+    }
+
+    public static synchronized boolean isConfigIgnored() {
+        return configIgnored;
+    }
+
+    public static synchronized void setConfigIgnored(boolean ignored) {
+        configIgnored = ignored;
+        if (ignored) {
+            autoLoadEnabled = false;
+        }
     }
 
     public static synchronized void ensureContext(String namespace) {
@@ -49,7 +68,7 @@ public final class GlobalConfigManager {
 
     public static synchronized GlobalConfig getConfig(String namespace) {
         ConfigState state = context(namespace);
-        if (autoLoadEnabled && !state.loaded) {
+        if (!configIgnored && autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
         return state.config;
@@ -61,6 +80,12 @@ public final class GlobalConfigManager {
 
     public static synchronized void load(String namespace) {
         ConfigState state = context(namespace);
+        if (configIgnored) {
+            state.loaded = true;
+            state.activeConfigPath = state.defaultConfigFile;
+            state.activeViewSavesPath = state.defaultViewSavesDir;
+            return;
+        }
         if (state.loaded) {
             return;
         }
@@ -90,6 +115,10 @@ public final class GlobalConfigManager {
 
     public static synchronized void save(String namespace) {
         ConfigState state = context(namespace);
+        if (configIgnored) {
+            state.loaded = true;
+            return;
+        }
         if (autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
@@ -108,6 +137,13 @@ public final class GlobalConfigManager {
 
     public static synchronized void reset(String namespace) {
         ConfigState state = context(namespace);
+        if (configIgnored) {
+            state.config = new GlobalConfig();
+            state.activeConfigPath = state.defaultConfigFile;
+            state.activeViewSavesPath = state.defaultViewSavesDir;
+            state.loaded = false;
+            return;
+        }
         Path currentPath = resolveConfigPath(state.config.getConfigPath(), state);
         deleteIfExists(currentPath);
         if (!Objects.equals(currentPath, state.defaultConfigFile)) {
@@ -126,6 +162,9 @@ public final class GlobalConfigManager {
 
     public static synchronized Path getActiveConfigPath(String namespace) {
         ConfigState state = context(namespace);
+        if (configIgnored) {
+            return state.defaultConfigFile;
+        }
         if (autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
@@ -139,6 +178,9 @@ public final class GlobalConfigManager {
 
     public static synchronized Path getViewSavesDirectory(String namespace) {
         ConfigState state = context(namespace);
+        if (configIgnored) {
+            return state.defaultViewSavesDir;
+        }
         if (autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
@@ -190,6 +232,7 @@ public final class GlobalConfigManager {
             if (parsed.getViewStyles() == null) {
                 parsed.setViewStyles(new HashMap<>());
             }
+            parsed.setGlobalScale(parsed.getGlobalScale());
             return parsed;
         } catch (IOException | JsonParseException e) {
             MineGuiCore.LOGGER.error("Failed to read global config from {}", path, e);
@@ -218,6 +261,7 @@ public final class GlobalConfigManager {
             value.setConfigPath(path.toString());
             Path resolvedViewPath = resolveViewSavesPath(value.getViewSavesPath(), state);
             value.setViewSavesPath(resolvedViewPath.toString());
+            value.setGlobalScale(value.getGlobalScale());
             GSON.toJson(value, writer);
         } catch (IOException e) {
             MineGuiCore.LOGGER.error("Failed to write global config to {}", path, e);

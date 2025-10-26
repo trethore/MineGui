@@ -9,6 +9,7 @@ public final class GlobalConfig {
 
     private boolean viewport = true;
     private boolean dockspace = true;
+    private float globalScale = 1.0f;
     private String configPath = DEFAULT_CONFIG_PATH;
     private String viewSavesPath = DEFAULT_VIEW_SAVES_PATH;
     private String globalStyleKey;
@@ -35,6 +36,18 @@ public final class GlobalConfig {
 
     public void setDockspace(boolean dockspace) {
         this.dockspace = dockspace;
+    }
+
+    public float getGlobalScale() {
+        return globalScale;
+    }
+
+    public void setGlobalScale(float globalScale) {
+        if (!Float.isFinite(globalScale) || globalScale <= 0.0f) {
+            this.globalScale = 1.0f;
+            return;
+        }
+        this.globalScale = globalScale;
     }
 
     public String getConfigPath() {

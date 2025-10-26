@@ -137,6 +137,9 @@ public final class StyleManager {
     }
 
     private void persistGlobalStyle(Identifier key) {
+        if (GlobalConfigManager.isConfigIgnored()) {
+            return;
+        }
         GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
         String value = key != null ? key.toString() : null;
         if (!Objects.equals(config.getGlobalStyleKey(), value)) {
