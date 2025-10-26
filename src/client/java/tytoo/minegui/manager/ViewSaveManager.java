@@ -17,7 +17,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,7 +32,6 @@ import java.util.stream.Collectors;
 public final class ViewSaveManager {
     private static final Map<String, ViewSaveManager> INSTANCES = new ConcurrentHashMap<>();
     private static final Pattern WINDOW_HEADER_PATTERN = Pattern.compile("^\\[[^]]+]\\[(?<name>[^]]+)]$");
-    private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[^a-zA-Z0-9._-]");
     private static final String LAYOUTS_FOLDER = "layouts";
     private static final String STYLES_FOLDER = "styles";
 
@@ -79,8 +81,8 @@ public final class ViewSaveManager {
         }
         ViewEntry entry = entries.computeIfAbsent(view, unused -> new ViewEntry());
         String currentId = view.getId();
-        Path targetPath = resolveLayoutPath(currentId);
-        if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedPath, targetPath)) {
+        Path hashedLayoutPath = resolveLayoutPath(currentId);
+        if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedPath, hashedLayoutPath)) {
             entry.loaded = false;
             entry.persistedStyleSnapshotJson = readPersistedStyleSnapshot(currentId);
             entry.styleSnapshotJson = null;
@@ -90,15 +92,12 @@ public final class ViewSaveManager {
             return;
         }
         entry.loadedId = currentId;
-        entry.loadedPath = targetPath;
-        ensureParentDirectory(targetPath);
-        if (Files.exists(targetPath)) {
-            ImGui.loadIniSettingsFromDisk(targetPath.toString());
-        } else {
-            Path legacyPath = resolveLegacyLayoutPath(currentId);
-            if (Files.exists(legacyPath)) {
-                ImGui.loadIniSettingsFromDisk(legacyPath.toString());
-            }
+        entry.loadedPath = hashedLayoutPath;
+        ensureParentDirectory(hashedLayoutPath);
+        Path legacyLayoutPath = resolveLegacyLayoutPath(currentId);
+        Path loadSource = Files.exists(hashedLayoutPath) ? hashedLayoutPath : legacyLayoutPath;
+        if (Files.exists(loadSource)) {
+            ImGui.loadIniSettingsFromDisk(loadSource.toString());
         }
         entry.loaded = true;
         restoreViewStyle(view, entry);
@@ -198,7 +197,9 @@ public final class ViewSaveManager {
                 writer.write(entry.getValue().toString());
             } catch (IOException e) {
                 MineGuiCore.LOGGER.error("Failed to write view ini for {} in {}", entry.getKey(), namespace, e);
+                continue;
             }
+            cleanupLegacyLayout(entry.getKey(), targetPath);
         }
     }
 
@@ -295,6 +296,7 @@ public final class ViewSaveManager {
             ensureParentDirectory(targetPath);
             if (state.styleSnapshotJson == null || state.styleSnapshotJson.isBlank()) {
                 deleteFile(targetPath);
+                cleanupLegacyStyle(view.getId(), targetPath);
                 state.persistedStyleSnapshotJson = null;
                 state.descriptorDirty = false;
                 continue;
@@ -305,6 +307,7 @@ public final class ViewSaveManager {
                 state.persistedStyleSnapshotJson = state.styleSnapshotJson;
                 state.descriptorDirty = false;
                 exported++;
+                cleanupLegacyStyle(view.getId(), targetPath);
             } catch (IOException e) {
                 MineGuiCore.LOGGER.error("Failed to write style json for {} in {}", view.getId(), namespace, e);
             }
@@ -333,41 +336,30 @@ public final class ViewSaveManager {
     }
 
     private Path resolveLayoutPath(String viewId) {
-        Path directory = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(LAYOUTS_FOLDER);
-        String sanitized = sanitizeId(viewId);
-        return directory.resolve(sanitized + ".ini");
+        return ViewSavePaths.hashedLayout(namespace, viewId);
     }
 
     private Path resolveLegacyLayoutPath(String viewId) {
-        Path directory = GlobalConfigManager.getViewSavesDirectory(namespace);
-        String sanitized = sanitizeId(viewId);
-        return directory.resolve(sanitized + ".ini");
+        return ViewSavePaths.legacyLayout(namespace, viewId);
     }
 
     private Path resolveStylePath(String viewId) {
-        Path directory = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(STYLES_FOLDER);
-        String sanitized = sanitizeId(viewId);
-        return directory.resolve(sanitized + ".json");
+        return ViewSavePaths.hashedStyle(namespace, viewId);
     }
 
-    private String sanitizeId(String viewId) {
-        if (viewId == null || viewId.isBlank()) {
-            return "view";
-        }
-        String replaced = INVALID_FILENAME_CHARS.matcher(viewId).replaceAll("_");
-        if (replaced.isEmpty()) {
-            return "view";
-        }
-        return replaced;
+    private Path resolveLegacyStylePath(String viewId) {
+        return ViewSavePaths.legacyStyle(namespace, viewId);
     }
 
     private String readPersistedStyleSnapshot(String viewId) {
-        Path path = resolveStylePath(viewId);
-        if (!Files.exists(path)) {
+        Path hashedPath = resolveStylePath(viewId);
+        Path legacyPath = resolveLegacyStylePath(viewId);
+        Path source = Files.exists(hashedPath) ? hashedPath : legacyPath;
+        if (!Files.exists(source)) {
             return null;
         }
         try {
-            return Files.readString(path, StandardCharsets.UTF_8);
+            return Files.readString(source, StandardCharsets.UTF_8);
         } catch (IOException e) {
             MineGuiCore.LOGGER.error("Failed to read style json for {} in {}", viewId, namespace, e);
             return null;
@@ -394,6 +386,20 @@ public final class ViewSaveManager {
         }
     }
 
+    private void cleanupLegacyLayout(String viewId, Path currentPath) {
+        Path legacy = resolveLegacyLayoutPath(viewId);
+        if (!legacy.equals(currentPath)) {
+            deleteFile(legacy);
+        }
+    }
+
+    private void cleanupLegacyStyle(String viewId, Path currentPath) {
+        Path legacy = resolveLegacyStylePath(viewId);
+        if (!legacy.equals(currentPath)) {
+            deleteFile(legacy);
+        }
+    }
+
     private static final class ViewEntry {
         private boolean loaded;
         private String loadedId;
@@ -403,5 +409,82 @@ public final class ViewSaveManager {
         private String styleSnapshotJson;
         private String persistedStyleSnapshotJson;
         private boolean descriptorDirty;
+    }
+
+    private static final class ViewSavePaths {
+        private static final int HASH_PREFIX_LENGTH = 24;
+        private static final HexFormat HEX = HexFormat.of();
+        private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[^a-zA-Z0-9._-]");
+
+        private ViewSavePaths() {
+        }
+
+        static Path hashedLayout(String namespace, String viewId) {
+            Path base = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(LAYOUTS_FOLDER);
+            return base.resolve(hashedFileName(viewId, ".ini"));
+        }
+
+        static Path hashedStyle(String namespace, String viewId) {
+            Path base = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(STYLES_FOLDER);
+            return base.resolve(hashedFileName(viewId, ".json"));
+        }
+
+        static Path legacyLayout(String namespace, String viewId) {
+            Path base = GlobalConfigManager.getViewSavesDirectory(namespace);
+            return base.resolve(legacyFileName(viewId, ".ini"));
+        }
+
+        static Path legacyStyle(String namespace, String viewId) {
+            Path base = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(STYLES_FOLDER);
+            return base.resolve(legacyFileName(viewId, ".json"));
+        }
+
+        private static String hashedFileName(String viewId, String extension) {
+            String normalizedId = normalizeId(viewId);
+            String hashed = hash(normalizedId);
+            String display = truncate(sanitize(normalizedId), 48);
+            if (display.isBlank()) {
+                display = "view";
+            }
+            String hashSegment = hashed.length() > HASH_PREFIX_LENGTH ? hashed.substring(0, HASH_PREFIX_LENGTH) : hashed;
+            return display + "-" + hashSegment + extension;
+        }
+
+        private static String legacyFileName(String viewId, String extension) {
+            String sanitized = sanitize(viewId);
+            if (sanitized.isBlank()) {
+                sanitized = "view";
+            }
+            return sanitized + extension;
+        }
+
+        private static String normalizeId(String viewId) {
+            if (viewId == null || viewId.isBlank()) {
+                return "view";
+            }
+            return viewId;
+        }
+
+        private static String sanitize(String viewId) {
+            String normalized = normalizeId(viewId);
+            return INVALID_FILENAME_CHARS.matcher(normalized).replaceAll("_");
+        }
+
+        private static String truncate(String value, int length) {
+            if (value.length() <= length) {
+                return value;
+            }
+            return value.substring(0, length);
+        }
+
+        private static String hash(String value) {
+            try {
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+                return HEX.formatHex(bytes);
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException("SHA-256 not available", e);
+            }
+        }
     }
 }
