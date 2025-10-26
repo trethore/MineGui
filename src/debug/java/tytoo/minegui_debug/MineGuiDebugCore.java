@@ -7,8 +7,11 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.component.components.layout.MGWindow;
-import tytoo.minegui_debug.windows.TestWindow;
+import tytoo.minegui.MineGuiInitializationOptions;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui_debug.view.StyleDebugView;
+import tytoo.minegui_debug.view.TestView;
 
 @SuppressWarnings("unused")
 public final class MineGuiDebugCore {
@@ -23,17 +26,37 @@ public final class MineGuiDebugCore {
     }
 
     private static void test() {
-        TestWindow testWindow = MGWindow.create(TestWindow::new);
-        KeyBinding openTestWindowKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        TestView testView = new TestView();
+        StyleDebugView styleView = new StyleDebugView();
+        MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
+                MineGuiInitializationOptions.defaults().withNamespace(ID)
+        );
+        context.ui().register(testView);
+        context.ui().register(styleView);
+        KeyBinding openTestViewKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.minegui.open_gui",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
                 "category.weave.test"
         ));
+        KeyBinding styleInspectorKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.minegui.style_inspector",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_H,
+                "category.weave.test"
+        ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (openTestWindowKeybind != null && openTestWindowKeybind.wasPressed()) {
-                testWindow.toggleDependingOnScreen();
-                LOGGER.info("Toggled Test Window: {}", testWindow.isVisible() ? "Open" : "Closed");
+            if (openTestViewKeybind != null && openTestViewKeybind.wasPressed()) {
+                if (client != null && client.currentScreen == null) {
+                    testView.toggleVisibility();
+                }
+                LOGGER.info("Toggled Test View: {}", testView.isVisible() ? "Open" : "Closed");
+            }
+            if (styleInspectorKeybind != null && styleInspectorKeybind.wasPressed()) {
+                if (client != null && client.currentScreen == null) {
+                    styleView.toggleVisibility();
+                }
+                LOGGER.info("Toggled Style Inspector: {}", styleView.isVisible() ? "Open" : "Closed");
             }
         });
     }

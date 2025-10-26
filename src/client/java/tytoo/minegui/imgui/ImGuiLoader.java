@@ -1,25 +1,25 @@
 package tytoo.minegui.imgui;
 
-import imgui.ImFontConfig;
-import imgui.ImGui;
-import imgui.ImGuiIO;
-import imgui.ImGuiStyle;
+import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import imgui.internal.ImGuiContext;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.input.InputRouter;
-import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.utils.InputHelper;
-
-import java.io.IOException;
-import java.io.InputStream;
+import tytoo.minegui.config.GlobalConfig;
+import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.style.*;
+import tytoo.minegui.util.InputHelper;
 
 public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
     private static final String GLSL_VERSION = "#version 150";
+    private static float appliedGlobalScale = Float.NaN;
 
     private static long windowHandle;
     private static int mcWindowWidth;
@@ -28,6 +28,7 @@ public class ImGuiLoader {
     private static int mcWindowY;
 
     public static void onGlfwInit(long handle) {
+        MineGuiCore.loadConfig();
         initializeImGui();
         imGuiGlfw.init(handle, false);
         imGuiGl3.init(GLSL_VERSION);
@@ -45,30 +46,26 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
-        InputRouter router = InputRouter.getInstance();
-        router.onFrame();
-
         imGuiGlfw.newFrame();
-
-        if (router.shouldMaskImGuiIO()) {
-            ImGuiIO io = ImGui.getIO();
-            io.setMousePos(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY);
-            io.setMouseDown(new boolean[]{false, false, false, false, false});
-            io.setMouseWheel(0.0f);
-            io.setMouseWheelH(0.0f);
-            io.clearInputCharacters();
-        }
-
         ImGui.newFrame();
-        renderDockSpace();
-        ImGui.showDemoWindow();
-        UIManager.getInstance().render();
+        GlobalConfig defaultConfig = GlobalConfigManager.getConfig(GlobalConfigManager.getDefaultNamespace());
+        applyGlobalScale(defaultConfig);
+        renderDockSpace(defaultConfig);
+        for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
+            GlobalConfig config = context.config().get();
+            applyGlobalScale(config);
+            context.style().apply();
+            context.ui().render();
+        }
 
         ImGui.render();
         endFrame();
     }
 
-    private static void renderDockSpace() {
+    private static void renderDockSpace(GlobalConfig config) {
+        if (config == null || !config.isDockspaceEnabled()) {
+            return;
+        }
         ImGui.setNextWindowPos(mcWindowX, mcWindowY);
         ImGui.setNextWindowSize(mcWindowWidth, mcWindowHeight);
         final int windowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
@@ -88,38 +85,38 @@ public class ImGuiLoader {
 
     private static void initializeImGui() {
         ImGui.createContext();
+        appliedGlobalScale = Float.NaN;
 
         final ImGuiIO io = ImGui.getIO();
+        final GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
 
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
-        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
-        io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
-        io.setConfigViewportsNoTaskBarIcon(true);
-
-        // Load default font with specific ranges
-        final ImFontConfig fontConfig = new ImFontConfig();
-        try {
-            fontConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
-            fontConfig.setPixelSnapH(true);
-            io.getFonts().addFontDefault(fontConfig);
-        } finally {
-            fontConfig.destroy();
+        if (config.isDockspaceEnabled()) {
+            io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
+        }
+        if (config.isViewportEnabled()) {
+            io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+            io.setConfigViewportsNoTaskBarIcon(true);
+        } else {
+            io.setConfigViewportsNoTaskBarIcon(false);
         }
 
-        // Load custom fonts
-        initFont("proxima.ttf", 20.0f);
+        ImFont defaultFont = configureDefaultFonts(io);
+        applyGlobalScale(config);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             final ImGuiStyle style = ImGui.getStyle();
             style.setWindowRounding(0.0f);
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
+        finalizeInitialStyle(defaultFont);
     }
 
     private static void endFrame() {
-        // After Dear ImGui prepared a draw data, we use it in the LWJGL3 renderer.
-        // At that moment ImGui will be rendered to the current OpenGL context.
+        for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
+            context.viewSaves().onFrameRendered();
+        }
         imGuiGl3.renderDrawData(ImGui.getDrawData());
 
         if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
@@ -128,33 +125,58 @@ public class ImGuiLoader {
             ImGui.renderPlatformWindowsDefault();
             GLFW.glfwMakeContextCurrent(backupWindowPtr);
         }
-
-        //glfwSwapBuffers(windowPtr);
-        //glfwPollEvents();
     }
 
-    private static void initFont(String fontName, float fontSize) {
-        final ImGuiIO io = ImGui.getIO();
-        final String fontPath = String.format("assets/%s/fonts/%s", MineGuiCore.ID, fontName);
-
-        try (InputStream fontStream = MineGuiCore.class.getClassLoader().getResourceAsStream(fontPath)) {
-            if (fontStream == null) {
-                MineGuiCore.LOGGER.warn("Font not found: {}", fontPath);
-                return;
-            }
-
-            final byte[] fontBytes = fontStream.readAllBytes();
-
-            final ImFontConfig fontConfig = new ImFontConfig();
-            try {
-                fontConfig.setPixelSnapH(true);
-                io.getFonts().addFontFromMemoryTTF(fontBytes, fontSize, fontConfig);
-            } finally {
-                fontConfig.destroy();
-            }
-        } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to load font: {}", fontPath, e);
+    private static ImFont configureDefaultFonts(ImGuiIO io) {
+        final ImFontConfig defaultConfig = new ImFontConfig();
+        try {
+            defaultConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
+            defaultConfig.setPixelSnapH(true);
+            io.getFonts().addFontDefault(defaultConfig);
+        } finally {
+            defaultConfig.destroy();
         }
+
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        fontLibrary.registerFont(
+                fontLibrary.getDefaultFontKey(),
+                new MGFontLibrary.FontDescriptor(
+                        MGFontLibrary.FontSource.asset("proxima.ttf"),
+                        20.0f,
+                        config -> {
+                            config.setPixelSnapH(true);
+                            config.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
+                        }
+                )
+        );
+        ImFont defaultFont = fontLibrary.ensureFont(fontLibrary.getDefaultFontKey(), null);
+        if (defaultFont != null) {
+            io.setFontDefault(defaultFont);
+        }
+        return defaultFont;
+    }
+
+    private static void finalizeInitialStyle(ImFont defaultFont) {
+        ImGuiStyle style = ImGui.getStyle();
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        Float fontSize = defaultFont != null ? defaultFont.getFontSize() : null;
+        MGStyleDescriptor descriptor = MGStyleDescriptor.capture(
+                style,
+                MGColorPalette.fromStyle(style),
+                fontLibrary.getDefaultFontKey(),
+                fontSize
+        );
+        StyleManager.getInstance().setGlobalDescriptor(descriptor);
+        NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
+        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        String configuredStyleKey = config.getGlobalStyleKey();
+        if (configuredStyleKey != null && !configuredStyleKey.isBlank()) {
+            Identifier styleKey = Identifier.tryParse(configuredStyleKey);
+            if (styleKey != null) {
+                StyleManager.getInstance().setGlobalStyleKey(styleKey);
+            }
+        }
+        StyleManager.getInstance().apply();
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {
@@ -177,5 +199,28 @@ public class ImGuiLoader {
             return;
         }
         imGuiGlfw.charCallback(window, codePoint);
+    }
+
+    public static void refreshGlobalScale() {
+        applyGlobalScale(GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()));
+    }
+
+    private static void applyGlobalScale(GlobalConfig config) {
+        if (config == null) {
+            return;
+        }
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (context == null || context.isNotValidPtr()) {
+            return;
+        }
+        float configuredScale = config.getGlobalScale();
+        if (!Float.isFinite(configuredScale) || configuredScale <= 0.0f) {
+            configuredScale = 1.0f;
+        }
+        if (Float.compare(configuredScale, appliedGlobalScale) == 0) {
+            return;
+        }
+        ImGui.getIO().setFontGlobalScale(configuredScale);
+        appliedGlobalScale = configuredScale;
     }
 }

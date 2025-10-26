@@ -5,6 +5,7 @@
   "client": [
     "MGGLFWMixin",
     "MGKeyboardMixin",
+    "MGMinecraftClientMixin",
     "MGMouseMixin",
     "MGRenderSystemMixin",
     "MGWindowMixin"

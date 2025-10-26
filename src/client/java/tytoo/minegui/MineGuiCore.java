@@ -1,5 +1,6 @@
 package tytoo.minegui;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
@@ -8,20 +9,47 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.utils.ImGuiImageUtils;
+import tytoo.minegui.command.MineGuiClientCommands;
+import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.util.ImGuiImageUtils;
 
 import java.nio.file.Path;
+import java.util.Objects;
 
 @SuppressWarnings("unused")
 public final class MineGuiCore {
     public static final String ID = "minegui";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
+    private static boolean reloadListenerRegistered;
+    private static boolean lifecycleRegistered;
+    private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults();
 
     private MineGuiCore() {
     }
 
     public static void init() {
+        init(MineGuiInitializationOptions.defaults());
+    }
+
+    public static synchronized void init(MineGuiInitializationOptions options) {
+        Objects.requireNonNull(options, "options");
+        String namespace = options.configNamespace();
+        MineGuiNamespaces.initialize(options);
+        if (ID.equals(namespace)) {
+            initializationOptions = options;
+            GlobalConfigManager.configureDefaultNamespace(namespace);
+        }
+        registerReloadListener();
+        registerLifecycleHandlers();
+        MineGuiClientCommands.register();
+    }
+
+    private static synchronized void registerReloadListener() {
+        if (reloadListenerRegistered) {
+            return;
+        }
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public Identifier getFabricId() {
@@ -33,5 +61,41 @@ public final class MineGuiCore {
                 ImGuiImageUtils.invalidateAll();
             }
         });
+        reloadListenerRegistered = true;
+    }
+
+    private static synchronized void registerLifecycleHandlers() {
+        if (lifecycleRegistered) {
+            return;
+        }
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            for (var context : MineGuiNamespaces.all()) {
+                context.viewSaves().flush();
+            }
+        });
+        lifecycleRegistered = true;
+    }
+
+    public static void loadConfig() {
+        if (initializationOptions.ignoreGlobalConfig() || !initializationOptions.loadGlobalConfig()) {
+            return;
+        }
+        GlobalConfigManager.load(initializationOptions.configNamespace());
+    }
+
+    public static String getConfigNamespace() {
+        return initializationOptions.configNamespace();
+    }
+
+    public static boolean isGlobalConfigAutoLoaded() {
+        return initializationOptions.loadGlobalConfig() && !initializationOptions.ignoreGlobalConfig();
+    }
+
+    public static boolean isGlobalConfigIgnored() {
+        return initializationOptions.ignoreGlobalConfig();
+    }
+
+    public static MineGuiInitializationOptions getInitializationOptions() {
+        return initializationOptions;
     }
 }
