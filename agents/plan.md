@@ -42,6 +42,7 @@ When drafting or updating `plan.txt`, mirror this structure:
 
 ## Tips
 - Before writing a plan, try to understand how the codebase currently handles related concerns
+- If `plan.txt` doesn't exist, create it at project root.
 - Keep plans concise—favor bullet points over long paragraphs.
 - Link back to relevant specs, issues, or design discussions so context remains discoverable.
 - Note explicit trade-offs when selecting between approaches to inform future iterations.
