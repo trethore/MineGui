@@ -21,8 +21,7 @@ public final class InputRouter {
     }
 
     public boolean onMouseButton(int button, int action) {
-        boolean wantsMouse = wantsMouseInput();
-        if (!wantsMouse) {
+        if (!wantsMouseInput()) {
             if (action == GLFW.GLFW_RELEASE) {
                 pressedMouse.remove(button);
             }
@@ -43,8 +42,7 @@ public final class InputRouter {
     }
 
     public boolean onScroll(double horizontal, double vertical) {
-        boolean wantsMouse = wantsMouseInput();
-        if (!wantsMouse) {
+        if (!wantsMouseInput()) {
             return false;
         }
         return horizontal != 0.0d || vertical != 0.0d;
@@ -55,8 +53,7 @@ public final class InputRouter {
         if (normalizedKey == GLFW.GLFW_KEY_UNKNOWN) {
             normalizedKey = key;
         }
-        boolean wantsKeyboard = wantsKeyboardInput();
-        if (!wantsKeyboard) {
+        if (!wantsKeyboardInput()) {
             if (action == GLFW.GLFW_RELEASE) {
                 pressedKeys.remove(normalizedKey);
             }
@@ -77,16 +74,21 @@ public final class InputRouter {
     }
 
     private boolean wantsMouseInput() {
-        if (!MineGuiNamespaces.anyVisible()) {
-            return false;
-        }
-        return ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
+        return MineGuiNamespaces.anyVisible() && imguiWantsMouse();
     }
 
     private boolean wantsKeyboardInput() {
-        if (!MineGuiNamespaces.anyVisible()) {
+        return MineGuiNamespaces.anyVisible() && imguiWantsKeyboard();
+    }
+
+    private boolean imguiWantsMouse() {
+        return ImGui.getCurrentContext() != null && ImGui.getIO().getWantCaptureMouse();
+    }
+
+    private boolean imguiWantsKeyboard() {
+        if (ImGui.getCurrentContext() == null) {
             return false;
         }
-        return ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
+        return ImGui.getIO().getWantCaptureKeyboard() || ImGui.getIO().getWantTextInput();
     }
 }
