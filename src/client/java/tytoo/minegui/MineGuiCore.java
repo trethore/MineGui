@@ -1,5 +1,6 @@
 package tytoo.minegui;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
@@ -22,6 +23,7 @@ public final class MineGuiCore {
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
     private static boolean reloadListenerRegistered;
+    private static boolean lifecycleRegistered;
     private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults();
 
     private MineGuiCore() {
@@ -40,6 +42,7 @@ public final class MineGuiCore {
             GlobalConfigManager.configureDefaultNamespace(namespace);
         }
         registerReloadListener();
+        registerLifecycleHandlers();
         MineGuiClientCommands.register();
     }
 
@@ -59,6 +62,18 @@ public final class MineGuiCore {
             }
         });
         reloadListenerRegistered = true;
+    }
+
+    private static synchronized void registerLifecycleHandlers() {
+        if (lifecycleRegistered) {
+            return;
+        }
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            for (var context : MineGuiNamespaces.all()) {
+                context.viewSaves().flush();
+            }
+        });
+        lifecycleRegistered = true;
     }
 
     public static void loadConfig() {

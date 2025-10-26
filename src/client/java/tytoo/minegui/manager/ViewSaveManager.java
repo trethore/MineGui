@@ -5,6 +5,8 @@ import imgui.ImGuiIO;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.style.StyleJsonSerializer;
+import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.view.MGView;
 
 import java.io.BufferedReader;
@@ -28,13 +30,17 @@ public final class ViewSaveManager {
     private static final Map<String, ViewSaveManager> INSTANCES = new ConcurrentHashMap<>();
     private static final Pattern WINDOW_HEADER_PATTERN = Pattern.compile("^\\[[^]]+]\\[(?<name>[^]]+)]$");
     private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[^a-zA-Z0-9._-]");
+    private static final String LAYOUTS_FOLDER = "layouts";
+    private static final String STYLES_FOLDER = "styles";
 
     private final String namespace;
     private final Map<MGView, ViewEntry> entries = new ConcurrentHashMap<>();
+    private final StyleManager styleManager;
     private volatile boolean forceSave;
 
     private ViewSaveManager(String namespace) {
         this.namespace = namespace;
+        this.styleManager = StyleManager.get(namespace);
     }
 
     public static ViewSaveManager get(String namespace) {
@@ -73,9 +79,12 @@ public final class ViewSaveManager {
         }
         ViewEntry entry = entries.computeIfAbsent(view, unused -> new ViewEntry());
         String currentId = view.getId();
-        Path targetPath = resolvePath(currentId);
+        Path targetPath = resolveLayoutPath(currentId);
         if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedPath, targetPath)) {
             entry.loaded = false;
+            entry.persistedStyleSnapshotJson = readPersistedStyleSnapshot(currentId);
+            entry.styleSnapshotJson = null;
+            entry.descriptorDirty = false;
         }
         if (entry.loaded) {
             return;
@@ -85,6 +94,11 @@ public final class ViewSaveManager {
         ensureParentDirectory(targetPath);
         if (Files.exists(targetPath)) {
             ImGui.loadIniSettingsFromDisk(targetPath.toString());
+        } else {
+            Path legacyPath = resolveLegacyLayoutPath(currentId);
+            if (Files.exists(legacyPath)) {
+                ImGui.loadIniSettingsFromDisk(legacyPath.toString());
+            }
         }
         entry.loaded = true;
         restoreViewStyle(view, entry);
@@ -94,9 +108,32 @@ public final class ViewSaveManager {
         forceSave = true;
     }
 
+    public void flush() {
+        persistViewStyles();
+        persistStyleDescriptors();
+        forceSave = false;
+    }
+
+    public int exportStyles(boolean forceRewrite) {
+        if (forceRewrite) {
+            for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
+                MGView view = entry.getKey();
+                ViewEntry state = entry.getValue();
+                if (view == null || state == null || !view.isShouldSave()) {
+                    continue;
+                }
+                if (state.styleSnapshotJson != null) {
+                    state.descriptorDirty = true;
+                }
+            }
+        }
+        return persistStyleDescriptors();
+    }
+
     public void onFrameRendered() {
         if (entries.isEmpty()) {
             persistViewStyles();
+            persistStyleDescriptors();
             forceSave = false;
             return;
         }
@@ -108,6 +145,7 @@ public final class ViewSaveManager {
             forceSave = false;
         }
         persistViewStyles();
+        persistStyleDescriptors();
     }
 
     private void persistEntries(String iniContent) {
@@ -153,7 +191,7 @@ public final class ViewSaveManager {
             ViewEntry viewEntry = activeEntries.get(entry.getKey());
             Path targetPath = Optional.ofNullable(viewEntry)
                     .map(value -> value.loadedPath)
-                    .orElseGet(() -> resolvePath(entry.getKey()));
+                    .orElseGet(() -> resolveLayoutPath(entry.getKey()));
             ensureParentDirectory(targetPath);
             try (BufferedWriter writer = Files.newBufferedWriter(targetPath, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
@@ -177,6 +215,18 @@ public final class ViewSaveManager {
             entry.pendingStyleKey = currentKey;
             entry.styleDirty = true;
         }
+        styleManager.getEffectiveDescriptor().ifPresentOrElse(descriptor -> {
+            String snapshot = StyleJsonSerializer.toJson(namespace, view.getId(), view.getStyleKey(), descriptor);
+            if (!Objects.equals(entry.styleSnapshotJson, snapshot)) {
+                entry.styleSnapshotJson = snapshot;
+                entry.descriptorDirty = !Objects.equals(snapshot, entry.persistedStyleSnapshotJson);
+            }
+        }, () -> {
+            if (entry.styleSnapshotJson != null) {
+                entry.styleSnapshotJson = null;
+                entry.descriptorDirty = entry.persistedStyleSnapshotJson != null;
+            }
+        });
     }
 
     private void restoreViewStyle(MGView view, ViewEntry entry) {
@@ -233,6 +283,35 @@ public final class ViewSaveManager {
         }
     }
 
+    private int persistStyleDescriptors() {
+        int exported = 0;
+        for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
+            MGView view = entry.getKey();
+            ViewEntry state = entry.getValue();
+            if (view == null || state == null || !view.isShouldSave() || !state.descriptorDirty) {
+                continue;
+            }
+            Path targetPath = resolveStylePath(view.getId());
+            ensureParentDirectory(targetPath);
+            if (state.styleSnapshotJson == null || state.styleSnapshotJson.isBlank()) {
+                deleteFile(targetPath);
+                state.persistedStyleSnapshotJson = null;
+                state.descriptorDirty = false;
+                continue;
+            }
+            try (BufferedWriter writer = Files.newBufferedWriter(targetPath, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+                writer.write(state.styleSnapshotJson);
+                state.persistedStyleSnapshotJson = state.styleSnapshotJson;
+                state.descriptorDirty = false;
+                exported++;
+            } catch (IOException e) {
+                MineGuiCore.LOGGER.error("Failed to write style json for {} in {}", view.getId(), namespace, e);
+            }
+        }
+        return exported;
+    }
+
     private String normalizeStyleKey(Identifier identifier) {
         if (identifier == null) {
             return null;
@@ -253,10 +332,22 @@ public final class ViewSaveManager {
         return name.substring(markerIndex + 2);
     }
 
-    private Path resolvePath(String viewId) {
+    private Path resolveLayoutPath(String viewId) {
+        Path directory = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(LAYOUTS_FOLDER);
+        String sanitized = sanitizeId(viewId);
+        return directory.resolve(sanitized + ".ini");
+    }
+
+    private Path resolveLegacyLayoutPath(String viewId) {
         Path directory = GlobalConfigManager.getViewSavesDirectory(namespace);
         String sanitized = sanitizeId(viewId);
         return directory.resolve(sanitized + ".ini");
+    }
+
+    private Path resolveStylePath(String viewId) {
+        Path directory = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(STYLES_FOLDER);
+        String sanitized = sanitizeId(viewId);
+        return directory.resolve(sanitized + ".json");
     }
 
     private String sanitizeId(String viewId) {
@@ -270,6 +361,19 @@ public final class ViewSaveManager {
         return replaced;
     }
 
+    private String readPersistedStyleSnapshot(String viewId) {
+        Path path = resolveStylePath(viewId);
+        if (!Files.exists(path)) {
+            return null;
+        }
+        try {
+            return Files.readString(path, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            MineGuiCore.LOGGER.error("Failed to read style json for {} in {}", viewId, namespace, e);
+            return null;
+        }
+    }
+
     private void ensureParentDirectory(Path path) {
         Path parent = path.getParent();
         if (parent == null) {
@@ -278,7 +382,15 @@ public final class ViewSaveManager {
         try {
             Files.createDirectories(parent);
         } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to ensure view ini directory {} for {}", parent, namespace, e);
+            MineGuiCore.LOGGER.error("Failed to ensure view save directory {} for {}", parent, namespace, e);
+        }
+    }
+
+    private void deleteFile(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            MineGuiCore.LOGGER.error("Failed to delete view save file {} for {}", path, namespace, e);
         }
     }
 
@@ -288,5 +400,8 @@ public final class ViewSaveManager {
         private Path loadedPath;
         private String pendingStyleKey;
         private boolean styleDirty;
+        private String styleSnapshotJson;
+        private String persistedStyleSnapshotJson;
+        private boolean descriptorDirty;
     }
 }

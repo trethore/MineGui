@@ -150,6 +150,22 @@ public final class StyleManager {
         applyFont(fontKey, fontSize);
     }
 
+    public Optional<MGStyleDescriptor> getEffectiveDescriptor() {
+        MGStyleDescriptor descriptor = resolveDescriptor();
+        if (descriptor == null) {
+            return Optional.empty();
+        }
+        MGStyleDescriptor effective = descriptor;
+        Deque<MGStyleDelta> stack = styleStack.get();
+        if (!stack.isEmpty()) {
+            for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+                MGStyleDelta delta = iterator.next();
+                effective = delta.resolve(effective);
+            }
+        }
+        return Optional.of(effective);
+    }
+
     private MGStyleDescriptor resolveDescriptor() {
         MGStyleDescriptor descriptor = globalDescriptor;
         Identifier key = globalStyleKey;
