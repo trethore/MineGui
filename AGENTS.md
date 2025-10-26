@@ -29,6 +29,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Never add code comments unless the user explicitly requests documentation.
 - Keep edits minimal and stylistically aligned with surrounding code; do not introduce new formatting tools or unrelated refactors.
 - If the requirements are unclear or the task is infeasible, pause and request clarification before proceeding.
+- Order members in Java classes consistently: static constants, static fields, instance fields, constructors, overridden methods, public methods, protected/private helpers, then getters and setters at the bottom. 
 
 ## Java 21 Expectations
 - Assume the runtime is Java 21; rely only on features that are stable in this release and avoid preview or incubator APIs.

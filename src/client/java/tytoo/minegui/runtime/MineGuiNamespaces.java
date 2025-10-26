@@ -49,4 +49,10 @@ public final class MineGuiNamespaces {
         }
         return false;
     }
+
+    public static void saveAllConfigs() {
+        for (MineGuiNamespaceContext context : CONTEXTS.values()) {
+            GlobalConfigManager.save(context.namespace());
+        }
+    }
 }

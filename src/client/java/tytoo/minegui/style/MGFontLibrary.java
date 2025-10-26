@@ -85,12 +85,12 @@ public final class MGFontLibrary {
             if (warnedPostBuild.putIfAbsent(key, Boolean.TRUE) == null) {
                 MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts before frame or trigger atlas rebuild.", key);
             }
-            return cached;
+            return null;
         }
         float sanitizedSize = size > 0f ? size : sanitizeRequestedSize(size, descriptor.size());
         if (sanitizedSize <= 0f) {
             MineGuiCore.LOGGER.error("Unable to resolve positive font size for {}; skipping load", key);
-            return cached;
+            return null;
         }
         ImFont font = descriptor.load(sanitizedSize);
         if (font != null) {

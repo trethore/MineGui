@@ -40,35 +40,8 @@ public abstract class MGView {
         return null;
     }
 
-    public Identifier getStyleKey() {
-        return styleKey;
-    }
-
-    public void setStyleKey(Identifier styleKey) {
-        this.styleKey = styleKey;
-    }
-
     public MGStyleDescriptor configureBaseStyle(MGStyleDescriptor descriptor) {
         return descriptor;
-    }
-
-    public boolean isVisible() {
-        return visible;
-    }
-
-    public void setVisible(boolean visible) {
-        if (this.visible == visible) {
-            return;
-        }
-        this.visible = visible;
-        if (visible) {
-            onOpen();
-        } else {
-            onClose();
-            if (shouldSave && viewSaveManager != null) {
-                viewSaveManager.requestSave();
-            }
-        }
     }
 
     public void show() {
@@ -87,30 +60,6 @@ public abstract class MGView {
     }
 
     protected void onClose() {
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        if (id == null || id.isBlank()) {
-            this.id = deriveDefaultId();
-            return;
-        }
-        this.id = id;
-    }
-
-    public boolean isShouldSave() {
-        return shouldSave;
-    }
-
-    public void setShouldSave(boolean shouldSave) {
-        this.shouldSave = shouldSave;
-    }
-
-    public String getNamespace() {
-        return namespace;
     }
 
     protected String deriveDefaultId() {
@@ -137,5 +86,56 @@ public abstract class MGView {
     public void detach() {
         this.namespace = null;
         this.viewSaveManager = null;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        if (this.visible == visible) {
+            return;
+        }
+        this.visible = visible;
+        if (visible) {
+            onOpen();
+        } else {
+            onClose();
+            if (shouldSave && viewSaveManager != null) {
+                viewSaveManager.requestSave();
+            }
+        }
+    }
+
+    public Identifier getStyleKey() {
+        return styleKey;
+    }
+
+    public void setStyleKey(Identifier styleKey) {
+        this.styleKey = styleKey;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        if (id == null || id.isBlank()) {
+            this.id = deriveDefaultId();
+            return;
+        }
+        this.id = id;
+    }
+
+    public boolean isShouldSave() {
+        return shouldSave;
+    }
+
+    public void setShouldSave(boolean shouldSave) {
+        this.shouldSave = shouldSave;
+    }
+
+    public String getNamespace() {
+        return namespace;
     }
 }
