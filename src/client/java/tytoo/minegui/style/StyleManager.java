@@ -4,7 +4,6 @@ import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
 import net.minecraft.util.Identifier;
-import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 
@@ -13,19 +12,70 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class StyleManager {
-    private static final StyleManager INSTANCE = new StyleManager();
+    private static final ConcurrentMap<String, StyleManager> INSTANCES = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Identifier, MGStyleDescriptor> DESCRIPTOR_REGISTRY = new ConcurrentHashMap<>();
+    private static final ThreadLocal<StyleManager> ACTIVE = new ThreadLocal<>();
 
-    private final ConcurrentMap<Identifier, MGStyleDescriptor> descriptorRegistry = new ConcurrentHashMap<>();
+    private final String namespace;
     private final ThreadLocal<Deque<MGStyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
     private final ThreadLocal<ImFont> activeFont = new ThreadLocal<>();
     private volatile MGStyleDescriptor globalDescriptor;
     private volatile Identifier globalStyleKey;
 
-    private StyleManager() {
+    private StyleManager(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public static StyleManager get(String namespace) {
+        return INSTANCES.computeIfAbsent(namespace, StyleManager::new);
     }
 
     public static StyleManager getInstance() {
-        return INSTANCE;
+        return get(GlobalConfigManager.getDefaultNamespace());
+    }
+
+    public static void registerDescriptor(Identifier key, MGStyleDescriptor descriptor) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(descriptor, "descriptor");
+        DESCRIPTOR_REGISTRY.put(key, descriptor);
+    }
+
+    public static Optional<MGStyleDescriptor> descriptor(Identifier key) {
+        if (key == null) {
+            return Optional.empty();
+        }
+        MGStyleDescriptor descriptor = DESCRIPTOR_REGISTRY.get(key);
+        if (descriptor != null) {
+            return Optional.of(descriptor);
+        }
+        return Optional.empty();
+    }
+
+    public static Collection<Map.Entry<Identifier, MGStyleDescriptor>> descriptors() {
+        return Collections.unmodifiableCollection(new ArrayList<>(DESCRIPTOR_REGISTRY.entrySet()));
+    }
+
+    public static void pushActive(StyleManager manager) {
+        ACTIVE.set(manager);
+    }
+
+    public static void popActive(StyleManager manager) {
+        StyleManager current = ACTIVE.get();
+        if (current == manager) {
+            ACTIVE.remove();
+        }
+    }
+
+    static StyleManager current() {
+        StyleManager manager = ACTIVE.get();
+        if (manager != null) {
+            return manager;
+        }
+        return getInstance();
+    }
+
+    public String namespace() {
+        return namespace;
     }
 
     public Optional<MGStyleDescriptor> getGlobalDescriptor() {
@@ -36,21 +86,12 @@ public final class StyleManager {
         this.globalDescriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
-    public void registerDescriptor(Identifier key, MGStyleDescriptor descriptor) {
-        Objects.requireNonNull(key, "key");
-        Objects.requireNonNull(descriptor, "descriptor");
-        descriptorRegistry.put(key, descriptor);
+    public Optional<MGStyleDescriptor> getDescriptor(Identifier key) {
+        return descriptor(key);
     }
 
-    public Optional<MGStyleDescriptor> getDescriptor(Identifier key) {
-        if (key == null) {
-            return Optional.empty();
-        }
-        MGStyleDescriptor descriptor = descriptorRegistry.get(key);
-        if (descriptor != null) {
-            return Optional.of(descriptor);
-        }
-        return Optional.empty();
+    public Map<Identifier, MGStyleDescriptor> snapshotDescriptors() {
+        return Collections.unmodifiableMap(new ConcurrentHashMap<>(DESCRIPTOR_REGISTRY));
     }
 
     public Identifier getGlobalStyleKey() {
@@ -113,7 +154,7 @@ public final class StyleManager {
         MGStyleDescriptor descriptor = globalDescriptor;
         Identifier key = globalStyleKey;
         if (key != null) {
-            MGStyleDescriptor registered = descriptorRegistry.get(key);
+            MGStyleDescriptor registered = DESCRIPTOR_REGISTRY.get(key);
             if (registered != null) {
                 descriptor = registered;
             }
@@ -132,19 +173,15 @@ public final class StyleManager {
         activeFont.set(targetFont);
     }
 
-    public Map<Identifier, MGStyleDescriptor> snapshotDescriptors() {
-        return Collections.unmodifiableMap(new HashMap<>(descriptorRegistry));
-    }
-
     private void persistGlobalStyle(Identifier key) {
-        if (GlobalConfigManager.isConfigIgnored()) {
+        if (GlobalConfigManager.isConfigIgnored(namespace)) {
             return;
         }
-        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        GlobalConfig config = GlobalConfigManager.getConfig(namespace);
         String value = key != null ? key.toString() : null;
         if (!Objects.equals(config.getGlobalStyleKey(), value)) {
             config.setGlobalStyleKey(value);
-            GlobalConfigManager.save(MineGuiCore.getConfigNamespace());
+            GlobalConfigManager.save(namespace);
         }
     }
 

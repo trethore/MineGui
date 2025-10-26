@@ -18,24 +18,35 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class ViewSaveManager {
-    private static final ViewSaveManager INSTANCE = new ViewSaveManager();
+    private static final Map<String, ViewSaveManager> INSTANCES = new ConcurrentHashMap<>();
     private static final Pattern WINDOW_HEADER_PATTERN = Pattern.compile("^\\[[^]]+]\\[(?<name>[^]]+)]$");
     private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[^a-zA-Z0-9._-]");
 
+    private final String namespace;
     private final Map<MGView, ViewEntry> entries = new ConcurrentHashMap<>();
     private volatile boolean forceSave;
 
-    private ViewSaveManager() {
+    private ViewSaveManager(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public static ViewSaveManager get(String namespace) {
+        return INSTANCES.computeIfAbsent(namespace, ViewSaveManager::new);
     }
 
     public static ViewSaveManager getInstance() {
-        return INSTANCE;
+        return get(GlobalConfigManager.getDefaultNamespace());
+    }
+
+    public String namespace() {
+        return namespace;
     }
 
     public void register(MGView view) {
@@ -132,7 +143,7 @@ public final class ViewSaveManager {
                 }
             }
         } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to parse ImGui ini data", e);
+            MineGuiCore.LOGGER.error("Failed to parse ImGui ini data for {}", namespace, e);
             return;
         }
         for (Map.Entry<String, StringBuilder> entry : bufferedSections.entrySet()) {
@@ -140,15 +151,15 @@ public final class ViewSaveManager {
                 continue;
             }
             ViewEntry viewEntry = activeEntries.get(entry.getKey());
-            Path targetPath = viewEntry != null && viewEntry.loadedPath != null
-                    ? viewEntry.loadedPath
-                    : resolvePath(entry.getKey());
+            Path targetPath = Optional.ofNullable(viewEntry)
+                    .map(value -> value.loadedPath)
+                    .orElseGet(() -> resolvePath(entry.getKey()));
             ensureParentDirectory(targetPath);
             try (BufferedWriter writer = Files.newBufferedWriter(targetPath, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
                 writer.write(entry.getValue().toString());
             } catch (IOException e) {
-                MineGuiCore.LOGGER.error("Failed to write view ini for {}", entry.getKey(), e);
+                MineGuiCore.LOGGER.error("Failed to write view ini for {} in {}", entry.getKey(), namespace, e);
             }
         }
     }
@@ -169,13 +180,12 @@ public final class ViewSaveManager {
     }
 
     private void restoreViewStyle(MGView view, ViewEntry entry) {
-        if (GlobalConfigManager.isConfigIgnored()) {
-            entry.persistedStyleKey = null;
+        if (GlobalConfigManager.isConfigIgnored(namespace)) {
             entry.pendingStyleKey = normalizeStyleKey(view.getStyleKey());
             entry.styleDirty = false;
             return;
         }
-        Map<String, String> styles = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()).getViewStyles();
+        Map<String, String> styles = GlobalConfigManager.getConfig(namespace).getViewStyles();
         String saved = styles.get(view.getId());
         if (saved != null && saved.isBlank()) {
             saved = null;
@@ -188,17 +198,16 @@ public final class ViewSaveManager {
                 current = saved;
             }
         }
-        entry.persistedStyleKey = saved;
         entry.pendingStyleKey = current;
         entry.styleDirty = false;
     }
 
     private void persistViewStyles() {
-        if (GlobalConfigManager.isConfigIgnored()) {
+        if (GlobalConfigManager.isConfigIgnored(namespace)) {
             return;
         }
         boolean changed = false;
-        Map<String, String> styles = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()).getViewStyles();
+        Map<String, String> styles = GlobalConfigManager.getConfig(namespace).getViewStyles();
         for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
             MGView view = entry.getKey();
             ViewEntry state = entry.getValue();
@@ -212,17 +221,15 @@ public final class ViewSaveManager {
                 if (styles.remove(viewId) != null) {
                     changed = true;
                 }
-                state.persistedStyleKey = null;
                 continue;
             }
             if (!key.equals(styles.get(viewId))) {
                 styles.put(viewId, key);
                 changed = true;
             }
-            state.persistedStyleKey = key;
         }
         if (changed) {
-            GlobalConfigManager.save(MineGuiCore.getConfigNamespace());
+            GlobalConfigManager.save(namespace);
         }
     }
 
@@ -247,7 +254,7 @@ public final class ViewSaveManager {
     }
 
     private Path resolvePath(String viewId) {
-        Path directory = GlobalConfigManager.getViewSavesDirectory(MineGuiCore.getConfigNamespace());
+        Path directory = GlobalConfigManager.getViewSavesDirectory(namespace);
         String sanitized = sanitizeId(viewId);
         return directory.resolve(sanitized + ".ini");
     }
@@ -271,7 +278,7 @@ public final class ViewSaveManager {
         try {
             Files.createDirectories(parent);
         } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to ensure view ini directory {}", parent, e);
+            MineGuiCore.LOGGER.error("Failed to ensure view ini directory {} for {}", parent, namespace, e);
         }
     }
 
@@ -280,7 +287,6 @@ public final class ViewSaveManager {
         private String loadedId;
         private Path loadedPath;
         private String pendingStyleKey;
-        private String persistedStyleKey;
         private boolean styleDirty;
     }
 }

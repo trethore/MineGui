@@ -4,7 +4,7 @@ import imgui.ImGui;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.lwjgl.glfw.GLFW;
-import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.util.InputHelper;
 
 public final class InputRouter {
@@ -77,14 +77,14 @@ public final class InputRouter {
     }
 
     private boolean wantsMouseInput() {
-        if (!UIManager.getInstance().hasVisibleViews()) {
+        if (!MineGuiNamespaces.anyVisible()) {
             return false;
         }
         return ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();
     }
 
     private boolean wantsKeyboardInput() {
-        if (!UIManager.getInstance().hasVisibleViews()) {
+        if (!MineGuiNamespaces.anyVisible()) {
             return false;
         }
         return ImGui.isAnyItemActive() || ImGui.isAnyItemFocused();

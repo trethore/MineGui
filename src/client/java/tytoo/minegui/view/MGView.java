@@ -10,6 +10,8 @@ public abstract class MGView {
     private String id;
     private boolean shouldSave;
     private Identifier styleKey;
+    private String namespace;
+    private ViewSaveManager viewSaveManager;
 
     protected MGView() {
         this.id = deriveDefaultId();
@@ -63,8 +65,8 @@ public abstract class MGView {
             onOpen();
         } else {
             onClose();
-            if (shouldSave) {
-                ViewSaveManager.getInstance().requestSave();
+            if (shouldSave && viewSaveManager != null) {
+                viewSaveManager.requestSave();
             }
         }
     }
@@ -107,6 +109,10 @@ public abstract class MGView {
         this.shouldSave = shouldSave;
     }
 
+    public String getNamespace() {
+        return namespace;
+    }
+
     protected String deriveDefaultId() {
         return getClass().getName();
     }
@@ -116,6 +122,20 @@ public abstract class MGView {
         if (base.contains("##")) {
             return base;
         }
-        return base + "##" + id;
+        String scopeId = id;
+        if (namespace != null && !namespace.isBlank()) {
+            scopeId = namespace + "/" + id;
+        }
+        return base + "##" + scopeId;
+    }
+
+    public void attach(String namespace, ViewSaveManager saveManager) {
+        this.namespace = namespace;
+        this.viewSaveManager = saveManager;
+    }
+
+    public void detach() {
+        this.namespace = null;
+        this.viewSaveManager = null;
     }
 }

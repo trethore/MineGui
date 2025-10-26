@@ -22,8 +22,6 @@ public final class GlobalConfigManager {
     private static final String DEFAULT_NAMESPACE = MineGuiCore.ID;
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
     private static String defaultNamespace = DEFAULT_NAMESPACE;
-    private static boolean autoLoadEnabled = true;
-    private static boolean configIgnored;
 
     private GlobalConfigManager() {
     }
@@ -32,29 +30,53 @@ public final class GlobalConfigManager {
         defaultNamespace = sanitizeNamespace(namespace);
     }
 
+    public static synchronized String getDefaultNamespace() {
+        return defaultNamespace;
+    }
+
     public static synchronized boolean isAutoLoadEnabled() {
-        if (configIgnored) {
-            return false;
-        }
-        return autoLoadEnabled;
+        return isAutoLoadEnabled(defaultNamespace);
     }
 
     public static synchronized void setAutoLoadEnabled(boolean enabled) {
-        if (configIgnored) {
-            autoLoadEnabled = false;
+        setAutoLoadEnabled(defaultNamespace, enabled);
+    }
+
+    public static synchronized boolean isAutoLoadEnabled(String namespace) {
+        ConfigState state = context(namespace);
+        if (state.configIgnored) {
+            return false;
+        }
+        return state.autoLoadEnabled;
+    }
+
+    public static synchronized void setAutoLoadEnabled(String namespace, boolean enabled) {
+        ConfigState state = context(namespace);
+        if (state.configIgnored) {
+            state.autoLoadEnabled = false;
             return;
         }
-        autoLoadEnabled = enabled;
+        state.autoLoadEnabled = enabled;
     }
 
     public static synchronized boolean isConfigIgnored() {
-        return configIgnored;
+        return isConfigIgnored(defaultNamespace);
     }
 
     public static synchronized void setConfigIgnored(boolean ignored) {
-        configIgnored = ignored;
+        setConfigIgnored(defaultNamespace, ignored);
+    }
+
+    public static synchronized boolean isConfigIgnored(String namespace) {
+        ConfigState state = context(namespace);
+        return state.configIgnored;
+    }
+
+    public static synchronized void setConfigIgnored(String namespace, boolean ignored) {
+        ConfigState state = context(namespace);
+        state.configIgnored = ignored;
         if (ignored) {
-            autoLoadEnabled = false;
+            state.autoLoadEnabled = false;
         }
     }
 
@@ -68,7 +90,7 @@ public final class GlobalConfigManager {
 
     public static synchronized GlobalConfig getConfig(String namespace) {
         ConfigState state = context(namespace);
-        if (!configIgnored && autoLoadEnabled && !state.loaded) {
+        if (!state.configIgnored && state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
         return state.config;
@@ -80,7 +102,7 @@ public final class GlobalConfigManager {
 
     public static synchronized void load(String namespace) {
         ConfigState state = context(namespace);
-        if (configIgnored) {
+        if (state.configIgnored) {
             state.loaded = true;
             state.activeConfigPath = state.defaultConfigFile;
             state.activeViewSavesPath = state.defaultViewSavesDir;
@@ -115,11 +137,11 @@ public final class GlobalConfigManager {
 
     public static synchronized void save(String namespace) {
         ConfigState state = context(namespace);
-        if (configIgnored) {
+        if (state.configIgnored) {
             state.loaded = true;
             return;
         }
-        if (autoLoadEnabled && !state.loaded) {
+        if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
         state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
@@ -137,7 +159,7 @@ public final class GlobalConfigManager {
 
     public static synchronized void reset(String namespace) {
         ConfigState state = context(namespace);
-        if (configIgnored) {
+        if (state.configIgnored) {
             state.config = new GlobalConfig();
             state.activeConfigPath = state.defaultConfigFile;
             state.activeViewSavesPath = state.defaultViewSavesDir;
@@ -162,10 +184,10 @@ public final class GlobalConfigManager {
 
     public static synchronized Path getActiveConfigPath(String namespace) {
         ConfigState state = context(namespace);
-        if (configIgnored) {
+        if (state.configIgnored) {
             return state.defaultConfigFile;
         }
-        if (autoLoadEnabled && !state.loaded) {
+        if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
         state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
@@ -178,10 +200,10 @@ public final class GlobalConfigManager {
 
     public static synchronized Path getViewSavesDirectory(String namespace) {
         ConfigState state = context(namespace);
-        if (configIgnored) {
+        if (state.configIgnored) {
             return state.defaultViewSavesDir;
         }
-        if (autoLoadEnabled && !state.loaded) {
+        if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
         state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
@@ -308,6 +330,8 @@ public final class GlobalConfigManager {
         private GlobalConfig config;
         private Path activeConfigPath;
         private Path activeViewSavesPath;
+        private boolean autoLoadEnabled;
+        private boolean configIgnored;
         private boolean loaded;
 
         private ConfigState(String namespace) {
@@ -321,6 +345,8 @@ public final class GlobalConfigManager {
             this.config = new GlobalConfig();
             this.activeConfigPath = defaultConfigFile;
             this.activeViewSavesPath = defaultViewSavesDir;
+            this.autoLoadEnabled = true;
+            this.configIgnored = false;
             this.loaded = false;
         }
     }

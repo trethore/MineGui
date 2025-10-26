@@ -10,8 +10,8 @@ import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
-import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.manager.ViewSaveManager;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.InputHelper;
 
@@ -47,20 +47,23 @@ public class ImGuiLoader {
 
     public static void onFrameRender() {
         imGuiGlfw.newFrame();
-        applyGlobalScale(GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()));
-
         ImGui.newFrame();
-        StyleManager.getInstance().apply();
-        renderDockSpace();
-        UIManager.getInstance().render();
+        GlobalConfig defaultConfig = GlobalConfigManager.getConfig(GlobalConfigManager.getDefaultNamespace());
+        applyGlobalScale(defaultConfig);
+        renderDockSpace(defaultConfig);
+        for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
+            GlobalConfig config = context.config().get();
+            applyGlobalScale(config);
+            context.style().apply();
+            context.ui().render();
+        }
 
         ImGui.render();
         endFrame();
     }
 
-    private static void renderDockSpace() {
-        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
-        if (!config.isDockspaceEnabled()) {
+    private static void renderDockSpace(GlobalConfig config) {
+        if (config == null || !config.isDockspaceEnabled()) {
             return;
         }
         ImGui.setNextWindowPos(mcWindowX, mcWindowY);
@@ -111,7 +114,9 @@ public class ImGuiLoader {
     }
 
     private static void endFrame() {
-        ViewSaveManager.getInstance().onFrameRendered();
+        for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
+            context.viewSaves().onFrameRendered();
+        }
         imGuiGl3.renderDrawData(ImGui.getDrawData());
 
         if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {

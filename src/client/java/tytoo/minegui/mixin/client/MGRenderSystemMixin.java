@@ -7,13 +7,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import tytoo.minegui.imgui.ImGuiLoader;
-import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 
 @Mixin(value = RenderSystem.class, remap = false)
 public abstract class MGRenderSystemMixin {
     @Inject(at = @At("HEAD"), method = "flipFrame")
     private static void runTickTail(CallbackInfo ci) {
-        if (!UIManager.getInstance().hasVisibleViews()) {
+        if (!MineGuiNamespaces.anyVisible()) {
             return;
         }
         Profilers.get().push("MineGui Render");

@@ -11,7 +11,7 @@ public final class StyleScope implements AutoCloseable {
 
     public static StyleScope push(MGStyleDelta delta) {
         Objects.requireNonNull(delta, "delta");
-        StyleManager.StyleScope scope = StyleManager.getInstance().pushRaw(delta);
+        StyleManager.StyleScope scope = StyleManager.current().pushRaw(delta);
         return new StyleScope(scope);
     }
 

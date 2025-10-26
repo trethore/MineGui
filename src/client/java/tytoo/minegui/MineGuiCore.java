@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.util.ImGuiImageUtils;
 
 import java.nio.file.Path;
@@ -31,17 +32,12 @@ public final class MineGuiCore {
     }
 
     public static synchronized void init(MineGuiInitializationOptions options) {
-        initializationOptions = Objects.requireNonNull(options, "options");
-        GlobalConfigManager.configureDefaultNamespace(initializationOptions.configNamespace());
-        GlobalConfigManager.setConfigIgnored(initializationOptions.ignoreGlobalConfig());
-        boolean shouldAutoLoad = initializationOptions.loadGlobalConfig() && !initializationOptions.ignoreGlobalConfig();
-        GlobalConfigManager.setAutoLoadEnabled(shouldAutoLoad);
-        if (initializationOptions.ignoreGlobalConfig()) {
-            GlobalConfigManager.ensureContext(initializationOptions.configNamespace());
-        } else if (shouldAutoLoad) {
-            GlobalConfigManager.load(initializationOptions.configNamespace());
-        } else {
-            GlobalConfigManager.ensureContext(initializationOptions.configNamespace());
+        Objects.requireNonNull(options, "options");
+        String namespace = options.configNamespace();
+        MineGuiNamespaces.initialize(options);
+        if (ID.equals(namespace)) {
+            initializationOptions = options;
+            GlobalConfigManager.configureDefaultNamespace(namespace);
         }
         registerReloadListener();
         MineGuiClientCommands.register();

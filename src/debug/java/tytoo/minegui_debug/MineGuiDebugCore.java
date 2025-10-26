@@ -7,7 +7,9 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.manager.UIManager;
+import tytoo.minegui.MineGuiInitializationOptions;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui_debug.view.StyleDebugView;
 import tytoo.minegui_debug.view.TestView;
 
@@ -26,8 +28,11 @@ public final class MineGuiDebugCore {
     private static void test() {
         TestView testView = new TestView();
         StyleDebugView styleView = new StyleDebugView();
-        UIManager.getInstance().register(testView);
-        UIManager.getInstance().register(styleView);
+        MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
+                MineGuiInitializationOptions.defaults().withNamespace(ID)
+        );
+        context.ui().register(testView);
+        context.ui().register(styleView);
         KeyBinding openTestViewKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.minegui.open_gui",
                 InputUtil.Type.KEYSYM,

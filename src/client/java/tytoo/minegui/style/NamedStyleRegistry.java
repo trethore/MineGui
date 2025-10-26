@@ -27,7 +27,7 @@ public final class NamedStyleRegistry {
             return;
         }
         descriptors.put(key, descriptor);
-        StyleManager.getInstance().registerDescriptor(key, descriptor);
+        StyleManager.registerDescriptor(key, descriptor);
     }
 
     public void registerPreset(Identifier key, Consumer<MGStyleDescriptor.Builder> builderConsumer, MGStyleDescriptor base) {
