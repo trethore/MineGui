@@ -3,13 +3,16 @@ package tytoo.minegui_debug.view;
 import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
+import net.minecraft.util.Identifier;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
 import tytoo.minegui.helper.window.MGWindow;
+import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.view.MGView;
 
 public final class TestView extends MGView {
+    private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
     private final ImString nameValue = new ImString("Alex", 64);
     private final ImString emailValue = new ImString("alex@example.com", 96);
     private final ImString notesValue = new ImString("Collect layout feedback here.", 512);
@@ -41,6 +44,17 @@ public final class TestView extends MGView {
                     try (VStack layout = VStack.begin(new VStack.Options().spacing(12f).fillMode(VStack.FillMode.MATCH_WIDEST))) {
                         try (VStack.ItemScope intro = layout.next()) {
                             ImGui.textWrapped("VStack scopes arrange content vertically with consistent spacing and optional width matching.");
+                        }
+
+                        try (VStack.ItemScope iconRow = layout.next()) {
+                            ImGui.text("ImGui icon preview");
+                            ImGui.spacing();
+                            float cursorX = ImGui.getCursorScreenPosX();
+                            float cursorY = ImGui.getCursorScreenPosY();
+                            ImGuiImageUtils.TextureInfo info = ImGuiImageUtils.getTextureInfo(IMGUI_ICON);
+                            float size = 64f;
+                            ImGuiImageUtils.drawImage(IMGUI_ICON, cursorX, cursorY, cursorX + size, cursorY + size, 0, false, 0xFFFFFFFF);
+                            ImGui.dummy(size, size);
                         }
 
                         try (VStack.ItemScope nameRow = layout.next()) {
