@@ -12,6 +12,7 @@ import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.InputHelper;
 
@@ -47,6 +48,7 @@ public class ImGuiLoader {
 
     public static void onFrameRender() {
         imGuiGlfw.newFrame();
+        CursorPolicyRegistry.onFrameStart();
         ImGui.newFrame();
         GlobalConfig defaultConfig = GlobalConfigManager.getConfig(GlobalConfigManager.getDefaultNamespace());
         applyGlobalScale(defaultConfig);

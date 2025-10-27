@@ -7,12 +7,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.input.InputRouter;
+import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 
 @Mixin(Mouse.class)
 public abstract class MGMouseMixin {
     @Inject(at = @At("HEAD"), method = "onMouseScroll(JDD)V", cancellable = true)
     private void onOnMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
-        ImGuiLoader.onMouseScroll(window, horizontal, vertical);
+        if (CursorPolicyRegistry.wantsImGuiInput()) {
+            ImGuiLoader.onMouseScroll(window, horizontal, vertical);
+        }
         if (InputRouter.getInstance().onScroll(horizontal, vertical)) {
             ci.cancel();
         }
@@ -30,6 +33,15 @@ public abstract class MGMouseMixin {
         if (InputRouter.getInstance().onMouseMove()) {
             ci.cancel();
         }
+    }
+
+    @Inject(method = "lockCursor", at = @At("HEAD"), cancellable = true)
+    private void minegui$onLockCursor(CallbackInfo ci) {
+        if (!CursorPolicyRegistry.shouldBlockLockRequest()) {
+            return;
+        }
+        CursorPolicyRegistry.ensureUnlockedIfRequested();
+        ci.cancel();
     }
 
 }

@@ -10,6 +10,7 @@ import tytoo.minegui.helper.layout.sizing.SizeHints;
 import tytoo.minegui.helper.window.MGWindow;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.view.MGView;
+import tytoo.minegui.view.cursor.MGCursorPolicies;
 
 public final class TestView extends MGView {
     private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
@@ -21,6 +22,7 @@ public final class TestView extends MGView {
 
     public TestView() {
         super("minegui_debug:test_view", true);
+        setCursorPolicy(MGCursorPolicies.clickToLock());
     }
 
     @Override

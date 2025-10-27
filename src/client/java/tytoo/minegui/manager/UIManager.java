@@ -55,6 +55,9 @@ public final class UIManager {
         if (view == null) {
             return;
         }
+        if (view.isVisible()) {
+            view.setVisible(false);
+        }
         views.remove(view);
         viewSaveManager.unregister(view);
         view.detach();

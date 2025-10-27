@@ -4,6 +4,8 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.style.MGStyleDelta;
 import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.view.cursor.MGCursorPolicy;
 
 public abstract class MGView {
     private boolean visible;
@@ -12,9 +14,11 @@ public abstract class MGView {
     private Identifier styleKey;
     private String namespace;
     private ViewSaveManager viewSaveManager;
+    private MGCursorPolicy cursorPolicy;
 
     protected MGView() {
         this.id = deriveDefaultId();
+        this.cursorPolicy = MGCursorPolicies.empty();
     }
 
     protected MGView(String id) {
@@ -99,7 +103,9 @@ public abstract class MGView {
         this.visible = visible;
         if (visible) {
             onOpen();
+            cursorPolicy.onOpen(this);
         } else {
+            cursorPolicy.onClose(this);
             onClose();
             if (shouldSave && viewSaveManager != null) {
                 viewSaveManager.requestSave();
@@ -137,5 +143,23 @@ public abstract class MGView {
 
     public String getNamespace() {
         return namespace;
+    }
+
+    public MGCursorPolicy getCursorPolicy() {
+        return cursorPolicy;
+    }
+
+    public void setCursorPolicy(MGCursorPolicy cursorPolicy) {
+        MGCursorPolicy resolved = cursorPolicy != null ? cursorPolicy : MGCursorPolicies.empty();
+        if (this.cursorPolicy == resolved) {
+            return;
+        }
+        if (visible) {
+            this.cursorPolicy.onClose(this);
+        }
+        this.cursorPolicy = resolved;
+        if (visible) {
+            this.cursorPolicy.onOpen(this);
+        }
     }
 }

@@ -2,6 +2,7 @@ package tytoo.minegui.runtime;
 
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,12 +43,16 @@ public final class MineGuiNamespaces {
     }
 
     public static boolean anyVisible() {
+        boolean anyVisible = false;
         for (MineGuiNamespaceContext context : CONTEXTS.values()) {
             if (context.ui().hasVisibleViews()) {
-                return true;
+                anyVisible = true;
             }
         }
-        return false;
+        if (anyVisible) {
+            CursorPolicyRegistry.ensureUnlockedIfRequested();
+        }
+        return anyVisible;
     }
 
     public static void saveAllConfigs() {

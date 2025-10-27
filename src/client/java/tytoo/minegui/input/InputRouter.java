@@ -5,6 +5,8 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
+import tytoo.minegui.util.CursorLockUtils;
 import tytoo.minegui.util.InputHelper;
 
 public final class InputRouter {
@@ -24,6 +26,9 @@ public final class InputRouter {
         if (!wantsMouseInput()) {
             if (action == GLFW.GLFW_RELEASE) {
                 pressedMouse.remove(button);
+            }
+            if (action == GLFW.GLFW_PRESS && CursorLockUtils.clientWantsLockCursor()) {
+                CursorPolicyRegistry.releaseClickReleaseForWorldInteraction();
             }
             return false;
         }
@@ -74,10 +79,16 @@ public final class InputRouter {
     }
 
     private boolean wantsMouseInput() {
+        if (!CursorPolicyRegistry.wantsImGuiInput()) {
+            return false;
+        }
         return MineGuiNamespaces.anyVisible() && imguiWantsMouse();
     }
 
     private boolean wantsKeyboardInput() {
+        if (!CursorPolicyRegistry.wantsImGuiInput()) {
+            return false;
+        }
         return MineGuiNamespaces.anyVisible() && imguiWantsKeyboard();
     }
 
