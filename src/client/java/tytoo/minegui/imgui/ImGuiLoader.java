@@ -93,11 +93,12 @@ public class ImGuiLoader {
         fontLibrary.resetRuntime();
         initializeImGui();
         fontLibrary.preloadRegisteredFonts();
-        imGuiGlfw.init(windowHandle, false);
-        imGuiGl3.init(GLSL_VERSION);
         for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
             contextHandle.style().apply();
         }
+        imGuiGlfw.init(windowHandle, false);
+        imGuiGl3.init(GLSL_VERSION);
+        rebuildFontAtlasTexture();
     }
 
     private static void renderDockSpace(GlobalConfig config) {
@@ -260,5 +261,21 @@ public class ImGuiLoader {
         }
         ImGui.getIO().setFontGlobalScale(configuredScale);
         appliedGlobalScale = configuredScale;
+    }
+
+    private static void rebuildFontAtlasTexture() {
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (context == null || context.isNotValidPtr()) {
+            return;
+        }
+        ImFontAtlas atlas = ImGui.getIO().getFonts();
+        if (atlas == null) {
+            return;
+        }
+        if (!atlas.build()) {
+            MineGuiCore.LOGGER.warn("Failed to rebuild font atlas after MineGui reload");
+            return;
+        }
+        imGuiGl3.updateFontsTexture();
     }
 }

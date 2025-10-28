@@ -17,6 +17,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class GlobalConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -81,6 +82,7 @@ public final class GlobalConfigManager {
         if (ignored) {
             state.autoLoadEnabled = false;
         }
+        state.loaded = false;
     }
 
     public static synchronized void ensureContext(String namespace) {
@@ -106,31 +108,53 @@ public final class GlobalConfigManager {
     public static synchronized void load(String namespace) {
         ConfigState state = context(namespace);
         if (state.configIgnored) {
-            state.loaded = true;
+            state.config = new GlobalConfig();
+            state.snapshot = cloneConfig(state.config);
             state.activeConfigPath = state.defaultConfigFile;
             state.activeViewSavesPath = state.defaultViewSavesDir;
+            state.loaded = true;
             return;
         }
         if (state.loaded) {
             return;
         }
+
         ensureDirectory(state.defaultConfigFile.getParent());
-        GlobalConfig baseConfig = readConfig(state.defaultConfigFile);
-        state.config = Objects.requireNonNullElseGet(baseConfig, GlobalConfig::new);
-        ensureViewPath(state);
-        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
-        GlobalConfig overrideConfig = readConfig(state.activeConfigPath);
-        if (overrideConfig != null) {
-            state.config = overrideConfig;
-            ensureViewPath(state);
-            state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
+        GlobalConfig baseDocument = readConfig(state.defaultConfigFile);
+        GlobalConfig snapshot = cloneConfig(baseDocument != null ? baseDocument : new GlobalConfig());
+        ensureViewPath(snapshot);
+        Path snapshotConfigPath = resolveConfigPath(snapshot.getConfigPath(), state, snapshot);
+
+        if (state.featureProfile.shouldLoad(ConfigFeature.CORE)) {
+            GlobalConfig overrideConfig = readConfig(snapshotConfigPath);
+            if (overrideConfig != null) {
+                snapshot = cloneConfig(overrideConfig);
+                ensureViewPath(snapshot);
+                snapshotConfigPath = resolveConfigPath(snapshot.getConfigPath(), state, snapshot);
+            }
         }
-        ensureDirectory(state.activeConfigPath.getParent());
-        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
-        ensureDirectory(state.activeViewSavesPath);
-        if (!Files.exists(state.activeConfigPath)) {
-            writeConfig(state.activeConfigPath, state.config, state);
+
+        Path snapshotViewPath = resolveViewSavesPath(snapshot.getViewSavesPath(), state, snapshot);
+        ensureDirectory(snapshotConfigPath.getParent());
+        ensureDirectory(snapshotViewPath);
+
+        GlobalConfig runtime = applyLoadProfile(snapshot, state.featureProfile);
+        ensureViewPath(runtime);
+        Path runtimeConfigPath = resolveConfigPath(runtime.getConfigPath(), state, runtime);
+        Path runtimeViewPath = resolveViewSavesPath(runtime.getViewSavesPath(), state, runtime);
+        ensureDirectory(runtimeConfigPath.getParent());
+        ensureDirectory(runtimeViewPath);
+
+        if (!Files.exists(runtimeConfigPath)) {
+            GlobalConfig initialPayload = mergeForSave(runtime, snapshot, state.featureProfile);
+            writeConfig(runtimeConfigPath, initialPayload, state);
+            snapshot = cloneConfig(initialPayload);
         }
+
+        state.snapshot = snapshot;
+        state.config = runtime;
+        state.activeConfigPath = runtimeConfigPath;
+        state.activeViewSavesPath = runtimeViewPath;
         state.loaded = true;
     }
 
@@ -141,18 +165,28 @@ public final class GlobalConfigManager {
     public static synchronized void save(String namespace) {
         ConfigState state = context(namespace);
         if (state.configIgnored) {
+            state.config = new GlobalConfig();
+            state.snapshot = cloneConfig(state.config);
+            state.activeConfigPath = state.defaultConfigFile;
+            state.activeViewSavesPath = state.defaultViewSavesDir;
             state.loaded = true;
             return;
         }
         if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
-        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
-        ensureViewPath(state);
-        ensureDirectory(state.activeConfigPath.getParent());
-        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
-        ensureDirectory(state.activeViewSavesPath);
-        writeConfig(state.activeConfigPath, state.config, state);
+
+        ensureViewPath(state.config);
+        Path runtimeConfigPath = resolveConfigPath(state.config.getConfigPath(), state, state.config);
+        Path runtimeViewPath = resolveViewSavesPath(state.config.getViewSavesPath(), state, state.config);
+        ensureDirectory(runtimeConfigPath.getParent());
+        ensureDirectory(runtimeViewPath);
+
+        GlobalConfig payload = mergeForSave(state.config, state.snapshot, state.featureProfile);
+        writeConfig(runtimeConfigPath, payload, state);
+        state.snapshot = cloneConfig(payload);
+        state.activeConfigPath = runtimeConfigPath;
+        state.activeViewSavesPath = runtimeViewPath;
         state.loaded = true;
     }
 
@@ -164,20 +198,22 @@ public final class GlobalConfigManager {
         ConfigState state = context(namespace);
         if (state.configIgnored) {
             state.config = new GlobalConfig();
+            state.snapshot = cloneConfig(state.config);
             state.activeConfigPath = state.defaultConfigFile;
             state.activeViewSavesPath = state.defaultViewSavesDir;
             state.loaded = false;
             return;
         }
-        Path currentPath = resolveConfigPath(state.config.getConfigPath(), state);
+
+        Path currentPath = resolveConfigPath(state.config.getConfigPath(), state, state.config);
         deleteIfExists(currentPath);
         if (!Objects.equals(currentPath, state.defaultConfigFile)) {
             deleteIfExists(state.defaultConfigFile);
         }
         state.config = new GlobalConfig();
-        ensureViewPath(state);
-        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
-        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
+        state.snapshot = cloneConfig(state.config);
+        state.activeConfigPath = state.defaultConfigFile;
+        state.activeViewSavesPath = state.defaultViewSavesDir;
         state.loaded = false;
     }
 
@@ -193,7 +229,7 @@ public final class GlobalConfigManager {
         if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
-        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state);
+        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state, state.config);
         return state.activeConfigPath;
     }
 
@@ -209,8 +245,71 @@ public final class GlobalConfigManager {
         if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
-        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state);
+        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state, state.config);
         return state.activeViewSavesPath;
+    }
+
+    public static synchronized ConfigFeatureProfile getFeatureProfile() {
+        return getFeatureProfile(defaultNamespace);
+    }
+
+    public static synchronized void setFeatureProfile(ConfigFeatureProfile profile) {
+        setFeatureProfile(defaultNamespace, profile);
+    }
+
+    public static synchronized ConfigFeatureProfile getFeatureProfile(String namespace) {
+        ConfigState state = context(namespace);
+        return state.featureProfile;
+    }
+
+    public static synchronized void setFeatureProfile(String namespace, ConfigFeatureProfile profile) {
+        ConfigState state = context(namespace);
+        state.featureProfile = profile != null ? profile : ConfigFeatureProfile.all();
+        state.loaded = false;
+    }
+
+    public static synchronized void setLoadFeatures(String namespace, Set<ConfigFeature> features) {
+        ConfigState state = context(namespace);
+        ConfigFeatureProfile current = state.featureProfile;
+        state.featureProfile = current.withLoadFeatures(features != null ? features : Set.of());
+        state.loaded = false;
+    }
+
+    public static synchronized void setSaveFeatures(String namespace, Set<ConfigFeature> features) {
+        ConfigState state = context(namespace);
+        ConfigFeatureProfile current = state.featureProfile;
+        state.featureProfile = current.withSaveFeatures(features != null ? features : Set.of());
+        state.loaded = false;
+    }
+
+    public static synchronized void enableFeature(String namespace, ConfigFeature feature) {
+        ConfigState state = context(namespace);
+        state.featureProfile = state.featureProfile.withFeature(feature);
+        state.loaded = false;
+    }
+
+    public static synchronized void disableFeature(String namespace, ConfigFeature feature) {
+        ConfigState state = context(namespace);
+        state.featureProfile = state.featureProfile.withoutFeature(feature);
+        state.loaded = false;
+    }
+
+    public static synchronized boolean shouldLoadFeature(ConfigFeature feature) {
+        return shouldLoadFeature(defaultNamespace, feature);
+    }
+
+    public static synchronized boolean shouldLoadFeature(String namespace, ConfigFeature feature) {
+        ConfigState state = context(namespace);
+        return state.featureProfile.shouldLoad(feature);
+    }
+
+    public static synchronized boolean shouldSaveFeature(ConfigFeature feature) {
+        return shouldSaveFeature(defaultNamespace, feature);
+    }
+
+    public static synchronized boolean shouldSaveFeature(String namespace, ConfigFeature feature) {
+        ConfigState state = context(namespace);
+        return state.featureProfile.shouldSave(feature);
     }
 
     private static ConfigState context(String namespace) {
@@ -279,21 +378,50 @@ public final class GlobalConfigManager {
         }
     }
 
-    private static Path resolveConfigPath(String configuredPath, ConfigState state) {
-        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultConfigFile, "config path");
-        state.config.setConfigPath(relativizeToConfigRoot(resolved));
-        return resolved;
+    private static GlobalConfig applyLoadProfile(GlobalConfig source, ConfigFeatureProfile profile) {
+        GlobalConfig runtime = new GlobalConfig();
+        if (profile.shouldLoad(ConfigFeature.CORE)) {
+            runtime.setViewport(source.isViewportEnabled());
+            runtime.setDockspace(source.isDockspaceEnabled());
+            runtime.setGlobalScale(source.getGlobalScale());
+            runtime.setConfigPath(source.getConfigPath());
+            runtime.setViewSavesPath(source.getViewSavesPath());
+        }
+        if (profile.shouldLoad(ConfigFeature.STYLE_REFERENCES)) {
+            runtime.setGlobalStyleKey(source.getGlobalStyleKey());
+            runtime.setViewStyles(source.getViewStyles());
+        } else {
+            runtime.setGlobalStyleKey(null);
+            runtime.setViewStyles(new HashMap<>());
+        }
+        return runtime;
+    }
+
+    private static GlobalConfig mergeForSave(GlobalConfig runtime, GlobalConfig snapshot, ConfigFeatureProfile profile) {
+        GlobalConfig target = snapshot != null ? cloneConfig(snapshot) : new GlobalConfig();
+        if (profile.shouldSave(ConfigFeature.CORE)) {
+            target.setViewport(runtime.isViewportEnabled());
+            target.setDockspace(runtime.isDockspaceEnabled());
+            target.setGlobalScale(runtime.getGlobalScale());
+            target.setConfigPath(runtime.getConfigPath());
+            target.setViewSavesPath(runtime.getViewSavesPath());
+        }
+        if (profile.shouldSave(ConfigFeature.STYLE_REFERENCES)) {
+            target.setGlobalStyleKey(runtime.getGlobalStyleKey());
+            target.setViewStyles(runtime.getViewStyles());
+        }
+        return target;
     }
 
     private static void writeConfig(Path path, GlobalConfig value, ConfigState state) {
+        GlobalConfig payload = cloneConfig(value);
+        payload.setConfigPath(relativizeToConfigRoot(path));
+        Path resolvedViewDir = resolveViewSavesPath(payload.getViewSavesPath(), state, payload);
+        ensureDirectory(resolvedViewDir);
+        payload.setViewSavesPath(relativizeToConfigRoot(resolvedViewDir));
+        payload.setGlobalScale(payload.getGlobalScale());
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-            String relativeConfigPath = relativizeToConfigRoot(path);
-            Path resolvedViewPath = resolveViewSavesPath(value.getViewSavesPath(), state);
-            String relativeViewPath = relativizeToConfigRoot(resolvedViewPath);
-            value.setConfigPath(relativeConfigPath);
-            value.setViewSavesPath(relativeViewPath);
-            value.setGlobalScale(value.getGlobalScale());
-            GSON.toJson(value, writer);
+            GSON.toJson(payload, writer);
         } catch (IOException e) {
             MineGuiCore.LOGGER.error("Failed to write global config to {}", path, e);
         }
@@ -310,15 +438,25 @@ public final class GlobalConfigManager {
         }
     }
 
-    private static Path resolveViewSavesPath(String configuredPath, ConfigState state) {
-        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultViewSavesDir, "view saves path");
-        state.config.setViewSavesPath(relativizeToConfigRoot(resolved));
+    private static Path resolveConfigPath(String configuredPath, ConfigState state, GlobalConfig target) {
+        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultConfigFile, "config path");
+        if (target != null) {
+            target.setConfigPath(relativizeToConfigRoot(resolved));
+        }
         return resolved;
     }
 
-    private static void ensureViewPath(ConfigState state) {
-        if (state.config.getViewSavesPath() == null || state.config.getViewSavesPath().isBlank()) {
-            state.config.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
+    private static Path resolveViewSavesPath(String configuredPath, ConfigState state, GlobalConfig target) {
+        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultViewSavesDir, "view saves path");
+        if (target != null) {
+            target.setViewSavesPath(relativizeToConfigRoot(resolved));
+        }
+        return resolved;
+    }
+
+    private static void ensureViewPath(GlobalConfig config) {
+        if (config.getViewSavesPath() == null || config.getViewSavesPath().isBlank()) {
+            config.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
         }
     }
 
@@ -382,13 +520,30 @@ public final class GlobalConfigManager {
         return trimmed.replace('\\', '/');
     }
 
+    private static GlobalConfig cloneConfig(GlobalConfig config) {
+        if (config == null) {
+            return new GlobalConfig();
+        }
+        GlobalConfig clone = new GlobalConfig();
+        clone.setViewport(config.isViewportEnabled());
+        clone.setDockspace(config.isDockspaceEnabled());
+        clone.setGlobalScale(config.getGlobalScale());
+        clone.setConfigPath(config.getConfigPath());
+        clone.setViewSavesPath(config.getViewSavesPath());
+        clone.setGlobalStyleKey(config.getGlobalStyleKey());
+        clone.setViewStyles(config.getViewStyles());
+        return clone;
+    }
+
     private static final class ConfigState {
         private final Path baseDirectory;
         private final Path defaultConfigFile;
         private final Path defaultViewSavesDir;
         private GlobalConfig config;
+        private GlobalConfig snapshot;
         private Path activeConfigPath;
         private Path activeViewSavesPath;
+        private ConfigFeatureProfile featureProfile;
         private boolean autoLoadEnabled;
         private boolean configIgnored;
         private boolean loaded;
@@ -398,8 +553,10 @@ public final class GlobalConfigManager {
             this.defaultConfigFile = baseDirectory.resolve("global_config.json");
             this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
             this.config = new GlobalConfig();
+            this.snapshot = cloneConfig(this.config);
             this.activeConfigPath = defaultConfigFile;
             this.activeViewSavesPath = defaultViewSavesDir;
+            this.featureProfile = ConfigFeatureProfile.all();
             this.autoLoadEnabled = true;
             this.configIgnored = false;
             this.loaded = false;

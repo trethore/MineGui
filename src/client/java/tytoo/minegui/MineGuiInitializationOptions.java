@@ -1,25 +1,43 @@
 package tytoo.minegui;
 
-public record MineGuiInitializationOptions(boolean loadGlobalConfig, boolean ignoreGlobalConfig,
-                                           String configNamespace) {
+import net.minecraft.util.Identifier;
+import tytoo.minegui.config.ConfigFeature;
+import tytoo.minegui.config.ConfigFeatureProfile;
+import tytoo.minegui.view.cursor.MGCursorPolicies;
+
+import java.util.Set;
+
+public record MineGuiInitializationOptions(
+        boolean loadGlobalConfig,
+        boolean ignoreGlobalConfig,
+        String configNamespace,
+        ConfigFeatureProfile featureProfile,
+        Identifier defaultCursorPolicyId
+) {
     public MineGuiInitializationOptions {
         configNamespace = normalizeNamespace(configNamespace);
+        featureProfile = featureProfile != null ? featureProfile : ConfigFeatureProfile.all();
+        defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : MGCursorPolicies.emptyId();
     }
 
     public MineGuiInitializationOptions(boolean loadGlobalConfig, String configNamespace) {
-        this(loadGlobalConfig, false, configNamespace);
+        this(loadGlobalConfig, false, configNamespace, ConfigFeatureProfile.all(), MGCursorPolicies.emptyId());
+    }
+
+    public MineGuiInitializationOptions(boolean loadGlobalConfig, boolean ignoreGlobalConfig, String configNamespace) {
+        this(loadGlobalConfig, ignoreGlobalConfig, configNamespace, ConfigFeatureProfile.all(), MGCursorPolicies.emptyId());
     }
 
     public static MineGuiInitializationOptions defaults() {
-        return new MineGuiInitializationOptions(true, false, MineGuiCore.ID);
+        return new MineGuiInitializationOptions(true, false, MineGuiCore.ID, ConfigFeatureProfile.all(), MGCursorPolicies.emptyId());
     }
 
     public static MineGuiInitializationOptions skipGlobalConfig() {
-        return new MineGuiInitializationOptions(false, false, MineGuiCore.ID);
+        return new MineGuiInitializationOptions(false, false, MineGuiCore.ID, ConfigFeatureProfile.all(), MGCursorPolicies.emptyId());
     }
 
     public static MineGuiInitializationOptions ignoringGlobalConfig() {
-        return new MineGuiInitializationOptions(false, true, MineGuiCore.ID);
+        return new MineGuiInitializationOptions(false, true, MineGuiCore.ID, ConfigFeatureProfile.all(), MGCursorPolicies.emptyId());
     }
 
     private static String normalizeNamespace(String namespace) {
@@ -34,14 +52,39 @@ public record MineGuiInitializationOptions(boolean loadGlobalConfig, boolean ign
     }
 
     public MineGuiInitializationOptions withNamespace(String namespace) {
-        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, namespace);
+        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, namespace, featureProfile, defaultCursorPolicyId);
     }
 
     public MineGuiInitializationOptions withLoadGlobalConfig(boolean loadGlobalConfig) {
-        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace);
+        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, defaultCursorPolicyId);
     }
 
     public MineGuiInitializationOptions withIgnoreGlobalConfig(boolean ignoreGlobalConfig) {
-        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace);
+        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, defaultCursorPolicyId);
+    }
+
+    public MineGuiInitializationOptions withFeatureProfile(ConfigFeatureProfile profile) {
+        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, profile, defaultCursorPolicyId);
+    }
+
+    public MineGuiInitializationOptions withLoadFeatures(Set<ConfigFeature> features) {
+        return withFeatureProfile(featureProfile.withLoadFeatures(features));
+    }
+
+    public MineGuiInitializationOptions withSaveFeatures(Set<ConfigFeature> features) {
+        return withFeatureProfile(featureProfile.withSaveFeatures(features));
+    }
+
+    public MineGuiInitializationOptions withFeature(ConfigFeature feature) {
+        return withFeatureProfile(featureProfile.withFeature(feature));
+    }
+
+    public MineGuiInitializationOptions withoutFeature(ConfigFeature feature) {
+        return withFeatureProfile(featureProfile.withoutFeature(feature));
+    }
+
+    public MineGuiInitializationOptions withDefaultCursorPolicy(Identifier policyId) {
+        Identifier normalized = policyId != null ? policyId : MGCursorPolicies.emptyId();
+        return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, normalized);
     }
 }

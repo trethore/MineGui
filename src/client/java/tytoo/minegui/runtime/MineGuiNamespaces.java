@@ -1,5 +1,6 @@
 package tytoo.minegui.runtime;
 
+import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
@@ -19,9 +20,8 @@ public final class MineGuiNamespaces {
     public static MineGuiNamespaceContext initialize(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = Objects.requireNonNull(options.configNamespace(), "namespace");
-        MineGuiNamespaceContext context = new MineGuiNamespaceContext(namespace, options);
-        CONTEXTS.put(namespace, context);
         GlobalConfigManager.setConfigIgnored(namespace, options.ignoreGlobalConfig());
+        GlobalConfigManager.setFeatureProfile(namespace, options.featureProfile());
         boolean shouldAutoLoad = options.loadGlobalConfig() && !options.ignoreGlobalConfig();
         GlobalConfigManager.setAutoLoadEnabled(namespace, shouldAutoLoad);
         if (options.ignoreGlobalConfig()) {
@@ -31,6 +31,8 @@ public final class MineGuiNamespaces {
         } else {
             GlobalConfigManager.ensureContext(namespace);
         }
+        MineGuiNamespaceContext context = new MineGuiNamespaceContext(namespace, options);
+        CONTEXTS.put(namespace, context);
         return context;
     }
 
@@ -59,5 +61,17 @@ public final class MineGuiNamespaces {
         for (MineGuiNamespaceContext context : CONTEXTS.values()) {
             GlobalConfigManager.save(context.namespace());
         }
+    }
+
+    public static void setDefaultCursorPolicy(Identifier policyId) {
+        setDefaultCursorPolicy(GlobalConfigManager.getDefaultNamespace(), policyId);
+    }
+
+    public static void setDefaultCursorPolicy(String namespace, Identifier policyId) {
+        MineGuiNamespaceContext context = CONTEXTS.get(namespace);
+        if (context == null) {
+            return;
+        }
+        context.setDefaultCursorPolicy(policyId);
     }
 }

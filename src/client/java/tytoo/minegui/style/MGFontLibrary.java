@@ -1,10 +1,6 @@
 package tytoo.minegui.style;
 
-import imgui.ImFont;
-import imgui.ImFontAtlas;
-import imgui.ImFontConfig;
-import imgui.ImGui;
-import imgui.ImGuiIO;
+import imgui.*;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +24,7 @@ public final class MGFontLibrary {
     private final ConcurrentHashMap<Identifier, FontDescriptor> fontDescriptors = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Identifier, Boolean> warnedPostBuild = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Identifier, Identifier> mergeParents = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<FontVariant, byte[]> fontData = new ConcurrentHashMap<>();
     private final ThreadLocal<Set<Identifier>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
 
     private MGFontLibrary() {
@@ -143,9 +140,10 @@ public final class MGFontLibrary {
                 return null;
             }
             float normalizedSize = normalizeSize(sanitizedSize);
-            ImFont font = descriptor.load(normalizedSize);
+            FontVariant normalizedVariant = new FontVariant(variant.key(), normalizedSize);
+            ImFont font = descriptor.load(this, normalizedVariant, normalizedSize);
             if (font != null) {
-                loadedFonts.put(new FontVariant(variant.key(), normalizedSize), font);
+                loadedFonts.put(normalizedVariant, font);
             }
             return font;
         } finally {
@@ -158,6 +156,7 @@ public final class MGFontLibrary {
         fontDescriptors.clear();
         warnedPostBuild.clear();
         mergeParents.clear();
+        fontData.clear();
     }
 
     public void resetRuntime() {
@@ -255,7 +254,7 @@ public final class MGFontLibrary {
             Objects.requireNonNull(source, "source");
         }
 
-        ImFont load(float targetSize) {
+        ImFont load(MGFontLibrary library, FontVariant variant, float targetSize) {
             ImGuiIO io = ImGui.getIO();
             byte[] fontBytes = source.resolve();
             if (fontBytes == null || fontBytes.length == 0) {
@@ -267,6 +266,8 @@ public final class MGFontLibrary {
                 if (configFactory != null) {
                     configFactory.configure(config);
                 }
+                config.setFontDataOwnedByAtlas(false);
+                library.fontData.put(variant, fontBytes);
                 return io.getFonts().addFontFromMemoryTTF(fontBytes, targetSize, config);
             } finally {
                 config.destroy();

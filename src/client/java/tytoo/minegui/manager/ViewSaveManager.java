@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.ImGuiIO;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.style.StyleJsonSerializer;
 import tytoo.minegui.style.StyleManager;
@@ -76,12 +77,14 @@ public final class ViewSaveManager {
             return;
         }
         ViewEntry entry = entries.computeIfAbsent(view, unused -> new ViewEntry());
+        boolean loadLayouts = GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_LAYOUTS);
+        boolean loadStyleSnapshots = GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_STYLE_SNAPSHOTS);
         String currentId = view.getId();
         String scopedId = scopedId(view);
         Path hashedLayoutPath = resolveLayoutPath(currentId);
         if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedScopedId, scopedId) || !Objects.equals(entry.loadedPath, hashedLayoutPath)) {
             entry.loaded = false;
-            entry.persistedStyleSnapshotJson = readPersistedStyleSnapshot(currentId);
+            entry.persistedStyleSnapshotJson = loadStyleSnapshots ? readPersistedStyleSnapshot(currentId) : null;
             entry.styleSnapshotJson = null;
             entry.descriptorDirty = false;
             entry.loadedScopedId = null;
@@ -95,7 +98,7 @@ public final class ViewSaveManager {
         ensureParentDirectory(hashedLayoutPath);
         Path legacyLayoutPath = resolveLegacyLayoutPath(currentId);
         Path loadSource = Files.exists(hashedLayoutPath) ? hashedLayoutPath : legacyLayoutPath;
-        if (Files.exists(loadSource)) {
+        if (loadLayouts && Files.exists(loadSource)) {
             ImGui.loadIniSettingsFromDisk(loadSource.toString());
         }
         entry.loaded = true;
@@ -148,6 +151,9 @@ public final class ViewSaveManager {
 
     private void persistEntries(String iniContent) {
         if (iniContent == null || iniContent.isEmpty()) {
+            return;
+        }
+        if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.VIEW_LAYOUTS)) {
             return;
         }
         Map<String, ViewEntry> activeEntries = entries.entrySet().stream()
@@ -235,6 +241,11 @@ public final class ViewSaveManager {
             entry.styleDirty = false;
             return;
         }
+        if (!GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.STYLE_REFERENCES)) {
+            entry.pendingStyleKey = normalizeStyleKey(view.getStyleKey());
+            entry.styleDirty = false;
+            return;
+        }
         Map<String, String> styles = GlobalConfigManager.getConfig(namespace).getViewStyles();
         String saved = styles.get(view.getId());
         if (saved != null && saved.isBlank()) {
@@ -254,6 +265,9 @@ public final class ViewSaveManager {
 
     private void persistViewStyles() {
         if (GlobalConfigManager.isConfigIgnored(namespace)) {
+            return;
+        }
+        if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES)) {
             return;
         }
         boolean changed = false;
@@ -421,6 +435,7 @@ public final class ViewSaveManager {
 
     private static final class ViewSavePaths {
         private static final int HASH_PREFIX_LENGTH = 24;
+        private static final int DISPLAY_MAX_LENGTH = 48;
         private static final HexFormat HEX = HexFormat.of();
         private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[^a-zA-Z0-9._-]");
 
@@ -450,7 +465,7 @@ public final class ViewSaveManager {
         private static String hashedFileName(String viewId, String extension) {
             String normalizedId = normalizeId(viewId);
             String hashed = hash(normalizedId);
-            String display = truncate(sanitize(normalizedId), 48);
+            String display = truncate(sanitize(normalizedId));
             if (display.isBlank()) {
                 display = "view";
             }
@@ -478,11 +493,11 @@ public final class ViewSaveManager {
             return INVALID_FILENAME_CHARS.matcher(normalized).replaceAll("_");
         }
 
-        private static String truncate(String value, int length) {
-            if (value.length() <= length) {
+        private static String truncate(String value) {
+            if (value.length() <= DISPLAY_MAX_LENGTH) {
                 return value;
             }
-            return value.substring(0, length);
+            return value.substring(0, DISPLAY_MAX_LENGTH);
         }
 
         private static String hash(String value) {

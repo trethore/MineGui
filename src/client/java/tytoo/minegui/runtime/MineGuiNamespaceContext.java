@@ -1,12 +1,18 @@
 package tytoo.minegui.runtime;
 
+import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.runtime.config.NamespaceConfigAccess;
+import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.MGStyleDescriptor;
 import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.view.cursor.MGCursorPolicy;
+
+import java.util.Objects;
 
 public final class MineGuiNamespaceContext {
     private final String namespace;
@@ -15,6 +21,8 @@ public final class MineGuiNamespaceContext {
     private final UIManager uiManager;
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
+    private Identifier defaultCursorPolicyId;
+    private MGCursorPolicy defaultCursorPolicy;
 
     MineGuiNamespaceContext(String namespace, MineGuiInitializationOptions options) {
         this.namespace = namespace;
@@ -29,6 +37,9 @@ public final class MineGuiNamespaceContext {
                     .map(descriptor -> MGStyleDescriptor.builder().fromDescriptor(descriptor).build())
                     .ifPresent(this.styleManager::setGlobalDescriptor);
         }
+        this.defaultCursorPolicyId = options.defaultCursorPolicyId();
+        this.defaultCursorPolicy = CursorPolicyRegistry.resolvePolicyOrDefault(defaultCursorPolicyId, MGCursorPolicies.empty());
+        this.uiManager.setDefaultCursorPolicy(defaultCursorPolicy);
     }
 
     public String namespace() {
@@ -53,5 +64,24 @@ public final class MineGuiNamespaceContext {
 
     public StyleManager style() {
         return styleManager;
+    }
+
+    public Identifier defaultCursorPolicyId() {
+        return defaultCursorPolicyId;
+    }
+
+    public MGCursorPolicy defaultCursorPolicy() {
+        return defaultCursorPolicy;
+    }
+
+    public void setDefaultCursorPolicy(Identifier policyId) {
+        Identifier normalized = policyId != null ? policyId : MGCursorPolicies.emptyId();
+        MGCursorPolicy resolved = CursorPolicyRegistry.resolvePolicyOrDefault(normalized, MGCursorPolicies.empty());
+        if (Objects.equals(normalized, defaultCursorPolicyId) && resolved == defaultCursorPolicy) {
+            return;
+        }
+        this.defaultCursorPolicyId = normalized;
+        this.defaultCursorPolicy = resolved;
+        this.uiManager.setDefaultCursorPolicy(resolved);
     }
 }

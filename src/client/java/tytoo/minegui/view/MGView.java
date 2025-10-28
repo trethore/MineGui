@@ -15,10 +15,12 @@ public abstract class MGView {
     private String namespace;
     private ViewSaveManager viewSaveManager;
     private MGCursorPolicy cursorPolicy;
+    private boolean cursorPolicyExplicit;
 
     protected MGView() {
         this.id = deriveDefaultId();
         this.cursorPolicy = MGCursorPolicies.empty();
+        this.cursorPolicyExplicit = false;
     }
 
     protected MGView(String id) {
@@ -150,7 +152,30 @@ public abstract class MGView {
     }
 
     public void setCursorPolicy(MGCursorPolicy cursorPolicy) {
-        MGCursorPolicy resolved = cursorPolicy != null ? cursorPolicy : MGCursorPolicies.empty();
+        boolean explicit = cursorPolicy != null;
+        MGCursorPolicy resolved = explicit ? cursorPolicy : MGCursorPolicies.empty();
+        if (this.cursorPolicy == resolved && this.cursorPolicyExplicit == explicit) {
+            return;
+        }
+        if (visible) {
+            this.cursorPolicy.onClose(this);
+        }
+        this.cursorPolicy = resolved;
+        this.cursorPolicyExplicit = explicit;
+        if (visible) {
+            this.cursorPolicy.onOpen(this);
+        }
+    }
+
+    public boolean hasExplicitCursorPolicy() {
+        return cursorPolicyExplicit;
+    }
+
+    public void applyDefaultCursorPolicy(MGCursorPolicy defaultPolicy) {
+        if (cursorPolicyExplicit) {
+            return;
+        }
+        MGCursorPolicy resolved = defaultPolicy != null ? defaultPolicy : MGCursorPolicies.empty();
         if (this.cursorPolicy == resolved) {
             return;
         }

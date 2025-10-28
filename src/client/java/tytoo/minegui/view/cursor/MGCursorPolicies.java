@@ -1,9 +1,15 @@
 package tytoo.minegui.view.cursor;
 
+import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.view.MGView;
 
 public final class MGCursorPolicies {
+    private static final Identifier EMPTY_ID = Identifier.of(MineGuiCore.ID, "empty");
+    private static final Identifier SCREEN_ID = Identifier.of(MineGuiCore.ID, "screen");
+    private static final Identifier CLICK_TO_LOCK_ID = Identifier.of(MineGuiCore.ID, "click_to_lock");
+
     private static final MGCursorPolicy EMPTY = new MGCursorPolicy() {
         @Override
         public void onOpen(MGView view) {
@@ -38,6 +44,12 @@ public final class MGCursorPolicies {
         }
     };
 
+    static {
+        CursorPolicyRegistry.registerPolicy(EMPTY_ID, EMPTY);
+        CursorPolicyRegistry.registerPolicy(SCREEN_ID, SCREEN);
+        CursorPolicyRegistry.registerPolicy(CLICK_TO_LOCK_ID, CLICK_TO_LOCK);
+    }
+
     private MGCursorPolicies() {
     }
 
@@ -51,5 +63,17 @@ public final class MGCursorPolicies {
 
     public static MGCursorPolicy clickToLock() {
         return CLICK_TO_LOCK;
+    }
+
+    public static Identifier emptyId() {
+        return EMPTY_ID;
+    }
+
+    public static Identifier screenId() {
+        return SCREEN_ID;
+    }
+
+    public static Identifier clickToLockId() {
+        return CLICK_TO_LOCK_ID;
     }
 }

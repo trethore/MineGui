@@ -2,14 +2,16 @@ package tytoo.minegui.runtime.cursor;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
+import net.minecraft.util.Identifier;
 import tytoo.minegui.util.CursorLockUtils;
 import tytoo.minegui.view.MGView;
+import tytoo.minegui.view.cursor.MGCursorPolicy;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class CursorPolicyRegistry {
+    private static final Map<Identifier, MGCursorPolicy> REGISTERED_POLICIES = new ConcurrentHashMap<>();
     private static final Set<MGView> PERSISTENT_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Set<MGView> CLICK_RELEASE_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final boolean[] EMPTY_MOUSE_BUTTONS = new boolean[5];
@@ -17,6 +19,28 @@ public final class CursorPolicyRegistry {
     private static volatile boolean cursorUnlocked;
 
     private CursorPolicyRegistry() {
+    }
+
+    public static void registerPolicy(Identifier id, MGCursorPolicy policy) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(policy, "policy");
+        REGISTERED_POLICIES.put(id, policy);
+    }
+
+    public static MGCursorPolicy resolvePolicy(Identifier id) {
+        if (id == null) {
+            return null;
+        }
+        return REGISTERED_POLICIES.get(id);
+    }
+
+    public static MGCursorPolicy resolvePolicyOrDefault(Identifier id, MGCursorPolicy fallback) {
+        MGCursorPolicy policy = resolvePolicy(id);
+        return policy != null ? policy : fallback;
+    }
+
+    public static Set<Identifier> registeredPolicies() {
+        return Collections.unmodifiableSet(new HashSet<>(REGISTERED_POLICIES.keySet()));
     }
 
     public static void requestPersistentUnlock(MGView view) {

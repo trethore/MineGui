@@ -8,6 +8,8 @@ import tytoo.minegui.style.MGStyleDescriptor;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.style.StyleScope;
 import tytoo.minegui.view.MGView;
+import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.view.cursor.MGCursorPolicy;
 
 import java.util.List;
 import java.util.Map;
@@ -21,11 +23,13 @@ public final class UIManager {
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
     private final List<MGView> views = new CopyOnWriteArrayList<>();
+    private volatile MGCursorPolicy defaultCursorPolicy;
 
     private UIManager(String namespace) {
         this.namespace = namespace;
         this.viewSaveManager = ViewSaveManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
+        this.defaultCursorPolicy = MGCursorPolicies.empty();
     }
 
     public static UIManager get(String namespace) {
@@ -48,6 +52,7 @@ public final class UIManager {
             views.add(view);
             viewSaveManager.register(view);
             view.attach(namespace, viewSaveManager);
+            view.applyDefaultCursorPolicy(defaultCursorPolicy);
         }
     }
 
@@ -61,6 +66,23 @@ public final class UIManager {
         views.remove(view);
         viewSaveManager.unregister(view);
         view.detach();
+    }
+
+    public MGCursorPolicy getDefaultCursorPolicy() {
+        return defaultCursorPolicy;
+    }
+
+    public void setDefaultCursorPolicy(MGCursorPolicy policy) {
+        MGCursorPolicy resolved = policy != null ? policy : MGCursorPolicies.empty();
+        if (this.defaultCursorPolicy == resolved) {
+            return;
+        }
+        this.defaultCursorPolicy = resolved;
+        for (MGView view : views) {
+            if (view != null) {
+                view.applyDefaultCursorPolicy(resolved);
+            }
+        }
     }
 
     public boolean hasVisibleViews() {

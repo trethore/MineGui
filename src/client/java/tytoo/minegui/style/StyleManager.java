@@ -4,6 +4,7 @@ import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
 import net.minecraft.util.Identifier;
+import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 
@@ -191,6 +192,9 @@ public final class StyleManager {
 
     private void persistGlobalStyle(Identifier key) {
         if (GlobalConfigManager.isConfigIgnored(namespace)) {
+            return;
+        }
+        if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES)) {
             return;
         }
         GlobalConfig config = GlobalConfigManager.getConfig(namespace);
