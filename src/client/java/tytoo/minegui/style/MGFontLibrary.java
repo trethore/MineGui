@@ -1,6 +1,7 @@
 package tytoo.minegui.style;
 
 import imgui.ImFont;
+import imgui.ImFontAtlas;
 import imgui.ImFontConfig;
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -13,8 +14,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class MGFontLibrary {
@@ -24,6 +27,8 @@ public final class MGFontLibrary {
     private final ConcurrentHashMap<FontVariant, ImFont> loadedFonts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Identifier, FontDescriptor> fontDescriptors = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Identifier, Boolean> warnedPostBuild = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Identifier, Identifier> mergeParents = new ConcurrentHashMap<>();
+    private final ThreadLocal<Set<Identifier>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
 
     private MGFontLibrary() {
     }
@@ -43,7 +48,42 @@ public final class MGFontLibrary {
     public void registerFont(Identifier key, FontDescriptor descriptor) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(descriptor, "descriptor");
+        mergeParents.remove(key);
         fontDescriptors.put(key, descriptor);
+    }
+
+    public void registerMergedFont(Identifier baseKey, Identifier key, FontSource source, float size) {
+        registerMergedFont(baseKey, key, source, size, null, null);
+    }
+
+    public void registerMergedFont(
+            Identifier baseKey,
+            Identifier key,
+            FontSource source,
+            float size,
+            @Nullable GlyphRangeSupplier glyphRanges,
+            @Nullable FontConfigFactory extraConfig
+    ) {
+        Objects.requireNonNull(baseKey, "baseKey");
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(source, "source");
+        FontDescriptor descriptor = new FontDescriptor(source, size, config -> {
+            config.setMergeMode(true);
+            if (glyphRanges != null) {
+                short[] ranges = glyphRanges.supply(ImGui.getIO().getFonts());
+                if (ranges != null && ranges.length > 0) {
+                    config.setGlyphRanges(ranges);
+                }
+            }
+            if (extraConfig != null) {
+                extraConfig.configure(config);
+            }
+        });
+        if (!Objects.equals(baseKey, DEFAULT_FONT_KEY) && !fontDescriptors.containsKey(baseKey)) {
+            MineGuiCore.LOGGER.warn("Registering merged font {} before base {}; ensure the base font is available", key, baseKey);
+        }
+        registerFont(key, descriptor);
+        mergeParents.put(key, baseKey);
     }
 
     public ImFont ensureFont(Identifier key, @Nullable Float sizeOverride) {
@@ -76,30 +116,48 @@ public final class MGFontLibrary {
         if (cached != null) {
             return cached;
         }
-        ImGuiIO io = ImGui.getIO();
-        if (io.getFonts().isBuilt()) {
-            if (warnedPostBuild.putIfAbsent(variant.key(), Boolean.TRUE) == null) {
-                MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts before frame or trigger MineGuiCore.requestReload().", variant.key());
+        Set<Identifier> stack = loadingKeys.get();
+        if (!stack.add(variant.key())) {
+            MineGuiCore.LOGGER.error("Detected recursive font load for {}; aborting", variant.key());
+            return null;
+        }
+        try {
+            Identifier baseKey = mergeParents.get(variant.key());
+            if (baseKey != null && !baseKey.equals(variant.key())) {
+                ImFont baseFont = ensureFont(baseKey, null);
+                if (baseFont == null) {
+                    MineGuiCore.LOGGER.warn("Unable to merge font {} because base {} failed to load", variant.key(), baseKey);
+                    return null;
+                }
             }
-            return null;
+            ImGuiIO io = ImGui.getIO();
+            if (io.getFonts().isBuilt()) {
+                if (warnedPostBuild.putIfAbsent(variant.key(), Boolean.TRUE) == null) {
+                    MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts before frame or trigger MineGuiCore.requestReload().", variant.key());
+                }
+                return null;
+            }
+            float sanitizedSize = variant.size() > 0f ? variant.size() : sanitizeRequestedSize(variant.size(), descriptor.size());
+            if (sanitizedSize <= 0f) {
+                MineGuiCore.LOGGER.error("Unable to resolve positive font size for {}; skipping load", variant.key());
+                return null;
+            }
+            float normalizedSize = normalizeSize(sanitizedSize);
+            ImFont font = descriptor.load(normalizedSize);
+            if (font != null) {
+                loadedFonts.put(new FontVariant(variant.key(), normalizedSize), font);
+            }
+            return font;
+        } finally {
+            stack.remove(variant.key());
         }
-        float sanitizedSize = variant.size() > 0f ? variant.size() : sanitizeRequestedSize(variant.size(), descriptor.size());
-        if (sanitizedSize <= 0f) {
-            MineGuiCore.LOGGER.error("Unable to resolve positive font size for {}; skipping load", variant.key());
-            return null;
-        }
-        float normalizedSize = normalizeSize(sanitizedSize);
-        ImFont font = descriptor.load(normalizedSize);
-        if (font != null) {
-            loadedFonts.put(new FontVariant(variant.key(), normalizedSize), font);
-        }
-        return font;
     }
 
     public void clear() {
         loadedFonts.clear();
         fontDescriptors.clear();
         warnedPostBuild.clear();
+        mergeParents.clear();
     }
 
     public void resetRuntime() {
@@ -145,6 +203,11 @@ public final class MGFontLibrary {
     @FunctionalInterface
     public interface FontConfigFactory {
         void configure(ImFontConfig config);
+    }
+
+    @FunctionalInterface
+    public interface GlyphRangeSupplier {
+        short[] supply(ImFontAtlas atlas);
     }
 
     @FunctionalInterface
