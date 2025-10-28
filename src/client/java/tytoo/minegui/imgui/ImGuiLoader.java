@@ -21,6 +21,7 @@ public class ImGuiLoader {
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
     private static final String GLSL_VERSION = "#version 150";
     private static float appliedGlobalScale = Float.NaN;
+    private static volatile boolean reloadRequested;
 
     private static long windowHandle;
     private static int mcWindowWidth;
@@ -47,6 +48,7 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
+        handlePendingReload();
         imGuiGlfw.newFrame();
         CursorPolicyRegistry.onFrameStart();
         ImGui.newFrame();
@@ -62,6 +64,40 @@ public class ImGuiLoader {
 
         ImGui.render();
         endFrame();
+    }
+
+    public static void requestReload() {
+        reloadRequested = true;
+    }
+
+    private static void handlePendingReload() {
+        if (!reloadRequested) {
+            return;
+        }
+        performReload();
+    }
+
+    private static void performReload() {
+        reloadRequested = false;
+        if (windowHandle == 0L) {
+            return;
+        }
+        MineGuiCore.LOGGER.info("Reloading MineGui context");
+        imGuiGl3.dispose();
+        imGuiGlfw.dispose();
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (context != null && !context.isNotValidPtr()) {
+            ImGui.destroyContext();
+        }
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        fontLibrary.resetRuntime();
+        initializeImGui();
+        fontLibrary.preloadRegisteredFonts();
+        imGuiGlfw.init(windowHandle, false);
+        imGuiGl3.init(GLSL_VERSION);
+        for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
+            contextHandle.style().apply();
+        }
     }
 
     private static void renderDockSpace(GlobalConfig config) {

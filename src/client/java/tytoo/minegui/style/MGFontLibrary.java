@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -62,41 +63,57 @@ public final class MGFontLibrary {
         float targetSize = sizeOverride != null ? sizeOverride : descriptor.size();
         targetSize = sanitizeRequestedSize(targetSize, descriptor.size());
         float normalizedSize = normalizeSize(targetSize);
+        FontVariant targetVariant = new FontVariant(descriptorKey, normalizedSize);
         ImFont cached = findCachedFont(descriptorKey, normalizedSize);
         if (cached != null) {
             return cached;
         }
-        return loadFont(descriptorKey, descriptor, normalizedSize);
+        return loadFont(targetVariant, descriptor);
     }
 
-    public void clear() {
-        loadedFonts.clear();
-        fontDescriptors.clear();
-    }
-
-    private ImFont loadFont(Identifier key, FontDescriptor descriptor, float size) {
-        FontVariant variant = new FontVariant(key, size);
+    private ImFont loadFont(FontVariant variant, FontDescriptor descriptor) {
         ImFont cached = loadedFonts.get(variant);
         if (cached != null) {
             return cached;
         }
         ImGuiIO io = ImGui.getIO();
         if (io.getFonts().isBuilt()) {
-            if (warnedPostBuild.putIfAbsent(key, Boolean.TRUE) == null) {
-                MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts before frame or trigger atlas rebuild.", key);
+            if (warnedPostBuild.putIfAbsent(variant.key(), Boolean.TRUE) == null) {
+                MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts before frame or trigger MineGuiCore.requestReload().", variant.key());
             }
             return null;
         }
-        float sanitizedSize = size > 0f ? size : sanitizeRequestedSize(size, descriptor.size());
+        float sanitizedSize = variant.size() > 0f ? variant.size() : sanitizeRequestedSize(variant.size(), descriptor.size());
         if (sanitizedSize <= 0f) {
-            MineGuiCore.LOGGER.error("Unable to resolve positive font size for {}; skipping load", key);
+            MineGuiCore.LOGGER.error("Unable to resolve positive font size for {}; skipping load", variant.key());
             return null;
         }
-        ImFont font = descriptor.load(sanitizedSize);
+        float normalizedSize = normalizeSize(sanitizedSize);
+        ImFont font = descriptor.load(normalizedSize);
         if (font != null) {
-            loadedFonts.put(new FontVariant(key, sanitizedSize), font);
+            loadedFonts.put(new FontVariant(variant.key(), normalizedSize), font);
         }
         return font;
+    }
+
+    public void clear() {
+        loadedFonts.clear();
+        fontDescriptors.clear();
+        warnedPostBuild.clear();
+    }
+
+    public void resetRuntime() {
+        loadedFonts.clear();
+        warnedPostBuild.clear();
+    }
+
+    public void preloadRegisteredFonts() {
+        for (Map.Entry<Identifier, FontDescriptor> entry : fontDescriptors.entrySet()) {
+            FontDescriptor descriptor = entry.getValue();
+            if (descriptor != null) {
+                ensureFont(entry.getKey(), descriptor.size());
+            }
+        }
     }
 
     private ImFont findCachedFont(Identifier key, float size) {

@@ -1,24 +1,33 @@
 package tytoo.minegui_debug.view;
 
+import imgui.ImFont;
 import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
 import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
 import tytoo.minegui.helper.window.MGWindow;
+import tytoo.minegui.style.MGFontLibrary;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.view.MGView;
 import tytoo.minegui.view.cursor.MGCursorPolicies;
 
 public final class TestView extends MGView {
     private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
+    private static final Identifier JETBRAINS_MONO_KEY = Identifier.of(MineGuiCore.ID, "jetbrains-mono");
+    private static final float JETBRAINS_MONO_SIZE = 18.0f;
     private final ImString nameValue = new ImString("Alex", 64);
     private final ImString emailValue = new ImString("alex@example.com", 96);
     private final ImString notesValue = new ImString("Collect layout feedback here.", 512);
     private boolean clearFocusOnOpen;
     private String lastAction = "Awaiting input";
+    private boolean jetbrainsQueued;
+    private boolean reloadQueued;
+    private ImFont jetbrainsMono;
+    private String jetbrainsStatus = "JetBrains Mono pending";
 
     public TestView() {
         super("minegui_debug:test_view", true);
@@ -46,6 +55,16 @@ public final class TestView extends MGView {
                     try (VStack layout = VStack.begin(new VStack.Options().spacing(12f).fillMode(VStack.FillMode.MATCH_WIDEST))) {
                         try (VStack.ItemScope intro = layout.next()) {
                             ImGui.textWrapped("VStack scopes arrange content vertically with consistent spacing and optional width matching.");
+                        }
+
+                        try (VStack.ItemScope fontRow = layout.next()) {
+                            ensureJetbrainsMono();
+                            ImGui.text(jetbrainsStatus);
+                            if (jetbrainsMono != null) {
+                                ImGui.pushFont(jetbrainsMono);
+                                ImGui.text("JetBrains Mono sample -- 0123456789 ABC xyz");
+                                ImGui.popFont();
+                            }
                         }
 
                         try (VStack.ItemScope iconRow = layout.next()) {
@@ -122,5 +141,34 @@ public final class TestView extends MGView {
                         }
                     }
                 });
+    }
+
+    private void ensureJetbrainsMono() {
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        if (!jetbrainsQueued) {
+            fontLibrary.registerFont(
+                    JETBRAINS_MONO_KEY,
+                    new MGFontLibrary.FontDescriptor(
+                            MGFontLibrary.FontSource.asset("jetbrains-mono.ttf"),
+                            JETBRAINS_MONO_SIZE,
+                            null
+                    )
+            );
+            jetbrainsQueued = true;
+            if (!reloadQueued) {
+                reloadQueued = true;
+                jetbrainsStatus = "JetBrains Mono queued; requesting MineGui reload";
+                MineGuiCore.requestReload();
+                return;
+            }
+        }
+        ImFont resolved = fontLibrary.ensureFont(JETBRAINS_MONO_KEY, JETBRAINS_MONO_SIZE);
+        if (resolved != null) {
+            jetbrainsMono = resolved;
+            jetbrainsStatus = "JetBrains Mono ready";
+            reloadQueued = false;
+        } else {
+            jetbrainsStatus = reloadQueued ? "Waiting for MineGui reload..." : "JetBrains Mono loading...";
+        }
     }
 }

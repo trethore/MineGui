@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.util.ImGuiImageUtils;
 
@@ -115,5 +116,9 @@ public final class MineGuiCore {
 
     public static MineGuiInitializationOptions getInitializationOptions() {
         return initializationOptions;
+    }
+
+    public static void requestReload() {
+        ImGuiLoader.requestReload();
     }
 }
