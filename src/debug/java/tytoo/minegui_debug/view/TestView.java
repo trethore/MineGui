@@ -6,6 +6,7 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
@@ -51,12 +52,10 @@ public final class TestView extends MGView {
                     ImGui.text("Vertical stack layout");
                     ImGui.separator();
 
-                    try (VStack layout = VStack.begin(new VStack.Options().spacing(12f).fillMode(VStack.FillMode.MATCH_WIDEST))) {
-                        try (VStack.ItemScope intro = layout.next()) {
-                            ImGui.textWrapped("VStack scopes arrange content vertically with consistent spacing and optional width matching.");
-                        }
+                    UI.withVStack(new VStack.Options().spacing(12f).fillMode(VStack.FillMode.MATCH_WIDEST), layout -> {
+                        UI.withVStackItem(layout, () -> ImGui.textWrapped("VStack scopes arrange content vertically with consistent spacing and optional width matching."));
 
-                        try (VStack.ItemScope fontRow = layout.next()) {
+                        UI.withVStackItem(layout, () -> {
                             ensureJetbrainsMono();
                             ImGui.text(jetbrainsStatus);
                             if (jetbrainsMono != null) {
@@ -64,81 +63,78 @@ public final class TestView extends MGView {
                                 ImGui.text("JetBrains Mono sample -- 0123456789 ABC xyz");
                                 ImGui.popFont();
                             }
-                        }
+                        });
 
-                        try (VStack.ItemScope iconRow = layout.next()) {
+                        UI.withVStackItem(layout, () -> {
                             ImGui.text("ImGui icon preview");
                             ImGui.spacing();
                             float cursorX = ImGui.getCursorScreenPosX();
                             float cursorY = ImGui.getCursorScreenPosY();
-                            ImGuiImageUtils.TextureInfo info = ImGuiImageUtils.getTextureInfo(IMGUI_ICON);
                             float size = 64f;
                             ImGuiImageUtils.drawImage(IMGUI_ICON, cursorX, cursorY, cursorX + size, cursorY + size, 0, false, 0xFFFFFFFF);
                             ImGui.dummy(size, size);
-                        }
+                        });
 
-                        try (VStack.ItemScope nameRow = layout.next()) {
+                        UI.withVStackItem(layout, () -> {
                             float labelWidth = 90f;
                             float fieldWidth = 220f;
                             float fieldHeight = ImGui.getFrameHeight();
-                            try (HStack row = HStack.begin(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER))) {
-                                try (HStack.ItemScope label = row.next(new HStack.ItemRequest().estimateWidth(labelWidth).estimateHeight(fieldHeight))) {
+                            UI.withHStack(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER), row -> {
+                                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(labelWidth).estimateHeight(fieldHeight), () -> {
                                     ImGui.alignTextToFramePadding();
                                     ImGui.text("Name");
-                                }
-                                try (HStack.ItemScope field = row.next(new HStack.ItemRequest().estimateWidth(fieldWidth).estimateHeight(fieldHeight))) {
+                                });
+                                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(fieldWidth).estimateHeight(fieldHeight), () -> {
                                     SizeHints.itemWidth(fieldWidth);
                                     ImGui.inputText("##vstack_name", nameValue);
-                                }
-                            }
-                        }
+                                });
+                            });
+                        });
 
-                        try (VStack.ItemScope emailRow = layout.next()) {
+                        UI.withVStackItem(layout, () -> {
                             float labelWidth = 90f;
                             float fieldWidth = 220f;
                             float fieldHeight = ImGui.getFrameHeight();
-                            try (HStack row = HStack.begin(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER))) {
-                                try (HStack.ItemScope label = row.next(new HStack.ItemRequest().estimateWidth(labelWidth).estimateHeight(fieldHeight))) {
+                            UI.withHStack(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER), row -> {
+                                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(labelWidth).estimateHeight(fieldHeight), () -> {
                                     ImGui.alignTextToFramePadding();
                                     ImGui.text("Email");
-                                }
-                                try (HStack.ItemScope field = row.next(new HStack.ItemRequest().estimateWidth(fieldWidth).estimateHeight(fieldHeight))) {
+                                });
+                                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(fieldWidth).estimateHeight(fieldHeight), () -> {
                                     SizeHints.itemWidth(fieldWidth);
                                     ImGui.inputText("##vstack_email", emailValue);
-                                }
-                            }
-                        }
+                                });
+                            });
+                        });
 
-                        try (VStack.ItemScope notesBlock = layout.next(new VStack.ItemRequest().estimateHeight(140f))) {
+                        UI.withVStackItem(layout, new VStack.ItemRequest().estimateHeight(140f), () -> {
                             ImGui.text("Notes");
                             ImGui.separator();
                             ImGui.inputTextMultiline("##vstack_notes", notesValue, -1f, 110f);
-                        }
+                        });
 
                         float buttonHeight = ImGui.getFrameHeight();
-                        try (VStack.ItemScope actionRow = layout.next(new VStack.ItemRequest().estimateHeight(buttonHeight))) {
+                        UI.withVStackItem(layout, new VStack.ItemRequest().estimateHeight(buttonHeight), () -> {
                             float buttonWidth = 120f;
-                            try (HStack row = HStack.begin(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER))) {
-                                try (HStack.ItemScope submit = row.next(new HStack.ItemRequest().estimateWidth(buttonWidth).estimateHeight(buttonHeight))) {
+                            UI.withHStack(new HStack.Options().spacing(10f).alignment(HStack.Alignment.CENTER), row -> {
+                                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(buttonWidth).estimateHeight(buttonHeight), () -> {
                                     if (ImGui.button("Submit", buttonWidth, buttonHeight)) {
                                         lastAction = "Submit clicked";
                                     }
-                                }
-                                try (HStack.ItemScope reset = row.next(new HStack.ItemRequest().estimateWidth(buttonWidth).estimateHeight(buttonHeight))) {
+                                });
+                                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(buttonWidth).estimateHeight(buttonHeight), () -> {
                                     if (ImGui.button("Reset", buttonWidth, buttonHeight)) {
                                         nameValue.set("");
                                         emailValue.set("");
                                         notesValue.set("");
                                         lastAction = "Fields cleared";
                                     }
-                                }
-                            }
-                        }
+                                });
+                            });
+                        });
 
-                        try (VStack.ItemScope status = layout.next()) {
-                            ImGui.text("Last action: " + lastAction);
-                        }
-                    }
+                        UI.withVStackItem(layout, () -> ImGui.text("Last action: " + lastAction));
+                    });
                 });
     }
 
