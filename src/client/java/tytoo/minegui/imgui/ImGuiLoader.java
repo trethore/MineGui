@@ -136,6 +136,7 @@ public class ImGuiLoader {
         ImGuiContext context = ImGui.getCurrentContext();
         if (context != null && !context.isNotValidPtr()) {
             ImGui.destroyContext(context);
+            ImGui.setCurrentContext(null);
         }
     }
 
