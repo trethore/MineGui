@@ -52,7 +52,6 @@ public final class MineGuiDebugCore {
                 if (client != null && client.currentScreen == null) {
                     testView.toggleVisibility();
                 }
-                LOGGER.info("Toggled Test View: {}", testView.isVisible() ? "Open" : "Closed");
             }
             if (styleInspectorKeybind != null && styleInspectorKeybind.wasPressed()) {
                 if (client != null && client.currentScreen == null) {

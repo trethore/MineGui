@@ -227,19 +227,9 @@ public class ImGuiLoader {
             defaultConfig.destroy();
         }
 
+        MGFonts.registerDefaults(io);
         MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
-        fontLibrary.registerFont(
-                fontLibrary.getDefaultFontKey(),
-                new MGFontLibrary.FontDescriptor(
-                        MGFontLibrary.FontSource.asset("proxima.ttf"),
-                        20.0f,
-                        config -> {
-                            config.setPixelSnapH(true);
-                            config.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
-                        }
-                )
-        );
-        ImFont defaultFont = fontLibrary.ensureFont(fontLibrary.getDefaultFontKey(), null);
+        ImFont defaultFont = MGFonts.ensure(fontLibrary.getDefaultFontKey());
         if (defaultFont != null) {
             io.setFontDefault(defaultFont);
         }
