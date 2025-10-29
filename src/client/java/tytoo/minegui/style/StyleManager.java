@@ -143,7 +143,7 @@ public final class StyleManager {
         }
         Deque<MGStyleDelta> stack = styleStack.get();
         if (!stack.isEmpty()) {
-            for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+            for (Iterator<MGStyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
                 MGStyleDelta delta = iterator.next();
                 delta.applyTo(nativeStyle);
                 if (delta.getFontKey() != null) {
@@ -165,7 +165,7 @@ public final class StyleManager {
         MGStyleDescriptor effective = descriptor;
         Deque<MGStyleDelta> stack = styleStack.get();
         if (!stack.isEmpty()) {
-            for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+            for (Iterator<MGStyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
                 MGStyleDelta delta = iterator.next();
                 effective = delta.resolve(effective);
             }

@@ -16,8 +16,8 @@ import tytoo.minegui_debug.view.TestView;
 
 @SuppressWarnings("unused")
 public final class MineGuiDebugCore {
-    public static String ID = "minegui_debug";
-    public static Logger LOGGER = LoggerFactory.getLogger(MineGuiDebugCore.class);
+    public static final String ID = "minegui_debug";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiDebugCore.class);
 
     private MineGuiDebugCore() {
     }
@@ -30,7 +30,7 @@ public final class MineGuiDebugCore {
         TestView testView = new TestView();
         StyleDebugView styleView = new StyleDebugView();
         MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
-                MineGuiInitializationOptions.defaults().withNamespace(ID)
+                MineGuiInitializationOptions.defaults(ID)
         );
         MineGuiNamespaces.setDockspaceCustomizer(ID, state -> state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode));
         context.ui().register(testView);

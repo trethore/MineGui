@@ -197,7 +197,7 @@ public final class MGFontLibrary {
         if (cached != null) {
             return cached;
         }
-        for (var entry : loadedFonts.entrySet()) {
+        for (Map.Entry<FontVariant, ImFont> entry : loadedFonts.entrySet()) {
             FontVariant variant = entry.getKey();
             if (variant.key.equals(key) && Math.abs(variant.size - size) < 0.05f) {
                 return entry.getValue();
