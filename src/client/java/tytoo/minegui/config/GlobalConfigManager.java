@@ -11,7 +11,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
@@ -25,6 +24,7 @@ public final class GlobalConfigManager {
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
     private static final Path CONFIG_ROOT = determineConfigRoot();
     private static final Path NAMESPACE_ROOT = CONFIG_ROOT.resolve(MineGuiCore.ID).normalize();
+    private static final ConfigPathStrategy DEFAULT_STRATEGY = ConfigPathStrategies.sandboxed();
     private static String defaultNamespace = DEFAULT_NAMESPACE;
 
     private GlobalConfigManager() {
@@ -89,6 +89,27 @@ public final class GlobalConfigManager {
         context(namespace);
     }
 
+    public static synchronized void setConfigPathStrategy(String namespace, ConfigPathStrategy strategy) {
+        ConfigState state = context(namespace);
+        state.strategy = strategy != null ? strategy : DEFAULT_STRATEGY;
+        state.loaded = false;
+        state.activeConfigPath = state.defaultConfigFile;
+        state.activeViewSavesPath = state.defaultViewSavesDir;
+    }
+
+    public static synchronized ConfigPathStrategy getConfigPathStrategy() {
+        return getConfigPathStrategy(defaultNamespace);
+    }
+
+    public static synchronized void setConfigPathStrategy(ConfigPathStrategy strategy) {
+        setConfigPathStrategy(defaultNamespace, strategy);
+    }
+
+    public static synchronized ConfigPathStrategy getConfigPathStrategy(String namespace) {
+        ConfigState state = context(namespace);
+        return state.strategy;
+    }
+
     public static synchronized GlobalConfig getConfig() {
         return getConfig(defaultNamespace);
     }
@@ -123,25 +144,25 @@ public final class GlobalConfigManager {
         GlobalConfig baseDocument = readConfig(state.defaultConfigFile);
         GlobalConfig snapshot = cloneConfig(baseDocument != null ? baseDocument : new GlobalConfig());
         ensureViewPath(snapshot);
-        Path snapshotConfigPath = resolveConfigPath(snapshot.getConfigPath(), state, snapshot);
+        Path snapshotConfigPath = resolveConfigPath(state, snapshot);
 
         if (state.featureProfile.shouldLoad(ConfigFeature.CORE)) {
             GlobalConfig overrideConfig = readConfig(snapshotConfigPath);
             if (overrideConfig != null) {
                 snapshot = cloneConfig(overrideConfig);
                 ensureViewPath(snapshot);
-                snapshotConfigPath = resolveConfigPath(snapshot.getConfigPath(), state, snapshot);
+                snapshotConfigPath = resolveConfigPath(state, snapshot);
             }
         }
 
-        Path snapshotViewPath = resolveViewSavesPath(snapshot.getViewSavesPath(), state, snapshot);
+        Path snapshotViewPath = resolveViewSavesPath(state, snapshot);
         ensureDirectory(snapshotConfigPath.getParent());
         ensureDirectory(snapshotViewPath);
 
         GlobalConfig runtime = applyLoadProfile(snapshot, state.featureProfile);
         ensureViewPath(runtime);
-        Path runtimeConfigPath = resolveConfigPath(runtime.getConfigPath(), state, runtime);
-        Path runtimeViewPath = resolveViewSavesPath(runtime.getViewSavesPath(), state, runtime);
+        Path runtimeConfigPath = resolveConfigPath(state, runtime);
+        Path runtimeViewPath = resolveViewSavesPath(state, runtime);
         ensureDirectory(runtimeConfigPath.getParent());
         ensureDirectory(runtimeViewPath);
 
@@ -177,8 +198,8 @@ public final class GlobalConfigManager {
         }
 
         ensureViewPath(state.config);
-        Path runtimeConfigPath = resolveConfigPath(state.config.getConfigPath(), state, state.config);
-        Path runtimeViewPath = resolveViewSavesPath(state.config.getViewSavesPath(), state, state.config);
+        Path runtimeConfigPath = resolveConfigPath(state, state.config);
+        Path runtimeViewPath = resolveViewSavesPath(state, state.config);
         ensureDirectory(runtimeConfigPath.getParent());
         ensureDirectory(runtimeViewPath);
 
@@ -205,7 +226,7 @@ public final class GlobalConfigManager {
             return;
         }
 
-        Path currentPath = resolveConfigPath(state.config.getConfigPath(), state, state.config);
+        Path currentPath = resolveConfigPath(state, state.config);
         deleteIfExists(currentPath);
         if (!Objects.equals(currentPath, state.defaultConfigFile)) {
             deleteIfExists(state.defaultConfigFile);
@@ -229,7 +250,7 @@ public final class GlobalConfigManager {
         if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
-        state.activeConfigPath = resolveConfigPath(state.config.getConfigPath(), state, state.config);
+        state.activeConfigPath = resolveConfigPath(state, state.config);
         return state.activeConfigPath;
     }
 
@@ -245,7 +266,7 @@ public final class GlobalConfigManager {
         if (state.autoLoadEnabled && !state.loaded) {
             load(namespace);
         }
-        state.activeViewSavesPath = resolveViewSavesPath(state.config.getViewSavesPath(), state, state.config);
+        state.activeViewSavesPath = resolveViewSavesPath(state, state.config);
         return state.activeViewSavesPath;
     }
 
@@ -326,10 +347,7 @@ public final class GlobalConfigManager {
 
     private static Path determineConfigRoot() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
-        if (configDir != null) {
-            return configDir.toAbsolutePath().normalize();
-        }
-        return Path.of("config").toAbsolutePath().normalize();
+        return Objects.requireNonNullElseGet(configDir, () -> Path.of("config")).toAbsolutePath().normalize();
     }
 
     private static void ensureDirectory(Path directory) {
@@ -362,11 +380,7 @@ public final class GlobalConfigManager {
                 parsed.setConfigPath(storedConfigPath);
             }
             String storedViewPath = sanitizeStoredPath(parsed.getViewSavesPath());
-            if (storedViewPath == null) {
-                parsed.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
-            } else {
-                parsed.setViewSavesPath(storedViewPath);
-            }
+            parsed.setViewSavesPath(Objects.requireNonNullElseGet(storedViewPath, GlobalConfig::getDefaultViewSavesPath));
             if (parsed.getViewStyles() == null) {
                 parsed.setViewStyles(new HashMap<>());
             }
@@ -416,7 +430,7 @@ public final class GlobalConfigManager {
     private static void writeConfig(Path path, GlobalConfig value, ConfigState state) {
         GlobalConfig payload = cloneConfig(value);
         payload.setConfigPath(relativizeToConfigRoot(path));
-        Path resolvedViewDir = resolveViewSavesPath(payload.getViewSavesPath(), state, payload);
+        Path resolvedViewDir = resolveViewSavesPath(state, payload);
         ensureDirectory(resolvedViewDir);
         payload.setViewSavesPath(relativizeToConfigRoot(resolvedViewDir));
         payload.setGlobalScale(payload.getGlobalScale());
@@ -438,16 +452,18 @@ public final class GlobalConfigManager {
         }
     }
 
-    private static Path resolveConfigPath(String configuredPath, ConfigState state, GlobalConfig target) {
-        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultConfigFile, "config path");
+    private static Path resolveConfigPath(ConfigState state, GlobalConfig target) {
+        ConfigPathResolution resolution = resolvePaths(state, target);
+        Path resolved = resolution.configFile();
         if (target != null) {
             target.setConfigPath(relativizeToConfigRoot(resolved));
         }
         return resolved;
     }
 
-    private static Path resolveViewSavesPath(String configuredPath, ConfigState state, GlobalConfig target) {
-        Path resolved = resolveWithinConfigRoot(configuredPath, state, state.defaultViewSavesDir, "view saves path");
+    private static Path resolveViewSavesPath(ConfigState state, GlobalConfig target) {
+        ConfigPathResolution resolution = resolvePaths(state, target);
+        Path resolved = resolution.viewSavesDirectory();
         if (target != null) {
             target.setViewSavesPath(relativizeToConfigRoot(resolved));
         }
@@ -460,42 +476,87 @@ public final class GlobalConfigManager {
         }
     }
 
-    private static Path resolveWithinConfigRoot(String configuredPath, ConfigState state, Path defaultPath, String label) {
-        if (configuredPath == null || configuredPath.isBlank()) {
-            return defaultPath;
-        }
-        String sanitizedInput = sanitizeStoredPath(configuredPath);
-        if (sanitizedInput == null) {
-            return defaultPath;
-        }
-        Path candidate;
-        try {
-            candidate = Path.of(sanitizedInput);
-        } catch (InvalidPathException e) {
-            MineGuiCore.LOGGER.warn("Invalid {} '{}', using default", label, sanitizedInput);
-            return defaultPath;
-        }
-        Path resolved;
-        if (candidate.isAbsolute()) {
-            resolved = candidate.normalize();
-        } else if (isSimpleName(candidate)) {
-            resolved = state.baseDirectory.resolve(candidate).normalize();
-        } else {
-            resolved = CONFIG_ROOT.resolve(candidate).normalize();
-        }
-        if (!resolved.startsWith(NAMESPACE_ROOT)) {
-            MineGuiCore.LOGGER.warn("{} '{}' resolves outside of the MineGui config directory; using default", label, sanitizedInput);
-            return defaultPath;
-        }
-        return resolved;
+    private static ConfigPathResolution resolvePaths(ConfigState state, GlobalConfig target) {
+        GlobalConfig source = target != null ? target : new GlobalConfig();
+        String sanitizedConfig = sanitizeStoredPath(source.getConfigPath());
+        String sanitizedViews = sanitizeStoredPath(source.getViewSavesPath());
+        ConfigPathRequest request = buildRequest(state, sanitizedConfig, sanitizedViews);
+        Path configPath = resolvePathWithFallback(state, request, ConfigPathKind.CONFIG_FILE);
+        Path viewPath = resolvePathWithFallback(state, request, ConfigPathKind.VIEW_SAVES_DIRECTORY);
+        return new ConfigPathResolution(configPath, viewPath);
     }
 
-    private static boolean isSimpleName(Path path) {
-        if (path.getNameCount() != 1) {
-            return false;
+    private static ConfigPathRequest buildRequest(ConfigState state, String configPath, String viewPath) {
+        return new ConfigPathRequest(
+                state.namespace,
+                configPath,
+                viewPath,
+                CONFIG_ROOT,
+                NAMESPACE_ROOT,
+                state.baseDirectory,
+                state.defaultConfigFile,
+                state.defaultViewSavesDir
+        );
+    }
+
+    private static Path resolvePathWithFallback(ConfigState state, ConfigPathRequest request, ConfigPathKind kind) {
+        ConfigPathStrategy strategy = state.strategy != null ? state.strategy : DEFAULT_STRATEGY;
+        Path resolved = resolveWithStrategy(strategy, request, kind, state.namespace);
+        if (resolved == null && strategy != DEFAULT_STRATEGY) {
+            MineGuiCore.LOGGER.warn("Config path strategy for namespace '{}' returned an invalid {}; using sandboxed defaults.", state.namespace, describe(kind));
+            resolved = resolveWithStrategy(DEFAULT_STRATEGY, request, kind, state.namespace);
         }
-        String name = path.getFileName().toString();
-        return !".".equals(name) && !"..".equals(name);
+        if (resolved == null) {
+            resolved = kind == ConfigPathKind.CONFIG_FILE ? state.defaultConfigFile : state.defaultViewSavesDir;
+        }
+        return resolved.normalize();
+    }
+
+    private static Path resolveWithStrategy(ConfigPathStrategy strategy, ConfigPathRequest request, ConfigPathKind kind, String namespace) {
+        if (strategy == null) {
+            return null;
+        }
+        try {
+            Path candidate = kind == ConfigPathKind.CONFIG_FILE
+                    ? strategy.resolveConfigFile(request)
+                    : strategy.resolveViewSavesDirectory(request);
+            if (candidate == null) {
+                return null;
+            }
+            Path normalized = candidate.normalize();
+            ConfigPathValidationResult validation = kind == ConfigPathKind.CONFIG_FILE
+                    ? strategy.validateConfigFile(request, normalized)
+                    : strategy.validateViewSavesDirectory(request, normalized);
+            String message = validation != null ? validation.message() : null;
+            boolean hasMessage = message != null && !message.isBlank();
+            if (validation == null) {
+                return normalized;
+            }
+            if (!validation.allowed()) {
+                if (hasMessage) {
+                    MineGuiCore.LOGGER.warn(message);
+                }
+                return null;
+            }
+            Path resultPath = validation.path() != null ? validation.path().normalize() : null;
+            if (resultPath == null) {
+                return null;
+            }
+            if (hasMessage) {
+                MineGuiCore.LOGGER.info(message);
+            }
+            return resultPath;
+        } catch (RuntimeException e) {
+            MineGuiCore.LOGGER.error("Config path strategy for namespace '{}' failed to resolve {}.", namespace, describe(kind), e);
+            return null;
+        }
+    }
+
+    private static String describe(ConfigPathKind kind) {
+        if (kind == ConfigPathKind.CONFIG_FILE) {
+            return "config file";
+        }
+        return "view saves directory";
     }
 
     private static String relativizeToConfigRoot(Path path) {
@@ -535,7 +596,13 @@ public final class GlobalConfigManager {
         return clone;
     }
 
+    private enum ConfigPathKind {
+        CONFIG_FILE,
+        VIEW_SAVES_DIRECTORY
+    }
+
     private static final class ConfigState {
+        private final String namespace;
         private final Path baseDirectory;
         private final Path defaultConfigFile;
         private final Path defaultViewSavesDir;
@@ -544,11 +611,13 @@ public final class GlobalConfigManager {
         private Path activeConfigPath;
         private Path activeViewSavesPath;
         private ConfigFeatureProfile featureProfile;
+        private ConfigPathStrategy strategy;
         private boolean autoLoadEnabled;
         private boolean configIgnored;
         private boolean loaded;
 
         private ConfigState(String namespace) {
+            this.namespace = namespace;
             this.baseDirectory = NAMESPACE_ROOT.resolve(namespace).normalize();
             this.defaultConfigFile = baseDirectory.resolve("global_config.json");
             this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
@@ -557,6 +626,7 @@ public final class GlobalConfigManager {
             this.activeConfigPath = defaultConfigFile;
             this.activeViewSavesPath = defaultViewSavesDir;
             this.featureProfile = ConfigFeatureProfile.all();
+            this.strategy = DEFAULT_STRATEGY;
             this.autoLoadEnabled = true;
             this.configIgnored = false;
             this.loaded = false;

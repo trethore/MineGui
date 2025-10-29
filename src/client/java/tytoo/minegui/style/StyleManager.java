@@ -56,6 +56,12 @@ public final class StyleManager {
         return Collections.unmodifiableCollection(new ArrayList<>(DESCRIPTOR_REGISTRY.entrySet()));
     }
 
+    public static void resetAllActiveFonts() {
+        for (StyleManager manager : INSTANCES.values()) {
+            manager.resetActiveFont();
+        }
+    }
+
     public static void pushActive(StyleManager manager) {
         ACTIVE.set(manager);
     }
@@ -137,7 +143,7 @@ public final class StyleManager {
         }
         Deque<MGStyleDelta> stack = styleStack.get();
         if (!stack.isEmpty()) {
-            for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+            for (Iterator<MGStyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
                 MGStyleDelta delta = iterator.next();
                 delta.applyTo(nativeStyle);
                 if (delta.getFontKey() != null) {
@@ -159,7 +165,7 @@ public final class StyleManager {
         MGStyleDescriptor effective = descriptor;
         Deque<MGStyleDelta> stack = styleStack.get();
         if (!stack.isEmpty()) {
-            for (var iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+            for (Iterator<MGStyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
                 MGStyleDelta delta = iterator.next();
                 effective = delta.resolve(effective);
             }
@@ -188,6 +194,10 @@ public final class StyleManager {
         }
         ImGui.getIO().setFontDefault(targetFont);
         activeFont.set(targetFont);
+    }
+
+    private void resetActiveFont() {
+        activeFont.remove();
     }
 
     private void persistGlobalStyle(Identifier key) {

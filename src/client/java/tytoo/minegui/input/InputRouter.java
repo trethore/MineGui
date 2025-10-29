@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
+import tytoo.minegui.runtime.viewport.ViewportInteractionTracker;
 import tytoo.minegui.util.CursorLockUtils;
 import tytoo.minegui.util.InputHelper;
 
@@ -34,23 +35,40 @@ public final class InputRouter {
         }
         if (action == GLFW.GLFW_PRESS) {
             pressedMouse.add(button);
+            ViewportInteractionTracker.notifyInteraction();
             return true;
         }
         if (action == GLFW.GLFW_RELEASE) {
-            return pressedMouse.remove(button);
+            boolean consumed = pressedMouse.remove(button);
+            if (consumed) {
+                ViewportInteractionTracker.notifyInteraction();
+            }
+            return consumed;
         }
-        return !pressedMouse.isEmpty();
+        boolean captured = !pressedMouse.isEmpty();
+        if (captured) {
+            ViewportInteractionTracker.notifyInteraction();
+        }
+        return captured;
     }
 
     public boolean onMouseMove() {
-        return wantsMouseInput();
+        boolean captured = wantsMouseInput();
+        if (captured) {
+            ViewportInteractionTracker.notifyInteraction();
+        }
+        return captured;
     }
 
     public boolean onScroll(double horizontal, double vertical) {
         if (!wantsMouseInput()) {
             return false;
         }
-        return horizontal != 0.0d || vertical != 0.0d;
+        boolean captured = horizontal != 0.0d || vertical != 0.0d;
+        if (captured) {
+            ViewportInteractionTracker.notifyInteraction();
+        }
+        return captured;
     }
 
     public boolean onKey(int key, int action) {
@@ -66,16 +84,29 @@ public final class InputRouter {
         }
         if (action == GLFW.GLFW_PRESS) {
             pressedKeys.add(normalizedKey);
+            ViewportInteractionTracker.notifyInteraction();
             return true;
         }
         if (action == GLFW.GLFW_RELEASE) {
-            return pressedKeys.remove(normalizedKey);
+            boolean consumed = pressedKeys.remove(normalizedKey);
+            if (consumed) {
+                ViewportInteractionTracker.notifyInteraction();
+            }
+            return consumed;
         }
-        return !pressedKeys.isEmpty();
+        boolean captured = !pressedKeys.isEmpty();
+        if (captured) {
+            ViewportInteractionTracker.notifyInteraction();
+        }
+        return captured;
     }
 
     public boolean onChar() {
-        return wantsKeyboardInput();
+        boolean captured = wantsKeyboardInput();
+        if (captured) {
+            ViewportInteractionTracker.notifyInteraction();
+        }
+        return captured;
     }
 
     private boolean wantsMouseInput() {

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.ImGuiLoader;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.util.ImGuiImageUtils;
 
@@ -26,18 +27,17 @@ public final class MineGuiCore {
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
     private static boolean defaultNamespaceConfigured;
-    private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults();
+    private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults(ID);
 
     private MineGuiCore() {
-    }
-
-    public static void init() {
-        init(MineGuiInitializationOptions.defaults());
     }
 
     public static synchronized void init(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = options.configNamespace();
+        if (ID.equals(namespace)) {
+            throw new IllegalArgumentException("MineGui namespace 'minegui' is reserved for MineGui internals. Provide a unique namespace for your mod.");
+        }
         if (!defaultNamespaceConfigured) {
             initializationOptions = options;
             GlobalConfigManager.configureDefaultNamespace(namespace);
@@ -78,8 +78,9 @@ public final class MineGuiCore {
         if (lifecycleRegistered) {
             return;
         }
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ImGuiLoader.onClientStarted());
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
-            for (var context : MineGuiNamespaces.all()) {
+            for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
                 context.viewSaves().flush();
             }
         });

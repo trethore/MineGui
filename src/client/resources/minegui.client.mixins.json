@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "MGGLFWMixin",
+    "MGInactivityFpsLimiterMixin",
     "MGKeyboardMixin",
     "MGMinecraftClientMixin",
     "MGMouseMixin",

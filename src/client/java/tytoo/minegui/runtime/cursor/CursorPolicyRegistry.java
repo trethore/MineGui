@@ -14,6 +14,7 @@ public final class CursorPolicyRegistry {
     private static final Map<Identifier, MGCursorPolicy> REGISTERED_POLICIES = new ConcurrentHashMap<>();
     private static final Set<MGView> PERSISTENT_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Set<MGView> CLICK_RELEASE_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<MGView> CLICK_RELEASE_REGISTERED = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final boolean[] EMPTY_MOUSE_BUTTONS = new boolean[5];
 
     private static volatile boolean cursorUnlocked;
@@ -63,6 +64,7 @@ public final class CursorPolicyRegistry {
         if (view == null) {
             return;
         }
+        CLICK_RELEASE_REGISTERED.add(view);
         CLICK_RELEASE_UNLOCKS.add(view);
         refreshState();
     }
@@ -71,6 +73,7 @@ public final class CursorPolicyRegistry {
         if (view == null) {
             return;
         }
+        CLICK_RELEASE_REGISTERED.remove(view);
         CLICK_RELEASE_UNLOCKS.remove(view);
         refreshState();
     }
@@ -102,12 +105,31 @@ public final class CursorPolicyRegistry {
     }
 
     public static void onFrameStart() {
+        restoreClickReleaseUnlocksIfInactive();
         if (wantsImGuiInput()) {
             ensureUnlockedIfRequested();
             return;
         }
         suppressImGuiInput();
         relockIfNecessary();
+    }
+
+    private static void restoreClickReleaseUnlocksIfInactive() {
+        if (!CLICK_RELEASE_UNLOCKS.isEmpty()) {
+            return;
+        }
+        if (CLICK_RELEASE_REGISTERED.isEmpty()) {
+            return;
+        }
+        if (CursorLockUtils.clientWantsLockCursor()) {
+            return;
+        }
+        for (MGView view : CLICK_RELEASE_REGISTERED) {
+            if (view == null || !view.isVisible()) {
+                continue;
+            }
+            CLICK_RELEASE_UNLOCKS.add(view);
+        }
     }
 
     private static void refreshState() {

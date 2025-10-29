@@ -3,6 +3,7 @@ package tytoo.minegui.runtime;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.runtime.config.NamespaceConfigAccess;
@@ -23,6 +24,7 @@ public final class MineGuiNamespaceContext {
     private final StyleManager styleManager;
     private Identifier defaultCursorPolicyId;
     private MGCursorPolicy defaultCursorPolicy;
+    private volatile DockspaceCustomizer dockspaceCustomizer;
 
     MineGuiNamespaceContext(String namespace, MineGuiInitializationOptions options) {
         this.namespace = namespace;
@@ -40,6 +42,7 @@ public final class MineGuiNamespaceContext {
         this.defaultCursorPolicyId = options.defaultCursorPolicyId();
         this.defaultCursorPolicy = CursorPolicyRegistry.resolvePolicyOrDefault(defaultCursorPolicyId, MGCursorPolicies.empty());
         this.uiManager.setDefaultCursorPolicy(defaultCursorPolicy);
+        this.dockspaceCustomizer = options.dockspaceCustomizer();
     }
 
     public String namespace() {
@@ -83,5 +86,14 @@ public final class MineGuiNamespaceContext {
         this.defaultCursorPolicyId = normalized;
         this.defaultCursorPolicy = resolved;
         this.uiManager.setDefaultCursorPolicy(resolved);
+    }
+
+    public DockspaceCustomizer dockspaceCustomizer() {
+        return dockspaceCustomizer;
+    }
+
+    public void setDockspaceCustomizer(DockspaceCustomizer customizer) {
+        DockspaceCustomizer normalized = customizer != null ? customizer : DockspaceCustomizer.noop();
+        dockspaceCustomizer = normalized;
     }
 }
