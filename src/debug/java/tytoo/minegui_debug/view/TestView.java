@@ -24,13 +24,12 @@ public final class TestView extends MGView {
     private final ImString notesValue = new ImString("Collect layout feedback here.", 512);
     private boolean clearFocusOnOpen;
     private String lastAction = "Awaiting input";
-    private boolean jetbrainsQueued;
-    private boolean reloadQueued;
     private ImFont jetbrainsMono;
     private String jetbrainsStatus = "JetBrains Mono pending";
 
     public TestView() {
         super("minegui_debug:test_view", true);
+        registerJetbrainsMono();
         setCursorPolicy(MGCursorPolicies.clickToLock());
     }
 
@@ -144,31 +143,31 @@ public final class TestView extends MGView {
     }
 
     private void ensureJetbrainsMono() {
-        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
-        if (!jetbrainsQueued) {
-            fontLibrary.registerFont(
-                    JETBRAINS_MONO_KEY,
-                    new MGFontLibrary.FontDescriptor(
-                            MGFontLibrary.FontSource.asset("jetbrains-mono.ttf"),
-                            JETBRAINS_MONO_SIZE,
-                            null
-                    )
-            );
-            jetbrainsQueued = true;
-            if (!reloadQueued) {
-                reloadQueued = true;
-                jetbrainsStatus = "JetBrains Mono queued; requesting MineGui reload";
-                MineGuiCore.requestReload();
-                return;
-            }
+        if (jetbrainsMono != null) {
+            jetbrainsStatus = "JetBrains Mono ready";
+            return;
         }
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
         ImFont resolved = fontLibrary.ensureFont(JETBRAINS_MONO_KEY, JETBRAINS_MONO_SIZE);
         if (resolved != null) {
             jetbrainsMono = resolved;
             jetbrainsStatus = "JetBrains Mono ready";
-            reloadQueued = false;
+        } else if (fontLibrary.isRegistrationLocked()) {
+            jetbrainsStatus = "JetBrains Mono unavailable; restart after registering fonts.";
         } else {
-            jetbrainsStatus = reloadQueued ? "Waiting for MineGui reload..." : "JetBrains Mono loading...";
+            jetbrainsStatus = "JetBrains Mono loading...";
         }
+    }
+
+    private void registerJetbrainsMono() {
+        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        fontLibrary.registerFont(
+                JETBRAINS_MONO_KEY,
+                new MGFontLibrary.FontDescriptor(
+                        MGFontLibrary.FontSource.asset("jetbrains-mono.ttf"),
+                        JETBRAINS_MONO_SIZE,
+                        null
+                )
+        );
     }
 }

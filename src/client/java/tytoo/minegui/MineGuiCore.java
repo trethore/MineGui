@@ -78,6 +78,7 @@ public final class MineGuiCore {
         if (lifecycleRegistered) {
             return;
         }
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ImGuiLoader.onClientStarted());
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             for (var context : MineGuiNamespaces.all()) {
                 context.viewSaves().flush();

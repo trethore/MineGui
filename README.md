@@ -11,3 +11,8 @@ MineGui is a lightweight wrapper around `imgui-java`, designed to simplify the c
 - `MineGuiInitializationOptions` accepts a `ConfigFeatureProfile`, letting you declare which config sections load or save (`CORE`, `STYLE_REFERENCES`, `VIEW_LAYOUTS`, `VIEW_STYLE_SNAPSHOTS`). Use `.withFeature(...)`, `.withLoadFeatures(...)`, or `.withSaveFeatures(...)` to tailor persistence while keeping other settings untouched.
 - Each `MineGuiNamespaceContext` exposes `context.config().setFeatureProfile(...)`, `enableFeature(...)`, and `disableFeature(...)` for adjusting profiles at runtime without commands.
 - Default cursor behaviour is configurable via `MineGuiInitializationOptions.withDefaultCursorPolicy(Identifier)`. Registered views that do not set an explicit `MGCursorPolicy` automatically inherit the namespace default, and you can change it later with `MineGuiNamespaces.setDefaultCursorPolicy(...)`.
+
+## Dockspace Customization Hooks
+- Provide a dockspace hook via `MineGuiInitializationOptions.withDockspaceCustomizer(DockspaceCustomizer)` to adjust flags, padding, or placement during namespace registration while MineGui preserves the default passthrough setup.
+- Swap or stack behaviour later with `MineGuiNamespaces.setDockspaceCustomizer(...)`; combine handlers using `DockspaceCustomizer.andThen(...)` when multiple systems want to extend the dockspace host.
+- The `DockspaceCustomizer` receives a mutable `DockspaceRenderState`, enabling menu bar injection, dockspace size overrides, or `beforeDockspace` runnables, and MineGui keeps `ImGuiWindowFlags.NoBackground` synced whenever `ImGuiDockNodeFlags.PassthruCentralNode` stays active.

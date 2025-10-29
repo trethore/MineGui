@@ -26,6 +26,7 @@ public final class MGFontLibrary {
     private final ConcurrentHashMap<Identifier, Identifier> mergeParents = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<FontVariant, byte[]> fontData = new ConcurrentHashMap<>();
     private final ThreadLocal<Set<Identifier>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
+    private volatile boolean registrationLocked;
 
     private MGFontLibrary() {
     }
@@ -43,6 +44,10 @@ public final class MGFontLibrary {
     }
 
     public void registerFont(Identifier key, FontDescriptor descriptor) {
+        if (registrationLocked) {
+            MineGuiCore.LOGGER.error("Ignoring font registration for {} after MineGui initialization; register fonts during mod startup.", key);
+            return;
+        }
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(descriptor, "descriptor");
         mergeParents.remove(key);
@@ -61,6 +66,10 @@ public final class MGFontLibrary {
             @Nullable GlyphRangeSupplier glyphRanges,
             @Nullable FontConfigFactory extraConfig
     ) {
+        if (registrationLocked) {
+            MineGuiCore.LOGGER.error("Ignoring merged font registration for {} after MineGui initialization; register fonts during mod startup.", key);
+            return;
+        }
         Objects.requireNonNull(baseKey, "baseKey");
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(source, "source");
@@ -130,7 +139,7 @@ public final class MGFontLibrary {
             ImGuiIO io = ImGui.getIO();
             if (io.getFonts().isBuilt()) {
                 if (warnedPostBuild.putIfAbsent(variant.key(), Boolean.TRUE) == null) {
-                    MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts before frame or trigger MineGuiCore.requestReload().", variant.key());
+                    MineGuiCore.LOGGER.warn("Skipping font load for {} at runtime; register fonts during mod startup before MineGui initializes.", variant.key());
                 }
                 return null;
             }
@@ -162,6 +171,15 @@ public final class MGFontLibrary {
     public void resetRuntime() {
         loadedFonts.clear();
         warnedPostBuild.clear();
+        fontData.clear();
+    }
+
+    public void lockRegistration() {
+        registrationLocked = true;
+    }
+
+    public boolean isRegistrationLocked() {
+        return registrationLocked;
     }
 
     public void preloadRegisteredFonts() {

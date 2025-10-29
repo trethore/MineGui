@@ -1,5 +1,8 @@
 package tytoo.minegui_debug;
 
+import imgui.ImGui;
+import imgui.flag.ImGuiDockNodeFlags;
+import imgui.flag.ImGuiWindowFlags;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
@@ -31,6 +34,24 @@ public final class MineGuiDebugCore {
         MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
                 MineGuiInitializationOptions.defaults().withNamespace(ID)
         );
+        MineGuiNamespaces.setDockspaceCustomizer(ID, state -> {
+            state.addWindowFlags(ImGuiWindowFlags.MenuBar);
+            state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode);
+            state.beforeDockspace(() -> {
+                if (ImGui.beginMenuBar()) {
+                    if (ImGui.beginMenu("MineGui")) {
+                        if (ImGui.menuItem("Toggle Test View")) {
+                            testView.toggleVisibility();
+                        }
+                        if (ImGui.menuItem("Toggle Style Inspector")) {
+                            styleView.toggleVisibility();
+                        }
+                        ImGui.endMenu();
+                    }
+                    ImGui.endMenuBar();
+                }
+            });
+        });
         context.ui().register(testView);
         context.ui().register(styleView);
         KeyBinding openTestViewKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(

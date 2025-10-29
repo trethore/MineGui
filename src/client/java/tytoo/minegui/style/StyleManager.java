@@ -56,6 +56,12 @@ public final class StyleManager {
         return Collections.unmodifiableCollection(new ArrayList<>(DESCRIPTOR_REGISTRY.entrySet()));
     }
 
+    public static void resetAllActiveFonts() {
+        for (StyleManager manager : INSTANCES.values()) {
+            manager.resetActiveFont();
+        }
+    }
+
     public static void pushActive(StyleManager manager) {
         ACTIVE.set(manager);
     }
@@ -188,6 +194,10 @@ public final class StyleManager {
         }
         ImGui.getIO().setFontDefault(targetFont);
         activeFont.set(targetFont);
+    }
+
+    private void resetActiveFont() {
+        activeFont.remove();
     }
 
     private void persistGlobalStyle(Identifier key) {

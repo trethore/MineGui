@@ -3,6 +3,7 @@ package tytoo.minegui.runtime;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 
 import java.util.Collection;
@@ -73,5 +74,17 @@ public final class MineGuiNamespaces {
             return;
         }
         context.setDefaultCursorPolicy(policyId);
+    }
+
+    public static void setDockspaceCustomizer(DockspaceCustomizer customizer) {
+        setDockspaceCustomizer(GlobalConfigManager.getDefaultNamespace(), customizer);
+    }
+
+    public static void setDockspaceCustomizer(String namespace, DockspaceCustomizer customizer) {
+        MineGuiNamespaceContext context = CONTEXTS.get(namespace);
+        if (context == null) {
+            return;
+        }
+        context.setDockspaceCustomizer(customizer);
     }
 }
