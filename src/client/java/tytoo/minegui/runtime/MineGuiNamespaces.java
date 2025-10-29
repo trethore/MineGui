@@ -21,6 +21,7 @@ public final class MineGuiNamespaces {
     public static MineGuiNamespaceContext initialize(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = Objects.requireNonNull(options.configNamespace(), "namespace");
+        GlobalConfigManager.setConfigPathStrategy(namespace, options.configPathStrategy());
         GlobalConfigManager.setConfigIgnored(namespace, options.ignoreGlobalConfig());
         GlobalConfigManager.setFeatureProfile(namespace, options.featureProfile());
         boolean shouldAutoLoad = options.loadGlobalConfig() && !options.ignoreGlobalConfig();
