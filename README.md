@@ -13,6 +13,13 @@ MineGui is a lightweight wrapper around `imgui-java`, designed to simplify the c
 - Each `MineGuiNamespaceContext` exposes `context.config().setFeatureProfile(...)`, `enableFeature(...)`, and `disableFeature(...)` for adjusting profiles at runtime without commands.
 - Default cursor behaviour is configurable via `MineGuiInitializationOptions.withDefaultCursorPolicy(Identifier)`. Registered views that do not set an explicit `MGCursorPolicy` automatically inherit the namespace default, and you can change it later with `MineGuiNamespaces.setDefaultCursorPolicy(...)`.
 
+## View Persistence SPI
+- MineGui loads and saves ImGui layouts and style snapshots through a pluggable `ViewPersistenceAdapter`, defaulting to the built-in file-backed adapter that hashes view ids under `config/minegui/<namespace>/views/`.
+- Provide an adapter during initialization with `MineGuiInitializationOptions.withViewPersistenceAdapter(...)` or swap one at runtime via `MineGuiNamespaces.setViewPersistenceAdapter(...)`. Passing `null` restores the default file adapter.
+- Adapters receive `ViewPersistenceRequest` instances containing the namespace, raw view id, and scoped identifier (`<viewNamespace>/<viewId>`); return `Optional.empty()` from `loadLayout` or `loadStyleSnapshot` when no persisted data exists.
+- `storeStyleSnapshot` may be invoked on the render thread during flush cycles—keep implementations thread-safe, avoid blocking ImGui, and prefer batching heavy IO asynchronously before returning.
+- Use the supplied `ViewStyleSnapshot` helpers (`present`, `deleted`) when exporting descriptors, and honour feature flags: when a namespace disables `VIEW_LAYOUTS` or `VIEW_STYLE_SNAPSHOTS`, your adapter should tolerate `saveLayout` and `storeStyleSnapshot` no-ops without side effects.
+
 ## Dockspace Customization Hooks
 - Provide a dockspace hook via `MineGuiInitializationOptions.withDockspaceCustomizer(DockspaceCustomizer)` to adjust flags, padding, or placement during namespace registration while MineGui preserves the default passthrough setup.
 - Swap or stack behaviour later with `MineGuiNamespaces.setDockspaceCustomizer(...)`; combine handlers using `DockspaceCustomizer.andThen(...)` when multiple systems want to extend the dockspace host.

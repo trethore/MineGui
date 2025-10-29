@@ -6,21 +6,20 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.persistence.FileViewPersistenceAdapter;
+import tytoo.minegui.persistence.ViewPersistenceAdapter;
+import tytoo.minegui.persistence.ViewPersistenceRequest;
+import tytoo.minegui.persistence.ViewStyleSnapshot;
 import tytoo.minegui.style.StyleJsonSerializer;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.view.MGView;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,17 +27,19 @@ import java.util.stream.Collectors;
 
 public final class ViewSaveManager {
     private static final Map<String, ViewSaveManager> INSTANCES = new ConcurrentHashMap<>();
+    private static final Map<String, ViewPersistenceAdapter> ADAPTERS = new ConcurrentHashMap<>();
+    private static final ViewPersistenceAdapter DEFAULT_ADAPTER = new FileViewPersistenceAdapter();
     private static final Pattern WINDOW_HEADER_PATTERN = Pattern.compile("^\\[[^]]+]\\[(?<name>[^]]+)]$");
-    private static final String LAYOUTS_FOLDER = "layouts";
-    private static final String STYLES_FOLDER = "styles";
 
     private final String namespace;
     private final Map<MGView, ViewEntry> entries = new ConcurrentHashMap<>();
     private final StyleManager styleManager;
+    private volatile ViewPersistenceAdapter adapter;
     private volatile boolean forceSave;
 
     private ViewSaveManager(String namespace) {
         this.namespace = namespace;
+        this.adapter = resolveAdapter(namespace);
         this.styleManager = StyleManager.get(namespace);
     }
 
@@ -48,6 +49,37 @@ public final class ViewSaveManager {
 
     public static ViewSaveManager getInstance() {
         return get(GlobalConfigManager.getDefaultNamespace());
+    }
+
+    public static void setAdapter(String namespace, ViewPersistenceAdapter adapter) {
+        String normalized = normalizeNamespace(namespace);
+        if (adapter == null) {
+            ADAPTERS.remove(normalized);
+        } else {
+            ADAPTERS.put(normalized, adapter);
+        }
+        ViewSaveManager instance = INSTANCES.get(normalized);
+        if (instance != null) {
+            instance.updateAdapter(adapter);
+        }
+    }
+
+    public static ViewPersistenceAdapter getAdapter(String namespace) {
+        return ADAPTERS.get(normalizeNamespace(namespace));
+    }
+
+    private static ViewPersistenceAdapter resolveAdapter(String namespace) {
+        ViewPersistenceAdapter adapter = ADAPTERS.get(normalizeNamespace(namespace));
+        return adapter != null ? adapter : DEFAULT_ADAPTER;
+    }
+
+    private static String normalizeNamespace(String namespace) {
+        Objects.requireNonNull(namespace, "namespace");
+        String trimmed = namespace.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("namespace cannot be blank");
+        }
+        return trimmed;
     }
 
     public String namespace() {
@@ -81,25 +113,22 @@ public final class ViewSaveManager {
         boolean loadStyleSnapshots = GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_STYLE_SNAPSHOTS);
         String currentId = view.getId();
         String scopedId = scopedId(view);
-        Path hashedLayoutPath = resolveLayoutPath(currentId);
-        if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedScopedId, scopedId) || !Objects.equals(entry.loadedPath, hashedLayoutPath)) {
+        ViewPersistenceRequest request = new ViewPersistenceRequest(namespace, persistenceViewId(currentId), scopedId);
+        if (!Objects.equals(entry.loadedId, currentId) || !Objects.equals(entry.loadedScopedId, scopedId)) {
             entry.loaded = false;
-            entry.persistedStyleSnapshotJson = loadStyleSnapshots ? readPersistedStyleSnapshot(currentId) : null;
+            entry.persistedStyleSnapshotJson = loadStyleSnapshots ? adapter.loadStyleSnapshot(request).orElse(null) : null;
             entry.styleSnapshotJson = null;
             entry.descriptorDirty = false;
             entry.loadedScopedId = null;
         }
+        entry.request = request;
         if (entry.loaded) {
             return;
         }
         entry.loadedId = currentId;
         entry.loadedScopedId = scopedId;
-        entry.loadedPath = hashedLayoutPath;
-        ensureParentDirectory(hashedLayoutPath);
-        Path legacyLayoutPath = resolveLegacyLayoutPath(currentId);
-        Path loadSource = Files.exists(hashedLayoutPath) ? hashedLayoutPath : legacyLayoutPath;
-        if (loadLayouts && Files.exists(loadSource)) {
-            ImGui.loadIniSettingsFromDisk(loadSource.toString());
+        if (loadLayouts) {
+            adapter.loadLayout(request).ifPresent(ImGui::loadIniSettingsFromMemory);
         }
         entry.loaded = true;
         restoreViewStyle(view, entry);
@@ -156,9 +185,9 @@ public final class ViewSaveManager {
         if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.VIEW_LAYOUTS)) {
             return;
         }
-        Map<String, ViewEntry> activeEntries = entries.entrySet().stream()
+        Map<String, Map.Entry<MGView, ViewEntry>> activeEntries = entries.entrySet().stream()
                 .filter(entry -> entry.getKey().isShouldSave())
-                .collect(Collectors.toMap(entry -> scopedId(entry.getKey()), Map.Entry::getValue, (first, second) -> first));
+                .collect(Collectors.toMap(entry -> scopedId(entry.getKey()), entry -> entry, (first, second) -> first));
         if (activeEntries.isEmpty()) {
             return;
         }
@@ -192,19 +221,14 @@ public final class ViewSaveManager {
             if (entry.getValue().isEmpty()) {
                 continue;
             }
-            ViewEntry viewEntry = activeEntries.get(entry.getKey());
-            Path targetPath = Optional.ofNullable(viewEntry)
-                    .map(value -> value.loadedPath)
-                    .orElseGet(() -> resolveLayoutPath(entry.getKey()));
-            ensureParentDirectory(targetPath);
-            try (BufferedWriter writer = Files.newBufferedWriter(targetPath, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                writer.write(entry.getValue().toString());
-            } catch (IOException e) {
-                MineGuiCore.LOGGER.error("Failed to write view ini for {} in {}", entry.getKey(), namespace, e);
+            Map.Entry<MGView, ViewEntry> active = activeEntries.get(entry.getKey());
+            if (active == null) {
                 continue;
             }
-            cleanupLegacyLayout(entry.getKey(), targetPath);
+            MGView view = active.getKey();
+            ViewEntry viewEntry = active.getValue();
+            ViewPersistenceRequest request = ensureRequest(view, viewEntry);
+            adapter.saveLayout(request, entry.getValue().toString());
         }
     }
 
@@ -305,25 +329,24 @@ public final class ViewSaveManager {
             if (view == null || state == null || !view.isShouldSave() || !state.descriptorDirty) {
                 continue;
             }
-            Path targetPath = resolveStylePath(view.getId());
-            ensureParentDirectory(targetPath);
+            ViewPersistenceRequest request = ensureRequest(view, state);
+            ViewStyleSnapshot snapshot;
             if (state.styleSnapshotJson == null || state.styleSnapshotJson.isBlank()) {
-                deleteFile(targetPath);
-                cleanupLegacyStyle(view.getId(), targetPath);
-                state.persistedStyleSnapshotJson = null;
-                state.descriptorDirty = false;
+                snapshot = ViewStyleSnapshot.deleted(request);
+            } else {
+                snapshot = ViewStyleSnapshot.present(request, state.styleSnapshotJson);
+            }
+            boolean persisted = adapter.storeStyleSnapshot(snapshot);
+            if (!persisted) {
                 continue;
             }
-            try (BufferedWriter writer = Files.newBufferedWriter(targetPath, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                writer.write(state.styleSnapshotJson);
+            if (snapshot.deleted()) {
+                state.persistedStyleSnapshotJson = null;
+            } else {
                 state.persistedStyleSnapshotJson = state.styleSnapshotJson;
-                state.descriptorDirty = false;
                 exported++;
-                cleanupLegacyStyle(view.getId(), targetPath);
-            } catch (IOException e) {
-                MineGuiCore.LOGGER.error("Failed to write style json for {} in {}", view.getId(), namespace, e);
             }
+            state.descriptorDirty = false;
         }
         return exported;
     }
@@ -337,10 +360,11 @@ public final class ViewSaveManager {
 
     private String scopedId(MGView view) {
         String viewNamespace = view.getNamespace();
+        String viewId = persistenceViewId(view.getId());
         if (viewNamespace == null || viewNamespace.isBlank()) {
-            return view.getId();
+            return viewId;
         }
-        return viewNamespace + "/" + view.getId();
+        return viewNamespace + "/" + viewId;
     }
 
     private String extractViewId(String headerLine) {
@@ -356,158 +380,38 @@ public final class ViewSaveManager {
         return name.substring(markerIndex + 2);
     }
 
-    private Path resolveLayoutPath(String viewId) {
-        return ViewSavePaths.hashedLayout(namespace, viewId);
-    }
-
-    private Path resolveLegacyLayoutPath(String viewId) {
-        return ViewSavePaths.legacyLayout(namespace, viewId);
-    }
-
-    private Path resolveStylePath(String viewId) {
-        return ViewSavePaths.hashedStyle(namespace, viewId);
-    }
-
-    private Path resolveLegacyStylePath(String viewId) {
-        return ViewSavePaths.legacyStyle(namespace, viewId);
-    }
-
-    private String readPersistedStyleSnapshot(String viewId) {
-        Path hashedPath = resolveStylePath(viewId);
-        Path legacyPath = resolveLegacyStylePath(viewId);
-        Path source = Files.exists(hashedPath) ? hashedPath : legacyPath;
-        if (!Files.exists(source)) {
-            return null;
+    private ViewPersistenceRequest ensureRequest(MGView view, ViewEntry entry) {
+        String scopedId = scopedId(view);
+        String viewId = persistenceViewId(view.getId());
+        ViewPersistenceRequest current = entry.request;
+        if (current != null && Objects.equals(current.viewId(), viewId) && Objects.equals(current.scopedId(), scopedId)) {
+            return current;
         }
-        try {
-            return Files.readString(source, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to read style json for {} in {}", viewId, namespace, e);
-            return null;
-        }
+        ViewPersistenceRequest request = new ViewPersistenceRequest(namespace, viewId, scopedId);
+        entry.request = request;
+        return request;
     }
 
-    private void ensureParentDirectory(Path path) {
-        Path parent = path.getParent();
-        if (parent == null) {
-            return;
+    private String persistenceViewId(String viewId) {
+        if (viewId == null || viewId.isBlank()) {
+            return "view";
         }
-        try {
-            Files.createDirectories(parent);
-        } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to ensure view save directory {} for {}", parent, namespace, e);
-        }
+        return viewId;
     }
 
-    private void deleteFile(Path path) {
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to delete view save file {} for {}", path, namespace, e);
-        }
-    }
-
-    private void cleanupLegacyLayout(String viewId, Path currentPath) {
-        Path legacy = resolveLegacyLayoutPath(viewId);
-        if (!legacy.equals(currentPath)) {
-            deleteFile(legacy);
-        }
-    }
-
-    private void cleanupLegacyStyle(String viewId, Path currentPath) {
-        Path legacy = resolveLegacyStylePath(viewId);
-        if (!legacy.equals(currentPath)) {
-            deleteFile(legacy);
-        }
+    private void updateAdapter(ViewPersistenceAdapter adapter) {
+        this.adapter = adapter != null ? adapter : DEFAULT_ADAPTER;
     }
 
     private static final class ViewEntry {
         private boolean loaded;
         private String loadedId;
         private String loadedScopedId;
-        private Path loadedPath;
+        private ViewPersistenceRequest request;
         private String pendingStyleKey;
         private boolean styleDirty;
         private String styleSnapshotJson;
         private String persistedStyleSnapshotJson;
         private boolean descriptorDirty;
-    }
-
-    private static final class ViewSavePaths {
-        private static final int HASH_PREFIX_LENGTH = 24;
-        private static final int DISPLAY_MAX_LENGTH = 48;
-        private static final HexFormat HEX = HexFormat.of();
-        private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[^a-zA-Z0-9._-]");
-
-        private ViewSavePaths() {
-        }
-
-        static Path hashedLayout(String namespace, String viewId) {
-            Path base = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(LAYOUTS_FOLDER);
-            return base.resolve(hashedFileName(viewId, ".ini"));
-        }
-
-        static Path hashedStyle(String namespace, String viewId) {
-            Path base = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(STYLES_FOLDER);
-            return base.resolve(hashedFileName(viewId, ".json"));
-        }
-
-        static Path legacyLayout(String namespace, String viewId) {
-            Path base = GlobalConfigManager.getViewSavesDirectory(namespace);
-            return base.resolve(legacyFileName(viewId, ".ini"));
-        }
-
-        static Path legacyStyle(String namespace, String viewId) {
-            Path base = GlobalConfigManager.getViewSavesDirectory(namespace).resolve(STYLES_FOLDER);
-            return base.resolve(legacyFileName(viewId, ".json"));
-        }
-
-        private static String hashedFileName(String viewId, String extension) {
-            String normalizedId = normalizeId(viewId);
-            String hashed = hash(normalizedId);
-            String display = truncate(sanitize(normalizedId));
-            if (display.isBlank()) {
-                display = "view";
-            }
-            String hashSegment = hashed.length() > HASH_PREFIX_LENGTH ? hashed.substring(0, HASH_PREFIX_LENGTH) : hashed;
-            return display + "-" + hashSegment + extension;
-        }
-
-        private static String legacyFileName(String viewId, String extension) {
-            String sanitized = sanitize(viewId);
-            if (sanitized.isBlank()) {
-                sanitized = "view";
-            }
-            return sanitized + extension;
-        }
-
-        private static String normalizeId(String viewId) {
-            if (viewId == null || viewId.isBlank()) {
-                return "view";
-            }
-            return viewId;
-        }
-
-        private static String sanitize(String viewId) {
-            String normalized = normalizeId(viewId);
-            return INVALID_FILENAME_CHARS.matcher(normalized).replaceAll("_");
-        }
-
-        private static String truncate(String value) {
-            if (value.length() <= DISPLAY_MAX_LENGTH) {
-                return value;
-            }
-            return value.substring(0, DISPLAY_MAX_LENGTH);
-        }
-
-        private static String hash(String value) {
-            try {
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-                return HEX.formatHex(bytes);
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException("SHA-256 not available", e);
-            }
-        }
     }
 }

@@ -4,6 +4,8 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
+import tytoo.minegui.manager.ViewSaveManager;
+import tytoo.minegui.persistence.ViewPersistenceAdapter;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 
 import java.util.Collection;
@@ -24,6 +26,7 @@ public final class MineGuiNamespaces {
         GlobalConfigManager.setConfigPathStrategy(namespace, options.configPathStrategy());
         GlobalConfigManager.setConfigIgnored(namespace, options.ignoreGlobalConfig());
         GlobalConfigManager.setFeatureProfile(namespace, options.featureProfile());
+        ViewSaveManager.setAdapter(namespace, options.viewPersistenceAdapter());
         boolean shouldAutoLoad = options.loadGlobalConfig() && !options.ignoreGlobalConfig();
         GlobalConfigManager.setAutoLoadEnabled(namespace, shouldAutoLoad);
         if (options.ignoreGlobalConfig()) {
@@ -87,5 +90,13 @@ public final class MineGuiNamespaces {
             return;
         }
         context.setDockspaceCustomizer(customizer);
+    }
+
+    public static void setViewPersistenceAdapter(ViewPersistenceAdapter adapter) {
+        setViewPersistenceAdapter(GlobalConfigManager.getDefaultNamespace(), adapter);
+    }
+
+    public static void setViewPersistenceAdapter(String namespace, ViewPersistenceAdapter adapter) {
+        ViewSaveManager.setAdapter(namespace, adapter);
     }
 }
