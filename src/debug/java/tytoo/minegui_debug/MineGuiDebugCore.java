@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui_debug.view.FeaturesView;
 import tytoo.minegui_debug.view.StyleDebugView;
 import tytoo.minegui_debug.view.TestView;
 
@@ -28,17 +29,25 @@ public final class MineGuiDebugCore {
 
     private static void test() {
         TestView testView = new TestView();
+        FeaturesView featuresView = new FeaturesView();
         StyleDebugView styleView = new StyleDebugView();
         MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
                 MineGuiInitializationOptions.defaults(ID)
         );
         MineGuiNamespaces.setDockspaceCustomizer(ID, state -> state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode));
         context.ui().register(testView);
+        context.ui().register(featuresView);
         context.ui().register(styleView);
         KeyBinding openTestViewKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.minegui.open_gui",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
+                "category.weave.test"
+        ));
+        KeyBinding featuresKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.minegui.feature_tour",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_J,
                 "category.weave.test"
         ));
         KeyBinding styleInspectorKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -48,16 +57,19 @@ public final class MineGuiDebugCore {
                 "category.weave.test"
         ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            boolean isValid = client != null && client.currentScreen == null;
+            if (!isValid) {
+                return;
+            }
+
             if (openTestViewKeybind != null && openTestViewKeybind.wasPressed()) {
-                if (client != null && client.currentScreen == null) {
-                    testView.toggleVisibility();
-                }
+                testView.toggleVisibility();
+            }
+            if (featuresKeybind != null && featuresKeybind.wasPressed()) {
+                featuresView.toggleVisibility();
             }
             if (styleInspectorKeybind != null && styleInspectorKeybind.wasPressed()) {
-                if (client != null && client.currentScreen == null) {
-                    styleView.toggleVisibility();
-                }
-                LOGGER.info("Toggled Style Inspector: {}", styleView.isVisible() ? "Open" : "Closed");
+                styleView.toggleVisibility();
             }
         });
     }
