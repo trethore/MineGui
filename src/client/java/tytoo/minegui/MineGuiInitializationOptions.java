@@ -25,7 +25,7 @@ public record MineGuiInitializationOptions(
         configNamespace = normalizeNamespace(configNamespace);
         featureProfile = featureProfile != null ? featureProfile : ConfigFeatureProfile.all();
         configPathStrategy = configPathStrategy != null ? configPathStrategy : ConfigPathStrategies.sandboxed();
-        defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : MGCursorPolicies.emptyId();
+        defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : MGCursorPolicies.clickToLockId();
         dockspaceCustomizer = dockspaceCustomizer != null ? dockspaceCustomizer : DockspaceCustomizer.noop();
     }
 
@@ -89,7 +89,7 @@ public record MineGuiInitializationOptions(
     }
 
     public MineGuiInitializationOptions withDefaultCursorPolicy(Identifier policyId) {
-        Identifier normalized = policyId != null ? policyId : MGCursorPolicies.emptyId();
+        Identifier normalized = policyId != null ? policyId : MGCursorPolicies.clickToLockId();
         return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, configPathStrategy, normalized, dockspaceCustomizer, viewPersistenceAdapter);
     }
 
@@ -113,7 +113,7 @@ public record MineGuiInitializationOptions(
         private boolean ignoreGlobalConfig;
         private ConfigFeatureProfile featureProfile = ConfigFeatureProfile.all();
         private ConfigPathStrategy configPathStrategy = ConfigPathStrategies.sandboxed();
-        private Identifier defaultCursorPolicyId = MGCursorPolicies.emptyId();
+        private Identifier defaultCursorPolicyId = MGCursorPolicies.clickToLockId();
         private DockspaceCustomizer dockspaceCustomizer = DockspaceCustomizer.noop();
         private ViewPersistenceAdapter viewPersistenceAdapter;
 
