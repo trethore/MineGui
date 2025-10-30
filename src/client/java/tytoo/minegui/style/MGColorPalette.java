@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.ImGuiStyle;
 import imgui.ImVec4;
 import imgui.flag.ImGuiCol;
+import lombok.Getter;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import java.util.Map;
 public final class MGColorPalette {
     private static final MGColorPalette EMPTY = new MGColorPalette(Collections.emptyMap());
 
+    @Getter
     private final Map<Integer, Integer> colors;
 
     private MGColorPalette(Map<Integer, Integer> colors) {
@@ -45,10 +47,6 @@ public final class MGColorPalette {
 
     public static Builder builder() {
         return new Builder();
-    }
-
-    public Map<Integer, Integer> getColors() {
-        return colors;
     }
 
     public boolean isEmpty() {

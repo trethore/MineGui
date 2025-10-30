@@ -1,10 +1,12 @@
 package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
+import lombok.Getter;
 import net.minecraft.util.Identifier;
 
 import java.util.Objects;
 
+@Getter
 public final class MGStyleDelta {
     private final Float alpha;
     private final Float disabledAlpha;
@@ -365,178 +367,6 @@ public final class MGStyleDelta {
             builder.fontSize(base.getFontSize());
         }
         return builder.build();
-    }
-
-    public Float getAlpha() {
-        return alpha;
-    }
-
-    public Float getDisabledAlpha() {
-        return disabledAlpha;
-    }
-
-    public MGVec2 getWindowPadding() {
-        return windowPadding;
-    }
-
-    public Float getWindowRounding() {
-        return windowRounding;
-    }
-
-    public Float getWindowBorderSize() {
-        return windowBorderSize;
-    }
-
-    public MGVec2 getWindowMinSize() {
-        return windowMinSize;
-    }
-
-    public MGVec2 getWindowTitleAlign() {
-        return windowTitleAlign;
-    }
-
-    public Integer getWindowMenuButtonPosition() {
-        return windowMenuButtonPosition;
-    }
-
-    public Float getChildRounding() {
-        return childRounding;
-    }
-
-    public Float getChildBorderSize() {
-        return childBorderSize;
-    }
-
-    public Float getPopupRounding() {
-        return popupRounding;
-    }
-
-    public Float getPopupBorderSize() {
-        return popupBorderSize;
-    }
-
-    public MGVec2 getFramePadding() {
-        return framePadding;
-    }
-
-    public Float getFrameRounding() {
-        return frameRounding;
-    }
-
-    public Float getFrameBorderSize() {
-        return frameBorderSize;
-    }
-
-    public MGVec2 getItemSpacing() {
-        return itemSpacing;
-    }
-
-    public MGVec2 getItemInnerSpacing() {
-        return itemInnerSpacing;
-    }
-
-    public MGVec2 getCellPadding() {
-        return cellPadding;
-    }
-
-    public MGVec2 getTouchExtraPadding() {
-        return touchExtraPadding;
-    }
-
-    public Float getIndentSpacing() {
-        return indentSpacing;
-    }
-
-    public Float getColumnsMinSpacing() {
-        return columnsMinSpacing;
-    }
-
-    public Float getScrollbarSize() {
-        return scrollbarSize;
-    }
-
-    public Float getScrollbarRounding() {
-        return scrollbarRounding;
-    }
-
-    public Float getGrabMinSize() {
-        return grabMinSize;
-    }
-
-    public Float getGrabRounding() {
-        return grabRounding;
-    }
-
-    public Float getLogSliderDeadzone() {
-        return logSliderDeadzone;
-    }
-
-    public Float getTabRounding() {
-        return tabRounding;
-    }
-
-    public Float getTabBorderSize() {
-        return tabBorderSize;
-    }
-
-    public Float getTabMinWidthForCloseButton() {
-        return tabMinWidthForCloseButton;
-    }
-
-    public Integer getColorButtonPosition() {
-        return colorButtonPosition;
-    }
-
-    public MGVec2 getButtonTextAlign() {
-        return buttonTextAlign;
-    }
-
-    public MGVec2 getSelectableTextAlign() {
-        return selectableTextAlign;
-    }
-
-    public MGVec2 getDisplayWindowPadding() {
-        return displayWindowPadding;
-    }
-
-    public MGVec2 getDisplaySafeAreaPadding() {
-        return displaySafeAreaPadding;
-    }
-
-    public Float getMouseCursorScale() {
-        return mouseCursorScale;
-    }
-
-    public Boolean getAntiAliasedLines() {
-        return antiAliasedLines;
-    }
-
-    public Boolean getAntiAliasedLinesUseTex() {
-        return antiAliasedLinesUseTex;
-    }
-
-    public Boolean getAntiAliasedFill() {
-        return antiAliasedFill;
-    }
-
-    public Float getCurveTessellationTol() {
-        return curveTessellationTol;
-    }
-
-    public Float getCircleTessellationMaxError() {
-        return circleTessellationMaxError;
-    }
-
-    public MGColorPalette getColorPalette() {
-        return colorPalette;
-    }
-
-    public Identifier getFontKey() {
-        return fontKey;
-    }
-
-    public Float getFontSize() {
-        return fontSize;
     }
 
     public static final class Builder {

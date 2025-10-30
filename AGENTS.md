@@ -46,6 +46,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 
 ## Dependencies & External Sources
 - imgui-java (Dear ImGui bindings) is bundled as JAR files in the `libs/` directory and included via shadow dependency configuration in `build.gradle`.
+- Lombok is wired as `compileOnly` + `annotationProcessor` (including `client`/`debug` source sets); keep that pairing when upgrading versions and remind contributors to enable annotation processing in their IDE.
 - ImGui natives are loaded at runtime by `ImGuiLoader`, which handles platform-specific native library initialization.
 - ImGui usage is primarily direct; rely on helpers such as `CursorLockUtils`, `ImGuiImageUtils`, and constraint utilities to integrate cleanly with Minecraft.
 - When you need to inspect imgui-java sources, look for them under `project-sources/`; if they are missing, ask the user to run `./gradlew generateProjectSources` and explain the verification need (API lookup, rendering hook trace, etc.).

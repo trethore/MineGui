@@ -1,6 +1,9 @@
 # MineGui
 MineGui is a lightweight wrapper around `imgui-java`, designed to simplify the creation of modern GUIs in Minecraft mods built with Fabric.
 
+## Development Setup
+- Enable annotation processing in your IDE (for example in IntelliJ via `Settings > Build > Compiler > Annotation Processors`) so Lombok-generated accessors compile within the Fabric client and debug source sets.
+
 ## Namespace-Aware Runtime
 - Every mod using MineGui registers its own namespace via `MineGuiNamespaces.initialize(MineGuiInitializationOptions)` (the default MineGui namespace remains `minegui` for compatibility).
 - Configuration files live under `config/minegui/<namespace>/global_config.json`, and per-view ImGui layouts are written to `config/minegui/<namespace>/views/` by default; provide a custom `ConfigPathStrategy` via `MineGuiInitializationOptions.withConfigPathStrategy(...)` when you need to relocate persistence.

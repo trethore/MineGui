@@ -1,5 +1,7 @@
 package tytoo.minegui.view;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.style.MGStyleDelta;
@@ -8,12 +10,20 @@ import tytoo.minegui.view.cursor.MGCursorPolicies;
 import tytoo.minegui.view.cursor.MGCursorPolicy;
 
 public abstract class MGView {
+    @Getter
     private boolean visible;
+    @Getter
     private String id;
+    @Getter
+    @Setter
     private boolean shouldSave;
+    @Getter
+    @Setter
     private Identifier styleKey;
+    @Getter
     private String namespace;
     private ViewSaveManager viewSaveManager;
+    @Getter
     private MGCursorPolicy cursorPolicy;
     private boolean cursorPolicyExplicit;
 
@@ -94,10 +104,6 @@ public abstract class MGView {
         this.viewSaveManager = null;
     }
 
-    public boolean isVisible() {
-        return visible;
-    }
-
     public void setVisible(boolean visible) {
         if (this.visible == visible) {
             return;
@@ -115,40 +121,12 @@ public abstract class MGView {
         }
     }
 
-    public Identifier getStyleKey() {
-        return styleKey;
-    }
-
-    public void setStyleKey(Identifier styleKey) {
-        this.styleKey = styleKey;
-    }
-
-    public String getId() {
-        return id;
-    }
-
     public void setId(String id) {
         if (id == null || id.isBlank()) {
             this.id = deriveDefaultId();
             return;
         }
         this.id = id;
-    }
-
-    public boolean isShouldSave() {
-        return shouldSave;
-    }
-
-    public void setShouldSave(boolean shouldSave) {
-        this.shouldSave = shouldSave;
-    }
-
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public MGCursorPolicy getCursorPolicy() {
-        return cursorPolicy;
     }
 
     public void setCursorPolicy(MGCursorPolicy cursorPolicy) {

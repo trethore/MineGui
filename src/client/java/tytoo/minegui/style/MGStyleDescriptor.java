@@ -1,10 +1,12 @@
 package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
+import lombok.Getter;
 import net.minecraft.util.Identifier;
 
 import java.util.Objects;
 
+@Getter
 public final class MGStyleDescriptor {
     private final float alpha;
     private final float disabledAlpha;
@@ -158,178 +160,6 @@ public final class MGStyleDescriptor {
         style.setCurveTessellationTol(curveTessellationTol);
         style.setCircleTessellationMaxError(circleTessellationMaxError);
         colorPalette.applyTo(style);
-    }
-
-    public float getAlpha() {
-        return alpha;
-    }
-
-    public float getDisabledAlpha() {
-        return disabledAlpha;
-    }
-
-    public MGVec2 getWindowPadding() {
-        return windowPadding;
-    }
-
-    public float getWindowRounding() {
-        return windowRounding;
-    }
-
-    public float getWindowBorderSize() {
-        return windowBorderSize;
-    }
-
-    public MGVec2 getWindowMinSize() {
-        return windowMinSize;
-    }
-
-    public MGVec2 getWindowTitleAlign() {
-        return windowTitleAlign;
-    }
-
-    public int getWindowMenuButtonPosition() {
-        return windowMenuButtonPosition;
-    }
-
-    public float getChildRounding() {
-        return childRounding;
-    }
-
-    public float getChildBorderSize() {
-        return childBorderSize;
-    }
-
-    public float getPopupRounding() {
-        return popupRounding;
-    }
-
-    public float getPopupBorderSize() {
-        return popupBorderSize;
-    }
-
-    public MGVec2 getFramePadding() {
-        return framePadding;
-    }
-
-    public float getFrameRounding() {
-        return frameRounding;
-    }
-
-    public float getFrameBorderSize() {
-        return frameBorderSize;
-    }
-
-    public MGVec2 getItemSpacing() {
-        return itemSpacing;
-    }
-
-    public MGVec2 getItemInnerSpacing() {
-        return itemInnerSpacing;
-    }
-
-    public MGVec2 getCellPadding() {
-        return cellPadding;
-    }
-
-    public MGVec2 getTouchExtraPadding() {
-        return touchExtraPadding;
-    }
-
-    public float getIndentSpacing() {
-        return indentSpacing;
-    }
-
-    public float getColumnsMinSpacing() {
-        return columnsMinSpacing;
-    }
-
-    public float getScrollbarSize() {
-        return scrollbarSize;
-    }
-
-    public float getScrollbarRounding() {
-        return scrollbarRounding;
-    }
-
-    public float getGrabMinSize() {
-        return grabMinSize;
-    }
-
-    public float getGrabRounding() {
-        return grabRounding;
-    }
-
-    public float getLogSliderDeadzone() {
-        return logSliderDeadzone;
-    }
-
-    public float getTabRounding() {
-        return tabRounding;
-    }
-
-    public float getTabBorderSize() {
-        return tabBorderSize;
-    }
-
-    public float getTabMinWidthForCloseButton() {
-        return tabMinWidthForCloseButton;
-    }
-
-    public int getColorButtonPosition() {
-        return colorButtonPosition;
-    }
-
-    public MGVec2 getButtonTextAlign() {
-        return buttonTextAlign;
-    }
-
-    public MGVec2 getSelectableTextAlign() {
-        return selectableTextAlign;
-    }
-
-    public MGVec2 getDisplayWindowPadding() {
-        return displayWindowPadding;
-    }
-
-    public MGVec2 getDisplaySafeAreaPadding() {
-        return displaySafeAreaPadding;
-    }
-
-    public float getMouseCursorScale() {
-        return mouseCursorScale;
-    }
-
-    public boolean isAntiAliasedLines() {
-        return antiAliasedLines;
-    }
-
-    public boolean isAntiAliasedLinesUseTex() {
-        return antiAliasedLinesUseTex;
-    }
-
-    public boolean isAntiAliasedFill() {
-        return antiAliasedFill;
-    }
-
-    public float getCurveTessellationTol() {
-        return curveTessellationTol;
-    }
-
-    public float getCircleTessellationMaxError() {
-        return circleTessellationMaxError;
-    }
-
-    public MGColorPalette getColorPalette() {
-        return colorPalette;
-    }
-
-    public Identifier getFontKey() {
-        return fontKey;
-    }
-
-    public Float getFontSize() {
-        return fontSize;
     }
 
     public MGStyleDescriptor withDelta(MGStyleDelta delta) {

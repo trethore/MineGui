@@ -73,6 +73,15 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
+    //lombok
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+    clientCompileOnly 'org.projectlombok:lombok:1.18.42'
+    clientAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+    debugCompileOnly 'org.projectlombok:lombok:1.18.42'
+    debugAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    // imgui
     shadow(implementation fileTree('libs') {include '*.jar'})
 	
 }
