@@ -1,5 +1,6 @@
 package tytoo.minegui;
 
+import lombok.Getter;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -27,6 +28,7 @@ public final class MineGuiCore {
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
     private static boolean defaultNamespaceConfigured;
+    @Getter
     private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults(ID);
 
     private MineGuiCore() {
@@ -113,10 +115,6 @@ public final class MineGuiCore {
             return false;
         }
         return initializationOptions.ignoreGlobalConfig();
-    }
-
-    public static MineGuiInitializationOptions getInitializationOptions() {
-        return initializationOptions;
     }
 
     public static void requestReload() {

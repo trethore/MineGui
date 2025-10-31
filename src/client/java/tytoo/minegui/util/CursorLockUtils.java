@@ -30,4 +30,10 @@ public final class CursorLockUtils {
                 .map(client -> client.currentScreen == null)
                 .orElse(false);
     }
+
+    public static boolean isCursorLocked() {
+        return McUtils.getMc()
+                .map(client -> client.mouse != null && client.mouse.isCursorLocked())
+                .orElse(false);
+    }
 }

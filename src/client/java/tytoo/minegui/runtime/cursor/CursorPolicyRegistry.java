@@ -2,6 +2,7 @@ package tytoo.minegui.runtime.cursor;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
+import imgui.flag.ImGuiFocusedFlags;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.util.CursorLockUtils;
 import tytoo.minegui.view.MGView;
@@ -16,7 +17,6 @@ public final class CursorPolicyRegistry {
     private static final Set<MGView> CLICK_RELEASE_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Set<MGView> CLICK_RELEASE_REGISTERED = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final boolean[] EMPTY_MOUSE_BUTTONS = new boolean[5];
-
     private static volatile boolean cursorUnlocked;
 
     private CursorPolicyRegistry() {
@@ -83,6 +83,28 @@ public final class CursorPolicyRegistry {
             return;
         }
         CLICK_RELEASE_UNLOCKS.clear();
+        clearImGuiFocus();
+        refreshState();
+    }
+
+    public static void onScreenClosed() {
+        if (!CursorLockUtils.clientWantsLockCursor()) {
+            return;
+        }
+        if (ImGui.getCurrentContext() == null) {
+            CLICK_RELEASE_UNLOCKS.clear();
+            suppressImGuiInput();
+            relockIfNecessary();
+            return;
+        }
+        if (ImGui.isWindowFocused(ImGuiFocusedFlags.AnyWindow)) {
+            return;
+        }
+        if (ImGui.isAnyItemActive()) {
+            return;
+        }
+        CLICK_RELEASE_UNLOCKS.clear();
+        clearImGuiFocus();
         refreshState();
     }
 
@@ -98,7 +120,7 @@ public final class CursorPolicyRegistry {
         if (!wantsImGuiInput()) {
             return;
         }
-        if (!cursorUnlocked) {
+        if (!cursorUnlocked || CursorLockUtils.isCursorLocked()) {
             CursorLockUtils.applyCursorLock(false);
             cursorUnlocked = true;
         }
@@ -141,7 +163,7 @@ public final class CursorPolicyRegistry {
     }
 
     private static void relockIfNecessary() {
-        if (cursorUnlocked && CursorLockUtils.clientWantsLockCursor()) {
+        if (CursorLockUtils.clientWantsLockCursor()) {
             CursorLockUtils.applyCursorLock(true);
         }
         cursorUnlocked = false;
@@ -157,5 +179,12 @@ public final class CursorPolicyRegistry {
         io.setWantCaptureMouse(false);
         io.setWantCaptureKeyboard(false);
         io.setWantTextInput(false);
+    }
+
+    private static void clearImGuiFocus() {
+        if (ImGui.getCurrentContext() == null) {
+            return;
+        }
+        ImGui.setWindowFocus(null);
     }
 }

@@ -131,6 +131,9 @@ public final class InputRouter {
         if (ImGui.getCurrentContext() == null) {
             return false;
         }
-        return ImGui.getIO().getWantCaptureKeyboard() || ImGui.getIO().getWantTextInput();
+        if (ImGui.getIO().getWantTextInput()) {
+            return true;
+        }
+        return ImGui.isAnyItemActive();
     }
 }
