@@ -131,18 +131,7 @@ public abstract class MGView {
 
     public void setCursorPolicy(MGCursorPolicy cursorPolicy) {
         boolean explicit = cursorPolicy != null;
-        MGCursorPolicy resolved = explicit ? cursorPolicy : MGCursorPolicies.empty();
-        if (this.cursorPolicy == resolved && this.cursorPolicyExplicit == explicit) {
-            return;
-        }
-        if (visible) {
-            this.cursorPolicy.onClose(this);
-        }
-        this.cursorPolicy = resolved;
-        this.cursorPolicyExplicit = explicit;
-        if (visible) {
-            this.cursorPolicy.onOpen(this);
-        }
+        updateCursorPolicy(cursorPolicy, explicit);
     }
 
     public boolean hasExplicitCursorPolicy() {
@@ -153,14 +142,19 @@ public abstract class MGView {
         if (cursorPolicyExplicit) {
             return;
         }
-        MGCursorPolicy resolved = defaultPolicy != null ? defaultPolicy : MGCursorPolicies.empty();
-        if (this.cursorPolicy == resolved) {
+        updateCursorPolicy(defaultPolicy, false);
+    }
+
+    private void updateCursorPolicy(MGCursorPolicy nextPolicy, boolean explicit) {
+        MGCursorPolicy resolved = nextPolicy != null ? nextPolicy : MGCursorPolicies.empty();
+        if (this.cursorPolicy == resolved && this.cursorPolicyExplicit == explicit) {
             return;
         }
         if (visible) {
             this.cursorPolicy.onClose(this);
         }
         this.cursorPolicy = resolved;
+        this.cursorPolicyExplicit = explicit;
         if (visible) {
             this.cursorPolicy.onOpen(this);
         }

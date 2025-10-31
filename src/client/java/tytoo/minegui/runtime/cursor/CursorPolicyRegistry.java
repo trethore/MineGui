@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiFocusedFlags;
 import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.util.CursorLockUtils;
 import tytoo.minegui.view.MGView;
 import tytoo.minegui.view.cursor.MGCursorPolicy;
@@ -25,7 +26,10 @@ public final class CursorPolicyRegistry {
     public static void registerPolicy(Identifier id, MGCursorPolicy policy) {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(policy, "policy");
-        REGISTERED_POLICIES.put(id, policy);
+        MGCursorPolicy existing = REGISTERED_POLICIES.putIfAbsent(id, policy);
+        if (existing != null && existing != policy) {
+            MineGuiCore.LOGGER.warn("MineGui cursor policy '{}' is already registered; skipping duplicate registration.", id);
+        }
     }
 
     public static MGCursorPolicy resolvePolicy(Identifier id) {

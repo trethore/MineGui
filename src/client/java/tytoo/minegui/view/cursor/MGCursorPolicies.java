@@ -3,46 +3,15 @@ package tytoo.minegui.view.cursor;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
-import tytoo.minegui.view.MGView;
 
 public final class MGCursorPolicies {
     private static final Identifier EMPTY_ID = Identifier.of(MineGuiCore.ID, "empty");
     private static final Identifier SCREEN_ID = Identifier.of(MineGuiCore.ID, "screen");
     private static final Identifier CLICK_TO_LOCK_ID = Identifier.of(MineGuiCore.ID, "click_to_lock");
 
-    private static final MGCursorPolicy EMPTY = new MGCursorPolicy() {
-        @Override
-        public void onOpen(MGView view) {
-        }
-
-        @Override
-        public void onClose(MGView view) {
-        }
-    };
-
-    private static final MGCursorPolicy SCREEN = new MGCursorPolicy() {
-        @Override
-        public void onOpen(MGView view) {
-            CursorPolicyRegistry.requestPersistentUnlock(view);
-        }
-
-        @Override
-        public void onClose(MGView view) {
-            CursorPolicyRegistry.releasePersistentUnlock(view);
-        }
-    };
-
-    private static final MGCursorPolicy CLICK_TO_LOCK = new MGCursorPolicy() {
-        @Override
-        public void onOpen(MGView view) {
-            CursorPolicyRegistry.requestClickReleaseUnlock(view);
-        }
-
-        @Override
-        public void onClose(MGView view) {
-            CursorPolicyRegistry.releaseClickReleaseUnlock(view);
-        }
-    };
+    private static final MGCursorPolicy EMPTY = MGCursorPolicy.of(null, null);
+    private static final MGCursorPolicy SCREEN = MGCursorPolicy.of(CursorPolicyRegistry::requestPersistentUnlock, CursorPolicyRegistry::releasePersistentUnlock);
+    private static final MGCursorPolicy CLICK_TO_LOCK = MGCursorPolicy.of(CursorPolicyRegistry::requestClickReleaseUnlock, CursorPolicyRegistry::releaseClickReleaseUnlock);
 
     static {
         CursorPolicyRegistry.registerPolicy(EMPTY_ID, EMPTY);
