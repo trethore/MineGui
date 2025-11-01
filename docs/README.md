@@ -19,7 +19,6 @@ Follow the pages in order for the smoothest onboarding. Each document starts wit
 - Dive into [Layout & Helpers](layout-and-helpers.md) for layout stacks, constraints, and texture utilities.
 - Use [Features & Integrations](features.md) as a capability tour once you’re ready to combine systems.
 - Reference [Runtime Flow & Debugging](runtime-flow.md) while tracing lifecycle events or troubleshooting reloads.
-- Return to the root [Introduction](introduction.md) if you need a high-level recap of prerequisites.
 
 ## Development Tips
 - **Keep iterations small**: register new views through `UIManager`, toggle `shouldSave` only when you want MineGui to persist layout or style, and test changes via the debug namespace (`minegui_debug`).
@@ -30,4 +29,4 @@ Follow the pages in order for the smoothest onboarding. Each document starts wit
 
 ---
 
-**Next:** [Getting Started](getting-started.md) • **Back:** [Developer Docs Home](README.md)
+**Next:** [Getting Started](getting-started.md)
