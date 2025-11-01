@@ -27,4 +27,4 @@ Keep your registrations—fonts, styles, cursor policies—before step 3 so they
 
 ---
 
-**Next:** [Introduction](introduction.md) • **Back:** [Developer Docs Home](README.md)
+**Back:** [Developer Docs Home](README.md)
