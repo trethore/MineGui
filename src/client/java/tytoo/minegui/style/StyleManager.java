@@ -3,6 +3,7 @@ package tytoo.minegui.style;
 import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
+import lombok.Getter;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfig;
@@ -21,6 +22,7 @@ public final class StyleManager {
     private final ThreadLocal<Deque<MGStyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
     private final ThreadLocal<ImFont> activeFont = new ThreadLocal<>();
     private volatile MGStyleDescriptor globalDescriptor;
+    @Getter
     private volatile Identifier globalStyleKey;
 
     private StyleManager(String namespace) {
@@ -33,6 +35,15 @@ public final class StyleManager {
 
     public static StyleManager getInstance() {
         return get(GlobalConfigManager.getDefaultNamespace());
+    }
+
+    public static void backfillGlobalDescriptors(MGStyleDescriptor descriptor) {
+        Objects.requireNonNull(descriptor, "descriptor");
+        for (StyleManager manager : INSTANCES.values()) {
+            if (manager.globalDescriptor == null) {
+                manager.setGlobalDescriptor(MGStyleDescriptor.builder().fromDescriptor(descriptor).build());
+            }
+        }
     }
 
     public static void registerDescriptor(Identifier key, MGStyleDescriptor descriptor) {
@@ -99,10 +110,6 @@ public final class StyleManager {
 
     public Map<Identifier, MGStyleDescriptor> snapshotDescriptors() {
         return Collections.unmodifiableMap(new ConcurrentHashMap<>(DESCRIPTOR_REGISTRY));
-    }
-
-    public Identifier getGlobalStyleKey() {
-        return globalStyleKey;
     }
 
     public void setGlobalStyleKey(Identifier key) {

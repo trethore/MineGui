@@ -1,6 +1,12 @@
 # Features & Integrations
 This page highlights the core MineGui systems you will use day-to-day, explains why each matters, and shows practical snippets so you can plug them into your mod without guesswork.
 
+## What this page covers
+- Registering namespaces and initialization options for multiple modules
+- Managing cursor policies and input flow inside custom views
+- Understanding the render loop hooks and dockspace configuration
+- Applying styles, fonts, persistence, and utility helpers in practice
+
 ## Initialization & Namespaces
 MineGui keeps configuration, view saves, and style descriptors isolated by namespace.
 
@@ -64,4 +70,4 @@ Style descriptors and fonts live in `StyleManager` and `MGFontLibrary`.
 
 ---
 
-**Next:** [Runtime Flow & Debugging](runtime-flow.md) • **Back:** [Introduction](introduction.md)
+**Next:** [Runtime Flow & Debugging](runtime-flow.md) • **Back:** [Developer Docs Home](README.md)

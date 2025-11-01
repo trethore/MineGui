@@ -248,6 +248,7 @@ public class ImGuiLoader {
                 fontSize
         );
         StyleManager.getInstance().setGlobalDescriptor(descriptor);
+        StyleManager.backfillGlobalDescriptors(descriptor);
         NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
         GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
         String configuredStyleKey = config.getGlobalStyleKey();
