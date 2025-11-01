@@ -1,6 +1,11 @@
 # Runtime Flow & Debugging
 This guide shows how MineGui boots ImGui inside the Minecraft client, when key lifecycle callbacks fire, and how to troubleshoot common issues so you can keep your overlays stable across reloads and restarts.
 
+## What this page covers
+- The sequence of MineGui lifecycle events during client startup and rendering
+- How reloads and context rebuilds affect fonts, textures, and styles
+- Debugging strategies for config reloads, input capture, and style exports
+
 ## Lifecycle at a glance
 1. `MineGuiCore.init(...)` registers Fabric lifecycle hooks, resource reload listeners, and dev commands.
 2. `ImGuiLoader.onGlfwInit(...)` triggers when the client window is created, priming font libraries and pending registrations.
@@ -22,4 +27,4 @@ Keep your registrations—fonts, styles, cursor policies—before step 3 so they
 
 ---
 
-**Back:** [Features & Integrations](features.md) • **Introduction:** [Start Over](introduction.md)
+**Next:** [Introduction](introduction.md) • **Back:** [Developer Docs Home](README.md)
