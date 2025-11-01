@@ -64,15 +64,25 @@ public final class FontBootstrap {
         Identifier interRegular = Identifier.of("examplemod", "inter-regular");
         Identifier materialIcons = Identifier.of("examplemod", "material-icons");
 
+        Path fontDir = FabricLoader.getInstance()
+                .getGameDir()
+                .resolve("config/examplemod/fonts");
+
         MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
-        fontLibrary.registerFont(interRegular, MGFontLibrary.FontDescriptor.fromClasspath(
-                "assets/examplemod/font/Inter-Regular.ttf", 18.0f));
+        fontLibrary.registerFont(
+                interRegular,
+                new MGFontLibrary.FontDescriptor(
+                        MGFontLibrary.FontSource.external(fontDir.resolve("Inter-Regular.ttf")),
+                        18.0f,
+                        config -> config.setPixelSnapH(true)
+                )
+        );
 
         // Merge icon glyphs into the same atlas
         fontLibrary.registerMergedFont(
                 interRegular,
                 materialIcons,
-                MGFontLibrary.FontSource.classpath("assets/examplemod/font/MaterialIcons-Regular.ttf"),
+                MGFontLibrary.FontSource.external(fontDir.resolve("MaterialIcons-Regular.ttf")),
                 18.0f,
                 fonts -> fonts.getGlyphRangesDefault(), // supply glyph ranges if needed
                 config -> config.setGlyphMinAdvanceX(18.0f)

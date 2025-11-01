@@ -15,7 +15,7 @@ UI.withVStack(stack -> {
     UI.withVStackItem(stack, () -> ImGui.text("Section Header"));
 
     VStack.ItemRequest rowRequest = new VStack.ItemRequest()
-            .estimatedHeight(28.0f); // reserve space for the row
+            .estimateHeight(28.0f); // reserve space for the row
 
     UI.withVStackItem(stack, rowRequest, () -> {
         UI.withHStack(null, hStack -> {
@@ -34,11 +34,12 @@ UI.withVStack(stack -> {
 For precise placement, use `LayoutConstraints` with the solver in `helper.constraint` to target specific regions relative to the current window.
 
 ```java
+Constraints placement = new Constraints();
+placement.setX(Constraints.relative(0.5f));   // center horizontally
+placement.setY(Constraints.pixels(64.0f));    // drop 64 pixels from the top
+
 LayoutConstraints constraints = LayoutConstraints.builder()
-        .constraints(Constraints.builder()
-                .x(Constraints.relative(0.5f))   // center horizontally
-                .y(Constraints.pixel(64.0f))      // drop 64 pixels from the top
-                .build())
+        .constraints(placement)
         .width(220.0f)
         .build();
 
@@ -72,6 +73,26 @@ ImGuiImageUtils.drawImage(
 
 - Call `ImGuiImageUtils.textureId(identifier)` when you need the id for custom draw commands.
 - During resource reloads (F3 + T), MineGui automatically invalidates cached textures so refreshed assets appear without restarting the client.
+
+## Window Helpers
+`MGWindow` wraps `ImGui.begin()`/`end()` so you can reuse placement, sizing, and lifecycle callbacks without duplicating boilerplate.
+
+```java
+ImBoolean paletteOpen = new ImBoolean(true);
+
+MGWindow.of(view, "Palette")
+        .flags(ImGuiWindowFlags.AlwaysAutoResize)
+        .initPos(Constraints.relative(0.5f), Constraints.pixels(96.0f))
+        .open(paletteOpen)
+        .render(() -> {
+            ImGui.text("Pick a theme and start painting!");
+            // render the rest of your view here
+        });
+```
+
+- Titles scoped with `MGWindow.of(view, ...)` reuse the view’s identifier, preventing dock conflicts.
+- Chain `initPos(...)`/`initDimensions(...)` for defaults and `pos(...)`/`dimensions(...)` to enforce placement every frame.
+- Use `open(ImBoolean)` plus `onClose(...)` when you mirror ImGui’s close button with your own view visibility.
 
 ## Additional Utilities
 - `InputHelper` exposes ImGui mouse and keyboard helpers for advanced interaction tracking.

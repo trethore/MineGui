@@ -43,11 +43,11 @@ Create your own cursor policies when you need domain-specific behaviour, such as
 Identifier modalId = Identifier.of("examplemod", "modal");
 
 MGCursorPolicy modalPolicy = MGCursorPolicy.of(
+        CursorPolicyRegistry::requestPersistentUnlock,
         view -> {
-            CursorPolicyRegistry.requestPersistentUnlock(view);
-            CursorLockUtils.blockNextLockRequest(); // optional helper if you coordinate with vanilla screens
-        },
-        CursorPolicyRegistry::releasePersistentUnlock
+            CursorPolicyRegistry.releasePersistentUnlock(view);
+            CursorLockUtils.applyCursorLock(true); // relock the cursor once the modal closes
+        }
 );
 
 CursorPolicyRegistry.registerPolicy(modalId, modalPolicy);

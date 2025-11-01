@@ -19,7 +19,7 @@ MineGuiNamespaces.initialize(
         MineGuiInitializationOptions.builder("examplemod-tools")
                 .loadGlobalConfig(false)          // opt out of automatic config loads
                 .ignoreGlobalConfig(true)          // keep tooling data ephemeral
-                .withDefaultCursorPolicy(MGCursorPolicies.screenId())
+                .defaultCursorPolicyId(MGCursorPolicies.screenId())
                 .build()
 );
 ```
@@ -41,7 +41,7 @@ config.disableFeature(ConfigFeature.VIEW_STYLE_SNAPSHOTS);
 
 // Swap the config path strategy (e.g., to share a directory across namespaces)
 MineGuiInitializationOptions options = MineGuiInitializationOptions.builder("examplemod")
-        .withConfigPathStrategy(ConfigPathStrategies.flat("examplemod"))
+        .configPathStrategy(ConfigPathStrategies.flat("examplemod"))
         .build();
 MineGuiNamespaces.initialize(options);
 ```
@@ -75,6 +75,9 @@ Customize persistence with a namespace-specific adapter—ideal when you want to
 ```java
 // Minimal adapter that writes layouts to a custom directory
 public final class CustomViewAdapter implements ViewPersistenceAdapter {
+    // helper methods (customLayoutPath/customStylePath/readString/writeString/deleteIfExists)
+    // encapsulate your own persistence strategy
+
     @Override
     public Optional<String> loadLayout(ViewPersistenceRequest request) {
         return readString(customLayoutPath(request));
@@ -85,12 +88,25 @@ public final class CustomViewAdapter implements ViewPersistenceAdapter {
         writeString(customLayoutPath(request), payload);
     }
 
-    // Implement style snapshot methods if you want to persist style serializers too.
+    @Override
+    public Optional<String> loadStyleSnapshot(ViewPersistenceRequest request) {
+        return readString(customStylePath(request));
+    }
+
+    @Override
+    public boolean storeStyleSnapshot(ViewStyleSnapshot snapshot) {
+        if (snapshot.deleted()) {
+            deleteIfExists(customStylePath(snapshot.request()));
+            return true;
+        }
+        writeString(customStylePath(snapshot.request()), snapshot.snapshotJson());
+        return true;
+    }
 }
 
 MineGuiNamespaces.initialize(
         MineGuiInitializationOptions.builder("examplemod")
-                .withViewPersistenceAdapter(new CustomViewAdapter())
+                .viewPersistenceAdapter(new CustomViewAdapter())
                 .build()
 );
 ```
