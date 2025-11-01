@@ -61,6 +61,9 @@ public class ImGuiLoader {
     }
 
     public static void onFrameRender() {
+        if (!MineGuiCore.isInitialized()) {
+            return;
+        }
         tryInitializeContext();
         if (!contextInitialized) {
             return;
@@ -83,6 +86,9 @@ public class ImGuiLoader {
     }
 
     public static void requestReload() {
+        if (!MineGuiCore.isInitialized()) {
+            return;
+        }
         if (contextInitialized) {
             MineGuiCore.LOGGER.warn("MineGui reload requested after initialization; restart the client to refresh fonts.");
             return;
@@ -92,6 +98,9 @@ public class ImGuiLoader {
     }
 
     private static void tryInitializeContext() {
+        if (!MineGuiCore.isInitialized()) {
+            return;
+        }
         if (contextInitialized || initializationInProgress || initializationFailed) {
             return;
         }

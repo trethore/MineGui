@@ -27,7 +27,7 @@ public final class MineGuiCore {
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
-    private static boolean defaultNamespaceConfigured;
+    private static volatile boolean defaultNamespaceConfigured;
     @Getter
     private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults(ID);
 
@@ -119,5 +119,9 @@ public final class MineGuiCore {
 
     public static void requestReload() {
         ImGuiLoader.requestReload();
+    }
+
+    public static boolean isInitialized() {
+        return defaultNamespaceConfigured;
     }
 }

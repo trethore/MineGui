@@ -3,6 +3,7 @@ package tytoo.minegui.runtime.cursor;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiFocusedFlags;
+import imgui.internal.ImGuiContext;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.util.CursorLockUtils;
@@ -95,7 +96,8 @@ public final class CursorPolicyRegistry {
         if (!CursorLockUtils.clientWantsLockCursor()) {
             return;
         }
-        if (ImGui.getCurrentContext() == null) {
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (!MineGuiCore.isInitialized() || context == null || context.isNotValidPtr()) {
             CLICK_RELEASE_UNLOCKS.clear();
             suppressImGuiInput();
             relockIfNecessary();
@@ -174,7 +176,8 @@ public final class CursorPolicyRegistry {
     }
 
     private static void suppressImGuiInput() {
-        if (ImGui.getCurrentContext() == null) {
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (!MineGuiCore.isInitialized() || context == null || context.isNotValidPtr()) {
             return;
         }
         ImGuiIO io = ImGui.getIO();
@@ -186,7 +189,8 @@ public final class CursorPolicyRegistry {
     }
 
     private static void clearImGuiFocus() {
-        if (ImGui.getCurrentContext() == null) {
+        ImGuiContext context = ImGui.getCurrentContext();
+        if (!MineGuiCore.isInitialized() || context == null || context.isNotValidPtr()) {
             return;
         }
         ImGui.setWindowFocus(null);
