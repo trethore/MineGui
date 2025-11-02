@@ -4,7 +4,7 @@ This guide walks you through installing MineGui, wiring the initialization hook,
 ## What this page covers
 - Adding MineGui to your build (Gradle or Maven)
 - Initializing `MineGuiCore` during client startup
-- Creating and registering an `MGView` for on-screen UI
+- Creating and registering a MineGui `View` for on-screen UI
 - Verifying the setup with the bundled Gradle tasks and debug utilities
 
 ## Installing MineGui
@@ -64,7 +64,7 @@ public final class MyModClient implements ClientModInitializer {
 Provide the same namespace anywhere you interact with `MineGuiNamespaces` or `UIManager` so persistence, styles, and cursor policies stay scoped to your mod.
 
 ## Building Your First View
-Extend `MGView` to render Dear ImGui widgets. Register the view with the namespace’s `UIManager` once the mod is ready.
+Extend `View` to render Dear ImGui widgets. Register the view with the namespace’s `UIManager` once the mod is ready.
 
 ```java
 // src/main/java/com/example/ui/ExampleOverlay.java
@@ -72,7 +72,7 @@ import imgui.ImGui;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.view.View;
 
-public final class ExampleOverlay extends MGView {
+public final class ExampleOverlay extends View {
     public ExampleOverlay() {
         super("example/overlay", true); // shouldSave=true persists window position and style
     }

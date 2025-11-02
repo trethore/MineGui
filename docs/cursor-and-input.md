@@ -8,17 +8,17 @@ MineGui coordinates cursor locks and input capture so ImGui windows feel native 
 - Troubleshooting tips when input stops reaching your views
 
 ## Built-in Policies
-Each `MGView` holds a cursor policy that dictates how MineGui unlocks the cursor and forwards events to ImGui.
+Each `View` holds a cursor policy that dictates how MineGui unlocks the cursor and forwards events to ImGui.
 
-- `MGCursorPolicies.empty()` — No special handling; ImGui only captures input when the view is focused.
-- `MGCursorPolicies.screen()` — Unlocks the cursor while the view is visible, ideal for editors and inspectors.
-- `MGCursorPolicies.clickToLock()` — Unlocks until the player clicks the world again (default namespace policy).
+- `CursorPolicies.empty()` — No special handling; ImGui only captures input when the view is focused.
+- `CursorPolicies.screen()` — Unlocks the cursor while the view is visible, ideal for editors and inspectors.
+- `CursorPolicies.clickToLock()` — Unlocks until the player clicks the world again (default namespace policy).
 
 ```java
-public final class PaletteView extends MGView {
+public final class PaletteView extends View {
     public PaletteView() {
         super("example/palette", true);
-        setCursorPolicy(MGCursorPolicies.screen()); // keep mouse free while the palette is open
+        setCursorPolicy(CursorPolicies.screen()); // keep mouse free while the palette is open
     }
 
     @Override
@@ -33,16 +33,16 @@ public final class PaletteView extends MGView {
 `UIManager.setDefaultCursorPolicy(...)` applies a policy to every registered view that has not set one explicitly.
 
 ```java
-UIManager.get("examplemod").setDefaultCursorPolicy(MGCursorPolicies.clickToLock());
+UIManager.get("examplemod").setDefaultCursorPolicy(CursorPolicies.clickToLock());
 ```
 
 ## Custom Policies
 Create your own cursor policies when you need domain-specific behaviour, such as holding the cursor unlocked while a modal workflow runs or re-locking after an asynchronous event.
 
 ```java
-Identifier modalId = Identifier.of("examplemod", "modal");
+ResourceId modalId = ResourceId.of("examplemod", "modal");
 
-MGCursorPolicy modalPolicy = MGCursorPolicy.of(
+CursorPolicy modalPolicy = CursorPolicy.of(
         CursorPolicyRegistry::requestPersistentUnlock,
         view -> {
             CursorPolicyRegistry.releasePersistentUnlock(view);

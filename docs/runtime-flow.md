@@ -14,6 +14,13 @@ This guide shows how MineGui boots ImGui inside the Minecraft client, when key l
 
 Keep your registrations—fonts, styles, cursor policies—before step 3 so they are captured during context initialization.
 
+## View lifecycle & persistence
+`View` instances manage their own visibility and persistence so you only need to toggle them on or off. Calling `setVisible(true)` runs `onOpen()` (your override) and then the active cursor policy’s `onOpen(view)`. Hiding the view triggers the cursor policy’s `onClose(view)` first, followed by your `onClose()`, and finally requests a save from `ViewSaveManager` when `shouldSave` is enabled. This ordering ensures cursor unlock/lock transitions finish before persistence kicks in.
+
+- Override `onOpen()`/`onClose()` for setup and teardown that must only run while the view is visible.
+- Use `toggleVisibility()` for hotkeys; `View` handles the cursor policy swap automatically.
+- When `shouldSave` is true and the view has an attached save manager, the layout/state snapshot is queued the moment visibility flips to false—no manual flush needed.
+
 ## Reload expectations
 - `/minegui reload` re-reads JSON config, view layout snapshots, and style descriptors. It does **not** rebuild the ImGui context or reload fonts.
 - To pick up new fonts, descriptors, or native bindings, restart the client so `ImGuiLoader` can recreate the context from scratch.

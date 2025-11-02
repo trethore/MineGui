@@ -12,7 +12,7 @@ MineGui keeps the runtime lean so mod authors can drive raw ImGui every frame. T
 ## Using These Docs
 Follow the pages in order for the smoothest onboarding. Each document starts with a quick overview, then breaks into focused sections with code snippets. Every page ends with navigation back here along with the suggested next step, so you can progress linearly or jump directly to the system you are working on.
 
-- Begin with [Getting Started](getting-started.md) to install MineGui and build your first `MGView`.
+- Begin with [Getting Started](getting-started.md) to install MineGui and build your first `View`.
 - Continue to [Configuration & Persistence](configuration-and-persistence.md) to learn how namespaces, config files, and view saves link together.
 - Explore [Styling & Fonts](styling-and-fonts.md) when you need theming, custom font atlases, or style export flows.
 - Review [Cursor & Input](cursor-and-input.md) to understand how MineGui manages GLFW state and cursor policies.

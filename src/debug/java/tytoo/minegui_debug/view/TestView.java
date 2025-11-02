@@ -8,6 +8,7 @@ import imgui.flag.ImGuiTableFlags;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
@@ -24,7 +25,7 @@ import tytoo.minegui_debug.MineGuiDebugCore;
 import java.util.Locale;
 
 public final class TestView extends View {
-    private static final ResourceId IMGUI_ICON = ResourceId.of("minegui", "icon.png");
+    private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
     private static final float CONTROL_WIDTH = 220f;
     private static final float CHILD_HEIGHT = 220f;
     private static final String[][] TABLE_ROWS = {

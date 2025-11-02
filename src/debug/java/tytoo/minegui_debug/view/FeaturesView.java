@@ -6,6 +6,7 @@ import imgui.ImGuiViewport;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
@@ -19,7 +20,7 @@ import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui_debug.MineGuiDebugCore;
 
 public final class FeaturesView extends View {
-    private static final ResourceId IMGUI_ICON = ResourceId.of("minegui", "icon.png");
+    private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
     private static final float WINDOW_WIDTH = 560.0f;
     private static final float WINDOW_HEIGHT = 540.0f;
     private static final int SAMPLE_CAPACITY = 64;
