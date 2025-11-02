@@ -6,30 +6,32 @@ on:
 
 jobs:
   notify:
+    if: ${{ github.event.registry_package.package_version != null }}
     runs-on: ubuntu-latest
-    steps:
-      - name: Compute version and URL
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_URL: ${{ github.event.release.html_url }}
-          PKG_VERSION: ${{ github.event.registry_package.package_version.name }}
-          PKG_URL: ${{ github.event.registry_package.package.html_url }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          VERSION="$RELEASE_TAG"
-          URL="$RELEASE_URL"
-          if [ -z "$VERSION" ]; then
-            VERSION="$PKG_VERSION"
-          fi
-          if [ -z "$URL" ]; then
-            URL="${PKG_URL:-https://github.com/${{ github.repository }}/packages}"
-          fi
-          NAME="$REPO_NAME"
 
-          cat > payload.json <<EOF
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.registry_package.name }}-${{ github.event.registry_package.package_version.name }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Restore dedupe cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .gh-notify-dedupe
+          key: notify-${{ github.event.registry_package.name }}-${{ github.event.registry_package.package_version.name }}
+
+      - name: Compute payload
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          NAME: ${{ github.event.repository.name }}
+          VERSION: ${{ github.event.registry_package.package_version.name }}
+          URL: ${{ github.event.registry_package.package.html_url }}
+        run: |
+          mkdir -p .gh-notify-dedupe
+          cat > payload.json <<'EOF'
           {
-            "content": "New version of ${NAME}: **${VERSION}**",
+            "content": "**${NAME}** has a new version: **${VERSION}**",
             "embeds": [{
               "title": "Maven Dependency",
               "description": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```",
@@ -37,8 +39,12 @@ jobs:
             }]
           }
           EOF
+          sed -i "s|\${NAME}|$NAME|g; s|\${VERSION}|$VERSION|g; s|\${URL}|${URL:-https://github.com/${GITHUB_REPOSITORY}/packages}|g" payload.json
+          # crée un marqueur pour que le cache s'enregistre à la fin
+          echo "$VERSION" > .gh-notify-dedupe/last-version.txt
 
       - name: Send to Discord
+        if: steps.cache.outputs.cache-hit != 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
