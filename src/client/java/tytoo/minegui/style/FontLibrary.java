@@ -272,10 +272,14 @@ public final class FontLibrary {
 
         ImFont load(FontLibrary library, FontVariant variant, float targetSize) {
             ImGuiIO io = ImGui.getIO();
-            byte[] fontBytes = source.resolve();
-            if (fontBytes == null || fontBytes.length == 0) {
-                MineGuiCore.LOGGER.warn("Font source returned no data");
-                return null;
+            byte[] fontBytes = library.fontData.get(variant);
+            if (fontBytes == null) {
+                fontBytes = source.resolve();
+                if (fontBytes == null || fontBytes.length == 0) {
+                    MineGuiCore.LOGGER.warn("Font source returned no data");
+                    return null;
+                }
+                library.fontData.put(variant, fontBytes);
             }
             ImFontConfig config = new ImFontConfig();
             try {
@@ -283,7 +287,6 @@ public final class FontLibrary {
                     configFactory.configure(config);
                 }
                 config.setFontDataOwnedByAtlas(false);
-                library.fontData.put(variant, fontBytes);
                 return io.getFonts().addFontFromMemoryTTF(fontBytes, targetSize, config);
             } finally {
                 config.destroy();
