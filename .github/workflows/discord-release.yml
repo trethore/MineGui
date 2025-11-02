@@ -9,22 +9,62 @@ permissions:
   contents: read
   packages: read
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   notify:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get latest Maven package version via gh api
+      - name: Query latest Maven package version via GraphQL (with fallback)
         id: latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: trethore
-          PKG_TYPE: maven
-          PKG_NAME: tytoo.minegui%2Fminegui
+          OWNER: trethore                       # <- change si besoin (user ou org)
+          PKG_FULL: tytoo.minegui/minegui       # groupId/artifactId
+          PKG_SHORT: minegui                    # fallback: juste artifactId
         run: |
-          JSON=$(gh api "/users/${OWNER}/packages/${PKG_TYPE}/${PKG_NAME}/versions?per_page=1")
-          VERSION=$(printf '%s' "$JSON" | jq -r '.[0].name')
-          URL=$(printf '%s' "$JSON" | jq -r '.[0].html_url')
+          set -e
+
+          gql_query() {
+            local PKG_NAME="$1"
+            gh api graphql -f query='
+              query($owner:String!, $pkg:String!) {
+                repositoryOwner(login: $owner) {
+                  packages(first: 1, names: [$pkg], packageType: MAVEN) {
+                    nodes {
+                      name
+                      versions(first: 1) {
+                        nodes {
+                          version
+                          url
+                        }
+                      }
+                    }
+                  }
+                }
+              }' -F owner="$OWNER" -F pkg="$PKG_NAME"
+          }
+
+          # tentative 1: groupId/artifactId
+          JSON=$(gql_query "$PKG_FULL") || true
+          VERSION=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].version // empty' <<<"$JSON")
+          URL=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].url // empty' <<<"$JSON")
+
+          # fallback: artifactId seul
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            JSON=$(gql_query "$PKG_SHORT") || true
+            VERSION=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].version // empty' <<<"$JSON")
+            URL=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].url // empty' <<<"$JSON")
+          fi
+
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "Impossible de trouver le package Maven pour $OWNER. Vérifie OWNER et le nom du package."
+            exit 1
+          fi
+
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
