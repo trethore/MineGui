@@ -18,50 +18,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Query latest Maven package version via GraphQL (with fallback)
+      - name: Find latest Maven package version (REST, user/org + full/short)
         id: latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: trethore                       # <- change si besoin (user ou org)
-          PKG_FULL: tytoo.minegui/minegui       # groupId/artifactId
-          PKG_SHORT: minegui                    # fallback: juste artifactId
+          OWNER: trethore
+          PKG_TYPE: maven
+          PKG_FULL: tytoo.minegui%2Fminegui
+          PKG_SHORT: minegui
         run: |
           set -e
 
-          gql_query() {
-            local PKG_NAME="$1"
-            gh api graphql -f query='
-              query($owner:String!, $pkg:String!) {
-                repositoryOwner(login: $owner) {
-                  packages(first: 1, names: [$pkg], packageType: MAVEN) {
-                    nodes {
-                      name
-                      versions(first: 1) {
-                        nodes {
-                          version
-                          url
-                        }
-                      }
-                    }
-                  }
-                }
-              }' -F owner="$OWNER" -F pkg="$PKG_NAME"
+          USER_LIST=$(gh api -H "Accept: application/vnd.github+json" \
+            "/users/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || true)
+
+          ORG_LIST=$(gh api -H "Accept: application/vnd.github+json" \
+            "/orgs/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || true)
+
+          find_pkg_scope() {
+            local NAME="$1"
+            local SCOPE=""
+            echo "$USER_LIST" | jq -e --arg n "$NAME" '.[] | select(.name==$n)' >/dev/null 2>&1 && SCOPE=user
+            if [ -z "$SCOPE" ]; then
+              echo "$ORG_LIST" | jq -e --arg n "$NAME" '.[] | select(.name==$n)' >/dev/null 2>&1 && SCOPE=org
+            fi
+            echo "$SCOPE"
           }
 
-          # tentative 1: groupId/artifactId
-          JSON=$(gql_query "$PKG_FULL") || true
-          VERSION=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].version // empty' <<<"$JSON")
-          URL=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].url // empty' <<<"$JSON")
-
-          # fallback: artifactId seul
-          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
-            JSON=$(gql_query "$PKG_SHORT") || true
-            VERSION=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].version // empty' <<<"$JSON")
-            URL=$(jq -r '.data.repositoryOwner.packages.nodes[0].versions.nodes[0].url // empty' <<<"$JSON")
+          SCOPE=$(find_pkg_scope "$PKG_FULL")
+          PKG_NAME="$PKG_FULL"
+          if [ -z "$SCOPE" ]; then
+            SCOPE=$(find_pkg_scope "$PKG_SHORT")
+            PKG_NAME="$PKG_SHORT"
           fi
 
-          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
-            echo "Impossible de trouver le package Maven pour $OWNER. Vérifie OWNER et le nom du package."
+          if [ -z "$SCOPE" ]; then
+            echo "Impossible de localiser le package Maven ($PKG_FULL ou $PKG_SHORT) sous $OWNER (user ou org)."
+            echo "USER_LIST: $(echo "$USER_LIST" | jq -r '.[].name' 2>/dev/null || true)"
+            echo "ORG_LIST:  $(echo "$ORG_LIST"  | jq -r '.[].name' 2>/dev/null || true)"
+            exit 1
+          fi
+
+          if [ "$SCOPE" = "user" ]; then
+            VERS_JSON=$(gh api -H "Accept: application/vnd.github+json" \
+              "/users/${OWNER}/packages/${PKG_TYPE}/${PKG_NAME}/versions?per_page=1")
+          else
+            VERS_JSON=$(gh api -H "Accept: application/vnd.github+json" \
+              "/orgs/${OWNER}/packages/${PKG_TYPE}/${PKG_NAME}/versions?per_page=1")
+          fi
+
+          VERSION=$(printf '%s' "$VERS_JSON" | jq -r '.[0].name // empty')
+          URL=$(printf '%s' "$VERS_JSON" | jq -r '.[0].html_url // empty')
+
+          if [ -z "$VERSION" ]; then
+            echo "Aucune version trouvée pour ${OWNER}/${PKG_NAME}"
             exit 1
           fi
 
@@ -110,6 +120,4 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          curl -s -H "Content-Type: application/json" \
-               -X POST -d @payload.json \
-               "$DISCORD_WEBHOOK_URL"
+          curl -s -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK_URL"
