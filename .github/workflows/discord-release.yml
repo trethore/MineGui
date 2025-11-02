@@ -1,29 +1,42 @@
-name: Notify Discord on Release
+name: Notify Discord on Package
 
 on:
-  release:
+  registry_package:
     types: [published]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare payload
+      - name: Compute version and URL
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          PKG_VERSION: ${{ github.event.registry_package.package_version.name }}
+          PKG_URL: ${{ github.event.registry_package.package.html_url }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
-          NAME="${{ github.event.repository.name }}"
-          RELEASE_URL="${{ github.event.release.html_url }}"
-          cat > payload.json <<'EOF'
+          VERSION="$RELEASE_TAG"
+          URL="$RELEASE_URL"
+          if [ -z "$VERSION" ]; then
+            VERSION="$PKG_VERSION"
+          fi
+          if [ -z "$URL" ]; then
+            URL="${PKG_URL:-https://github.com/${{ github.repository }}/packages}"
+          fi
+          NAME="$REPO_NAME"
+
+          cat > payload.json <<EOF
           {
             "content": "New version of ${NAME}: **${VERSION}**",
             "embeds": [{
               "title": "Maven Dependency",
               "description": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```",
-              "url": "${RELEASE_URL}"
+              "url": "${URL}"
             }]
           }
           EOF
-          sed -i "s|\${NAME}|$NAME|g; s|\${VERSION}|$VERSION|g; s|\${RELEASE_URL}|$RELEASE_URL|g" payload.json
 
       - name: Send to Discord
         env:
