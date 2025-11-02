@@ -10,14 +10,14 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
-import tytoo.minegui.helper.window.MGWindow;
-import tytoo.minegui.style.MGColorPalette;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.style.ColorPalette;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ImGuiImageUtils;
-import tytoo.minegui.view.MGView;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.view.View;
+import tytoo.minegui.view.cursor.CursorPolicies;
 
-public final class FeaturesView extends MGView {
+public final class FeaturesView extends View {
     private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
     private static final float WINDOW_WIDTH = 560.0f;
     private static final float WINDOW_HEIGHT = 540.0f;
@@ -72,12 +72,12 @@ public final class FeaturesView extends MGView {
 
     public FeaturesView() {
         super("minegui_debug:features_view", false);
-        setCursorPolicy(MGCursorPolicies.screen());
+        setCursorPolicy(CursorPolicies.screen());
         scratchInput.set("Type here to test ImGui input relays.");
     }
 
-    private static MGColorPalette createWindarkPalette() {
-        MGColorPalette.Builder builder = MGColorPalette.builder();
+    private static ColorPalette createWindarkPalette() {
+        ColorPalette.Builder builder = ColorPalette.builder();
         builder.set(ImGuiCol.Text, color(1.0f, 1.0f, 1.0f, 1.0f));
         builder.set(ImGuiCol.TextDisabled, color(0.6f, 0.6f, 0.6f, 1.0f));
         builder.set(ImGuiCol.WindowBg, color(0.1254902f, 0.1254902f, 0.1254902f, 1.0f));
@@ -139,8 +139,8 @@ public final class FeaturesView extends MGView {
     }
 
     @Override
-    public MGStyleDescriptor configureBaseStyle(MGStyleDescriptor descriptor) {
-        var builder = MGStyleDescriptor.builder();
+    public StyleDescriptor configureBaseStyle(StyleDescriptor descriptor) {
+        var builder = StyleDescriptor.builder();
         if (descriptor != null) {
             builder.fromDescriptor(descriptor);
         } else {
@@ -183,7 +183,7 @@ public final class FeaturesView extends MGView {
     @Override
     protected void renderView() {
         advanceAnimation();
-        MGWindow.of(this, "ImGui Features")
+        Window.of(this, "ImGui Features")
                 .initDimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
                 .flags(resolveWindowFlags())
                 .render(() -> UI.withVStack(new VStack.Options().spacing(10.0f).fillMode(VStack.FillMode.MATCH_WIDEST), layout -> {

@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 public final class NamedStyleRegistry {
     private static final NamedStyleRegistry INSTANCE = new NamedStyleRegistry();
 
-    private final ConcurrentMap<Identifier, MGStyleDescriptor> descriptors = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Identifier, StyleDescriptor> descriptors = new ConcurrentHashMap<>();
 
     private NamedStyleRegistry() {
     }
@@ -22,7 +22,7 @@ public final class NamedStyleRegistry {
         return INSTANCE;
     }
 
-    public void registerDescriptor(Identifier key, MGStyleDescriptor descriptor) {
+    public void registerDescriptor(Identifier key, StyleDescriptor descriptor) {
         if (key == null || descriptor == null) {
             return;
         }
@@ -30,20 +30,20 @@ public final class NamedStyleRegistry {
         StyleManager.registerDescriptor(key, descriptor);
     }
 
-    public void registerPreset(Identifier key, Consumer<MGStyleDescriptor.Builder> builderConsumer, MGStyleDescriptor base) {
+    public void registerPreset(Identifier key, Consumer<StyleDescriptor.Builder> builderConsumer, StyleDescriptor base) {
         if (builderConsumer == null || base == null) {
             return;
         }
-        MGStyleDescriptor.Builder builder = MGStyleDescriptor.builder().fromDescriptor(base);
+        StyleDescriptor.Builder builder = StyleDescriptor.builder().fromDescriptor(base);
         builderConsumer.accept(builder);
         registerDescriptor(key, builder.build());
     }
 
-    public Optional<MGStyleDescriptor> getDescriptor(Identifier key) {
+    public Optional<StyleDescriptor> getDescriptor(Identifier key) {
         if (key == null) {
             return Optional.empty();
         }
-        MGStyleDescriptor descriptor = descriptors.get(key);
+        StyleDescriptor descriptor = descriptors.get(key);
         if (descriptor != null) {
             return Optional.of(descriptor);
         }
@@ -54,11 +54,11 @@ public final class NamedStyleRegistry {
         return descriptors.keySet();
     }
 
-    public Map<Identifier, MGStyleDescriptor> snapshot() {
+    public Map<Identifier, StyleDescriptor> snapshot() {
         return Map.copyOf(descriptors);
     }
 
-    public void registerBasePresets(MGStyleDescriptor baseDescriptor) {
+    public void registerBasePresets(StyleDescriptor baseDescriptor) {
         if (baseDescriptor == null) {
             return;
         }
@@ -87,7 +87,7 @@ public final class NamedStyleRegistry {
         descriptors.clear();
     }
 
-    private MGStyleDescriptor duplicate(MGStyleDescriptor descriptor) {
-        return MGStyleDescriptor.builder().fromDescriptor(descriptor).build();
+    private StyleDescriptor duplicate(StyleDescriptor descriptor) {
+        return StyleDescriptor.builder().fromDescriptor(descriptor).build();
     }
 }

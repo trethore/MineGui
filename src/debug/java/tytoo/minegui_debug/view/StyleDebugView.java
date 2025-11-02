@@ -5,16 +5,16 @@ import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.NamedStyleRegistry;
 import tytoo.minegui.style.StyleManager;
-import tytoo.minegui.view.MGView;
+import tytoo.minegui.view.View;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public final class StyleDebugView extends MGView {
+public final class StyleDebugView extends View {
     private Identifier selectedKey;
 
     public StyleDebugView() {
@@ -79,7 +79,7 @@ public final class StyleDebugView extends MGView {
         ImGui.end();
     }
 
-    private void renderDescriptorDetails(MGStyleDescriptor descriptor) {
+    private void renderDescriptorDetails(StyleDescriptor descriptor) {
         ImGui.separator();
         ImGui.text("Metrics");
         ImGui.text("Window Padding: %.2f x %.2f".formatted(descriptor.getWindowPadding().x(), descriptor.getWindowPadding().y()));

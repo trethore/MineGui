@@ -1,5 +1,8 @@
 package tytoo.minegui.config;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,11 +10,19 @@ public final class GlobalConfig {
     private static final String DEFAULT_CONFIG_PATH = "global_config.json";
     private static final String DEFAULT_VIEW_SAVES_PATH = "views";
 
+    @Setter
     private boolean viewport = true;
+    @Setter
     private boolean dockspace = true;
+    @Getter
     private float globalScale = 1.0f;
+    @Setter
+    @Getter
     private String configPath = DEFAULT_CONFIG_PATH;
+    @Setter
+    @Getter
     private String viewSavesPath = DEFAULT_VIEW_SAVES_PATH;
+    @Getter
     private String globalStyleKey;
     private Map<String, String> viewStyles = new HashMap<>();
 
@@ -26,20 +37,8 @@ public final class GlobalConfig {
         return viewport;
     }
 
-    public void setViewport(boolean viewport) {
-        this.viewport = viewport;
-    }
-
     public boolean isDockspaceEnabled() {
         return dockspace;
-    }
-
-    public void setDockspace(boolean dockspace) {
-        this.dockspace = dockspace;
-    }
-
-    public float getGlobalScale() {
-        return globalScale;
     }
 
     public void setGlobalScale(float globalScale) {
@@ -48,26 +47,6 @@ public final class GlobalConfig {
             return;
         }
         this.globalScale = globalScale;
-    }
-
-    public String getConfigPath() {
-        return configPath;
-    }
-
-    public void setConfigPath(String configPath) {
-        this.configPath = configPath;
-    }
-
-    public String getViewSavesPath() {
-        return viewSavesPath;
-    }
-
-    public void setViewSavesPath(String viewSavesPath) {
-        this.viewSavesPath = viewSavesPath;
-    }
-
-    public String getGlobalStyleKey() {
-        return globalStyleKey;
     }
 
     public void setGlobalStyleKey(String globalStyleKey) {

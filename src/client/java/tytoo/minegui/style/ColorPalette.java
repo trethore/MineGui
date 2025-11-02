@@ -10,28 +10,28 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class MGColorPalette {
-    private static final MGColorPalette EMPTY = new MGColorPalette(Collections.emptyMap());
+public final class ColorPalette {
+    private static final ColorPalette EMPTY = new ColorPalette(Collections.emptyMap());
 
     @Getter
     private final Map<Integer, Integer> colors;
 
-    private MGColorPalette(Map<Integer, Integer> colors) {
+    private ColorPalette(Map<Integer, Integer> colors) {
         this.colors = Map.copyOf(colors);
     }
 
-    public static MGColorPalette empty() {
+    public static ColorPalette empty() {
         return EMPTY;
     }
 
-    public static MGColorPalette of(Map<Integer, Integer> colors) {
+    public static ColorPalette of(Map<Integer, Integer> colors) {
         if (colors == null || colors.isEmpty()) {
             return empty();
         }
-        return new MGColorPalette(colors);
+        return new ColorPalette(colors);
     }
 
-    public static MGColorPalette fromStyle(ImGuiStyle style) {
+    public static ColorPalette fromStyle(ImGuiStyle style) {
         if (style == null) {
             return empty();
         }
@@ -42,7 +42,7 @@ public final class MGColorPalette {
             int packed = ImGui.getColorU32(buffer.x, buffer.y, buffer.z, buffer.w);
             captured.put(index, packed);
         }
-        return new MGColorPalette(captured);
+        return new ColorPalette(captured);
     }
 
     public static Builder builder() {
@@ -60,7 +60,7 @@ public final class MGColorPalette {
         colors.forEach(style::setColor);
     }
 
-    public MGColorPalette mergedWith(MGColorPalette overrides) {
+    public ColorPalette mergedWith(ColorPalette overrides) {
         if (overrides == null || overrides.isEmpty()) {
             return this;
         }
@@ -69,13 +69,13 @@ public final class MGColorPalette {
         }
         Map<Integer, Integer> merged = new HashMap<>(colors);
         merged.putAll(overrides.colors);
-        return new MGColorPalette(merged);
+        return new ColorPalette(merged);
     }
 
-    public MGColorPalette withColor(int index, int color) {
+    public ColorPalette withColor(int index, int color) {
         Map<Integer, Integer> result = new HashMap<>(colors);
         result.put(index, color);
-        return new MGColorPalette(result);
+        return new ColorPalette(result);
     }
 
     public static final class Builder {
@@ -86,8 +86,8 @@ public final class MGColorPalette {
             return this;
         }
 
-        public MGColorPalette build() {
-            return MGColorPalette.of(entries);
+        public ColorPalette build() {
+            return ColorPalette.of(entries);
         }
     }
 }

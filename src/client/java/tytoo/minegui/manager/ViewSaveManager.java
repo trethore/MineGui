@@ -12,7 +12,7 @@ import tytoo.minegui.persistence.ViewPersistenceRequest;
 import tytoo.minegui.persistence.ViewStyleSnapshot;
 import tytoo.minegui.style.StyleJsonSerializer;
 import tytoo.minegui.style.StyleManager;
-import tytoo.minegui.view.MGView;
+import tytoo.minegui.view.View;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,7 +32,7 @@ public final class ViewSaveManager {
     private static final Pattern WINDOW_HEADER_PATTERN = Pattern.compile("^\\[[^]]+]\\[(?<name>[^]]+)]$");
 
     private final String namespace;
-    private final Map<MGView, ViewEntry> entries = new ConcurrentHashMap<>();
+    private final Map<View, ViewEntry> entries = new ConcurrentHashMap<>();
     private final StyleManager styleManager;
     private volatile ViewPersistenceAdapter adapter;
     private volatile boolean forceSave;
@@ -86,21 +86,21 @@ public final class ViewSaveManager {
         return namespace;
     }
 
-    public void register(MGView view) {
+    public void register(View view) {
         if (view == null) {
             return;
         }
         entries.computeIfAbsent(view, unused -> new ViewEntry());
     }
 
-    public void unregister(MGView view) {
+    public void unregister(View view) {
         if (view == null) {
             return;
         }
         entries.remove(view);
     }
 
-    public void prepareView(MGView view) {
+    public void prepareView(View view) {
         if (view == null) {
             return;
         }
@@ -146,8 +146,8 @@ public final class ViewSaveManager {
 
     public int exportStyles(boolean forceRewrite) {
         if (forceRewrite) {
-            for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
-                MGView view = entry.getKey();
+            for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
+                View view = entry.getKey();
                 ViewEntry state = entry.getValue();
                 if (view == null || state == null || !view.isShouldSave()) {
                     continue;
@@ -185,7 +185,7 @@ public final class ViewSaveManager {
         if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.VIEW_LAYOUTS)) {
             return;
         }
-        Map<String, Map.Entry<MGView, ViewEntry>> activeEntries = entries.entrySet().stream()
+        Map<String, Map.Entry<View, ViewEntry>> activeEntries = entries.entrySet().stream()
                 .filter(entry -> entry.getKey().isShouldSave())
                 .collect(Collectors.toMap(entry -> scopedId(entry.getKey()), entry -> entry, (first, second) -> first));
         if (activeEntries.isEmpty()) {
@@ -221,18 +221,18 @@ public final class ViewSaveManager {
             if (entry.getValue().isEmpty()) {
                 continue;
             }
-            Map.Entry<MGView, ViewEntry> active = activeEntries.get(entry.getKey());
+            Map.Entry<View, ViewEntry> active = activeEntries.get(entry.getKey());
             if (active == null) {
                 continue;
             }
-            MGView view = active.getKey();
+            View view = active.getKey();
             ViewEntry viewEntry = active.getValue();
             ViewPersistenceRequest request = ensureRequest(view, viewEntry);
             adapter.saveLayout(request, entry.getValue().toString());
         }
     }
 
-    public void captureViewStyle(MGView view) {
+    public void captureViewStyle(View view) {
         if (view == null || !view.isShouldSave()) {
             return;
         }
@@ -259,7 +259,7 @@ public final class ViewSaveManager {
         });
     }
 
-    private void restoreViewStyle(MGView view, ViewEntry entry) {
+    private void restoreViewStyle(View view, ViewEntry entry) {
         if (GlobalConfigManager.isConfigIgnored(namespace)) {
             entry.pendingStyleKey = normalizeStyleKey(view.getStyleKey());
             entry.styleDirty = false;
@@ -296,8 +296,8 @@ public final class ViewSaveManager {
         }
         boolean changed = false;
         Map<String, String> styles = GlobalConfigManager.getConfig(namespace).getViewStyles();
-        for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
-            MGView view = entry.getKey();
+        for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
+            View view = entry.getKey();
             ViewEntry state = entry.getValue();
             if (view == null || !view.isShouldSave() || state == null || !state.styleDirty) {
                 continue;
@@ -323,8 +323,8 @@ public final class ViewSaveManager {
 
     private int persistStyleDescriptors() {
         int exported = 0;
-        for (Map.Entry<MGView, ViewEntry> entry : entries.entrySet()) {
-            MGView view = entry.getKey();
+        for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
+            View view = entry.getKey();
             ViewEntry state = entry.getValue();
             if (view == null || state == null || !view.isShouldSave() || !state.descriptorDirty) {
                 continue;
@@ -358,7 +358,7 @@ public final class ViewSaveManager {
         return identifier.toString();
     }
 
-    private String scopedId(MGView view) {
+    private String scopedId(View view) {
         String viewNamespace = view.getNamespace();
         String viewId = persistenceViewId(view.getId());
         if (viewNamespace == null || viewNamespace.isBlank()) {
@@ -380,7 +380,7 @@ public final class ViewSaveManager {
         return name.substring(markerIndex + 2);
     }
 
-    private ViewPersistenceRequest ensureRequest(MGView view, ViewEntry entry) {
+    private ViewPersistenceRequest ensureRequest(View view, ViewEntry entry) {
         String scopedId = scopedId(view);
         String viewId = persistenceViewId(view.getId());
         ViewPersistenceRequest current = entry.request;

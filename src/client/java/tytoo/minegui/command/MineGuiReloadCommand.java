@@ -11,7 +11,7 @@ import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
 
 import java.util.ArrayList;
@@ -79,7 +79,7 @@ public final class MineGuiReloadCommand {
         if (styleManager.getGlobalDescriptor().isEmpty()) {
             StyleManager.get(GlobalConfigManager.getDefaultNamespace())
                     .getGlobalDescriptor()
-                    .map(descriptor -> MGStyleDescriptor.builder().fromDescriptor(descriptor).build())
+                    .map(descriptor -> StyleDescriptor.builder().fromDescriptor(descriptor).build())
                     .ifPresent(styleManager::setGlobalDescriptor);
         }
         styleManager.setGlobalStyleKey(styleKey);

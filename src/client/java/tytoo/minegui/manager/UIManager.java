@@ -3,13 +3,13 @@ package tytoo.minegui.manager;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profilers;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.style.MGStyleDelta;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleDelta;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.style.StyleScope;
-import tytoo.minegui.view.MGView;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
-import tytoo.minegui.view.cursor.MGCursorPolicy;
+import tytoo.minegui.view.View;
+import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui.view.cursor.CursorPolicy;
 
 import java.util.List;
 import java.util.Map;
@@ -22,14 +22,14 @@ public final class UIManager {
     private final String namespace;
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
-    private final List<MGView> views = new CopyOnWriteArrayList<>();
-    private volatile MGCursorPolicy defaultCursorPolicy;
+    private final List<View> views = new CopyOnWriteArrayList<>();
+    private volatile CursorPolicy defaultCursorPolicy;
 
     private UIManager(String namespace) {
         this.namespace = namespace;
         this.viewSaveManager = ViewSaveManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
-        this.defaultCursorPolicy = MGCursorPolicies.empty();
+        this.defaultCursorPolicy = CursorPolicies.empty();
     }
 
     public static UIManager get(String namespace) {
@@ -44,7 +44,7 @@ public final class UIManager {
         return namespace;
     }
 
-    public void register(MGView view) {
+    public void register(View view) {
         if (view == null) {
             return;
         }
@@ -56,7 +56,7 @@ public final class UIManager {
         }
     }
 
-    public void unregister(MGView view) {
+    public void unregister(View view) {
         if (view == null) {
             return;
         }
@@ -68,17 +68,17 @@ public final class UIManager {
         view.detach();
     }
 
-    public MGCursorPolicy getDefaultCursorPolicy() {
+    public CursorPolicy getDefaultCursorPolicy() {
         return defaultCursorPolicy;
     }
 
-    public void setDefaultCursorPolicy(MGCursorPolicy policy) {
-        MGCursorPolicy resolved = policy != null ? policy : MGCursorPolicies.empty();
+    public void setDefaultCursorPolicy(CursorPolicy policy) {
+        CursorPolicy resolved = policy != null ? policy : CursorPolicies.empty();
         if (this.defaultCursorPolicy == resolved) {
             return;
         }
         this.defaultCursorPolicy = resolved;
-        for (MGView view : views) {
+        for (View view : views) {
             if (view != null) {
                 view.applyDefaultCursorPolicy(resolved);
             }
@@ -86,7 +86,7 @@ public final class UIManager {
     }
 
     public boolean hasVisibleViews() {
-        return views.stream().anyMatch(MGView::isVisible);
+        return views.stream().anyMatch(View::isVisible);
     }
 
     public boolean hasViews() {
@@ -99,7 +99,7 @@ public final class UIManager {
         }
         StyleManager.pushActive(styleManager);
         try {
-            for (MGView view : views) {
+            for (View view : views) {
                 if (view == null) {
                     continue;
                 }
@@ -108,10 +108,10 @@ public final class UIManager {
                 }
                 viewSaveManager.prepareView(view);
                 Identifier originalKey = styleManager.getGlobalStyleKey();
-                MGStyleDescriptor originalDescriptor = styleManager.getGlobalDescriptor().orElse(null);
+                StyleDescriptor originalDescriptor = styleManager.getGlobalDescriptor().orElse(null);
                 applyViewBaseStyle(view, originalDescriptor);
                 Profilers.get().push(view.getClass().getSimpleName());
-                MGStyleDelta delta = view.configureStyleDelta();
+                StyleDelta delta = view.configureStyleDelta();
                 try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
                     view.render();
                     viewSaveManager.captureViewStyle(view);
@@ -125,12 +125,12 @@ public final class UIManager {
         }
     }
 
-    private void applyViewBaseStyle(MGView view, MGStyleDescriptor fallbackDescriptor) {
+    private void applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
         Identifier styleKey = view.getStyleKey();
         styleManager.setGlobalStyleKeyTransient(styleKey);
-        MGStyleDescriptor descriptor = fallbackDescriptor != null ? fallbackDescriptor : styleManager.getGlobalDescriptor().orElse(null);
+        StyleDescriptor descriptor = fallbackDescriptor != null ? fallbackDescriptor : styleManager.getGlobalDescriptor().orElse(null);
         if (descriptor != null) {
-            MGStyleDescriptor updated = view.configureBaseStyle(descriptor);
+            StyleDescriptor updated = view.configureBaseStyle(descriptor);
             if (updated != null && updated != descriptor) {
                 styleManager.setGlobalDescriptor(updated);
             }
@@ -138,7 +138,7 @@ public final class UIManager {
         styleManager.apply();
     }
 
-    private void restoreBaseStyle(Identifier originalKey, MGStyleDescriptor originalDescriptor) {
+    private void restoreBaseStyle(Identifier originalKey, StyleDescriptor originalDescriptor) {
         styleManager.setGlobalStyleKeyTransient(originalKey);
         if (originalDescriptor != null) {
             styleManager.setGlobalDescriptor(originalDescriptor);

@@ -8,10 +8,10 @@ import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.runtime.config.NamespaceConfigAccess;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
-import tytoo.minegui.view.cursor.MGCursorPolicy;
+import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui.view.cursor.CursorPolicy;
 
 import java.util.Objects;
 
@@ -23,7 +23,7 @@ public final class MineGuiNamespaceContext {
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
     private Identifier defaultCursorPolicyId;
-    private MGCursorPolicy defaultCursorPolicy;
+    private CursorPolicy defaultCursorPolicy;
     private volatile DockspaceCustomizer dockspaceCustomizer;
 
     MineGuiNamespaceContext(String namespace, MineGuiInitializationOptions options) {
@@ -36,11 +36,11 @@ public final class MineGuiNamespaceContext {
         StyleManager defaultStyleManager = StyleManager.get(GlobalConfigManager.getDefaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {
             defaultStyleManager.getGlobalDescriptor()
-                    .map(descriptor -> MGStyleDescriptor.builder().fromDescriptor(descriptor).build())
+                    .map(descriptor -> StyleDescriptor.builder().fromDescriptor(descriptor).build())
                     .ifPresent(this.styleManager::setGlobalDescriptor);
         }
         this.defaultCursorPolicyId = options.defaultCursorPolicyId();
-        this.defaultCursorPolicy = CursorPolicyRegistry.resolvePolicyOrDefault(defaultCursorPolicyId, MGCursorPolicies.empty());
+        this.defaultCursorPolicy = CursorPolicyRegistry.resolvePolicyOrDefault(defaultCursorPolicyId, CursorPolicies.empty());
         this.uiManager.setDefaultCursorPolicy(defaultCursorPolicy);
         this.dockspaceCustomizer = options.dockspaceCustomizer();
     }
@@ -73,13 +73,13 @@ public final class MineGuiNamespaceContext {
         return defaultCursorPolicyId;
     }
 
-    public MGCursorPolicy defaultCursorPolicy() {
+    public CursorPolicy defaultCursorPolicy() {
         return defaultCursorPolicy;
     }
 
     public void setDefaultCursorPolicy(Identifier policyId) {
-        Identifier normalized = policyId != null ? policyId : MGCursorPolicies.emptyId();
-        MGCursorPolicy resolved = CursorPolicyRegistry.resolvePolicyOrDefault(normalized, MGCursorPolicies.empty());
+        Identifier normalized = policyId != null ? policyId : CursorPolicies.emptyId();
+        CursorPolicy resolved = CursorPolicyRegistry.resolvePolicyOrDefault(normalized, CursorPolicies.empty());
         if (Objects.equals(normalized, defaultCursorPolicyId) && resolved == defaultCursorPolicy) {
             return;
         }

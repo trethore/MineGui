@@ -4,12 +4,12 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
-import tytoo.minegui.style.MGStyleDelta;
-import tytoo.minegui.style.MGStyleDescriptor;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
-import tytoo.minegui.view.cursor.MGCursorPolicy;
+import tytoo.minegui.style.StyleDelta;
+import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui.view.cursor.CursorPolicy;
 
-public abstract class MGView {
+public abstract class View {
     @Getter
     private boolean visible;
     @Getter
@@ -24,21 +24,21 @@ public abstract class MGView {
     private String namespace;
     private ViewSaveManager viewSaveManager;
     @Getter
-    private MGCursorPolicy cursorPolicy;
+    private CursorPolicy cursorPolicy;
     private boolean cursorPolicyExplicit;
 
-    protected MGView() {
+    protected View() {
         this.id = deriveDefaultId();
-        this.cursorPolicy = MGCursorPolicies.empty();
+        this.cursorPolicy = CursorPolicies.empty();
         this.cursorPolicyExplicit = false;
     }
 
-    protected MGView(String id) {
+    protected View(String id) {
         this();
         setId(id);
     }
 
-    protected MGView(String id, boolean shouldSave) {
+    protected View(String id, boolean shouldSave) {
         this(id);
         setShouldSave(shouldSave);
     }
@@ -52,11 +52,11 @@ public abstract class MGView {
 
     protected abstract void renderView();
 
-    public MGStyleDelta configureStyleDelta() {
+    public StyleDelta configureStyleDelta() {
         return null;
     }
 
-    public MGStyleDescriptor configureBaseStyle(MGStyleDescriptor descriptor) {
+    public StyleDescriptor configureBaseStyle(StyleDescriptor descriptor) {
         return descriptor;
     }
 
@@ -129,7 +129,7 @@ public abstract class MGView {
         this.id = id;
     }
 
-    public void setCursorPolicy(MGCursorPolicy cursorPolicy) {
+    public void setCursorPolicy(CursorPolicy cursorPolicy) {
         boolean explicit = cursorPolicy != null;
         updateCursorPolicy(cursorPolicy, explicit);
     }
@@ -138,15 +138,15 @@ public abstract class MGView {
         return cursorPolicyExplicit;
     }
 
-    public void applyDefaultCursorPolicy(MGCursorPolicy defaultPolicy) {
+    public void applyDefaultCursorPolicy(CursorPolicy defaultPolicy) {
         if (cursorPolicyExplicit) {
             return;
         }
         updateCursorPolicy(defaultPolicy, false);
     }
 
-    private void updateCursorPolicy(MGCursorPolicy nextPolicy, boolean explicit) {
-        MGCursorPolicy resolved = nextPolicy != null ? nextPolicy : MGCursorPolicies.empty();
+    private void updateCursorPolicy(CursorPolicy nextPolicy, boolean explicit) {
+        CursorPolicy resolved = nextPolicy != null ? nextPolicy : CursorPolicies.empty();
         if (this.cursorPolicy == resolved && this.cursorPolicyExplicit == explicit) {
             return;
         }

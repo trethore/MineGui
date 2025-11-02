@@ -9,7 +9,7 @@ public final class StyleScope implements AutoCloseable {
         this.delegate = delegate;
     }
 
-    public static StyleScope push(MGStyleDelta delta) {
+    public static StyleScope push(StyleDelta delta) {
         Objects.requireNonNull(delta, "delta");
         StyleManager.StyleScope scope = StyleManager.current().pushRaw(delta);
         return new StyleScope(scope);

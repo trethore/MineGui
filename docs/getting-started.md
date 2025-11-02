@@ -70,7 +70,7 @@ Extend `MGView` to render Dear ImGui widgets. Register the view with the namespa
 // src/main/java/com/example/ui/ExampleOverlay.java
 import imgui.ImGui;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.view.MGView;
+import tytoo.minegui.view.View;
 
 public final class ExampleOverlay extends MGView {
     public ExampleOverlay() {

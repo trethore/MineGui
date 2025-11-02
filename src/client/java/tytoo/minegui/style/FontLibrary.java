@@ -16,8 +16,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class MGFontLibrary {
-    private static final MGFontLibrary INSTANCE = new MGFontLibrary();
+public final class FontLibrary {
+    private static final FontLibrary INSTANCE = new FontLibrary();
     private static final Identifier DEFAULT_FONT_KEY = Identifier.of(MineGuiCore.ID, "default");
 
     private final ConcurrentHashMap<FontVariant, ImFont> loadedFonts = new ConcurrentHashMap<>();
@@ -28,10 +28,10 @@ public final class MGFontLibrary {
     private final ThreadLocal<Set<Identifier>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
     private volatile boolean registrationLocked;
 
-    private MGFontLibrary() {
+    private FontLibrary() {
     }
 
-    public static MGFontLibrary getInstance() {
+    public static FontLibrary getInstance() {
         return INSTANCE;
     }
 
@@ -272,7 +272,7 @@ public final class MGFontLibrary {
             Objects.requireNonNull(source, "source");
         }
 
-        ImFont load(MGFontLibrary library, FontVariant variant, float targetSize) {
+        ImFont load(FontLibrary library, FontVariant variant, float targetSize) {
             ImGuiIO io = ImGui.getIO();
             byte[] fontBytes = source.resolve();
             if (fontBytes == null || fontBytes.length == 0) {

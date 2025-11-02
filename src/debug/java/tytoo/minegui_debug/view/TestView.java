@@ -13,16 +13,16 @@ import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
-import tytoo.minegui.helper.window.MGWindow;
-import tytoo.minegui.style.MGFontLibrary;
-import tytoo.minegui.style.MGFonts;
+import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.style.FontLibrary;
+import tytoo.minegui.style.Fonts;
 import tytoo.minegui.util.ImGuiImageUtils;
-import tytoo.minegui.view.MGView;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.view.View;
+import tytoo.minegui.view.cursor.CursorPolicies;
 
 import java.util.Locale;
 
-public final class TestView extends MGView {
+public final class TestView extends View {
     private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
     private static final float CONTROL_WIDTH = 220f;
     private static final float CHILD_HEIGHT = 220f;
@@ -51,7 +51,7 @@ public final class TestView extends MGView {
 
     public TestView() {
         super("minegui_debug:test_view", true);
-        setCursorPolicy(MGCursorPolicies.clickToLock());
+        setCursorPolicy(CursorPolicies.clickToLock());
     }
 
     @Override
@@ -61,7 +61,7 @@ public final class TestView extends MGView {
 
     @Override
     protected void renderView() {
-        MGWindow.of(this, "Layout Playground")
+        Window.of(this, "Layout Playground")
                 .flags(ImGuiWindowFlags.NoFocusOnAppearing)
                 .render(() -> {
                     resetFocusIfPending();
@@ -282,11 +282,11 @@ public final class TestView extends MGView {
             jetbrainsStatus = "JetBrains Mono ready";
             return;
         }
-        ImFont resolved = MGFonts.ensureJetbrainsMono();
+        ImFont resolved = Fonts.ensureJetbrainsMono();
         if (resolved != null) {
             jetbrainsMono = resolved;
             jetbrainsStatus = "JetBrains Mono ready";
-        } else if (MGFontLibrary.getInstance().isRegistrationLocked()) {
+        } else if (FontLibrary.getInstance().isRegistrationLocked()) {
             jetbrainsStatus = "JetBrains Mono unavailable; restart after registering fonts.";
         } else {
             jetbrainsStatus = "JetBrains Mono loading...";

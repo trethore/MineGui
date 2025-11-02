@@ -13,7 +13,7 @@ public final class StyleJsonSerializer {
     private StyleJsonSerializer() {
     }
 
-    public static String toJson(String namespace, String viewId, Identifier styleKey, MGStyleDescriptor descriptor) {
+    public static String toJson(String namespace, String viewId, Identifier styleKey, StyleDescriptor descriptor) {
         if (descriptor == null) {
             return null;
         }
@@ -86,14 +86,14 @@ public final class StyleJsonSerializer {
         return GSON.toJson(root);
     }
 
-    private static JsonObject vec(MGVec2 value) {
+    private static JsonObject vec(Vec2 value) {
         JsonObject vec = new JsonObject();
         vec.addProperty("x", value.x());
         vec.addProperty("y", value.y());
         return vec;
     }
 
-    private static JsonObject colors(MGColorPalette palette) {
+    private static JsonObject colors(ColorPalette palette) {
         if (palette == null || palette.isEmpty()) {
             return null;
         }

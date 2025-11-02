@@ -7,7 +7,7 @@ import tytoo.minegui.config.ConfigPathStrategies;
 import tytoo.minegui.config.ConfigPathStrategy;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.persistence.ViewPersistenceAdapter;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.view.cursor.CursorPolicies;
 
 import java.util.Set;
 
@@ -25,7 +25,7 @@ public record MineGuiInitializationOptions(
         configNamespace = normalizeNamespace(configNamespace);
         featureProfile = featureProfile != null ? featureProfile : ConfigFeatureProfile.all();
         configPathStrategy = configPathStrategy != null ? configPathStrategy : ConfigPathStrategies.sandboxed();
-        defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : MGCursorPolicies.clickToLockId();
+        defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : CursorPolicies.clickToLockId();
         dockspaceCustomizer = dockspaceCustomizer != null ? dockspaceCustomizer : DockspaceCustomizer.noop();
     }
 
@@ -89,7 +89,7 @@ public record MineGuiInitializationOptions(
     }
 
     public MineGuiInitializationOptions withDefaultCursorPolicy(Identifier policyId) {
-        Identifier normalized = policyId != null ? policyId : MGCursorPolicies.clickToLockId();
+        Identifier normalized = policyId != null ? policyId : CursorPolicies.clickToLockId();
         return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, configPathStrategy, normalized, dockspaceCustomizer, viewPersistenceAdapter);
     }
 
@@ -113,7 +113,7 @@ public record MineGuiInitializationOptions(
         private boolean ignoreGlobalConfig;
         private ConfigFeatureProfile featureProfile = ConfigFeatureProfile.all();
         private ConfigPathStrategy configPathStrategy = ConfigPathStrategies.sandboxed();
-        private Identifier defaultCursorPolicyId = MGCursorPolicies.clickToLockId();
+        private Identifier defaultCursorPolicyId = CursorPolicies.clickToLockId();
         private DockspaceCustomizer dockspaceCustomizer = DockspaceCustomizer.noop();
         private ViewPersistenceAdapter viewPersistenceAdapter;
 

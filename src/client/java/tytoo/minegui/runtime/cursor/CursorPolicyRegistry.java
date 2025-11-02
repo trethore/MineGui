@@ -7,41 +7,41 @@ import imgui.internal.ImGuiContext;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.util.CursorLockUtils;
-import tytoo.minegui.view.MGView;
-import tytoo.minegui.view.cursor.MGCursorPolicy;
+import tytoo.minegui.view.View;
+import tytoo.minegui.view.cursor.CursorPolicy;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class CursorPolicyRegistry {
-    private static final Map<Identifier, MGCursorPolicy> REGISTERED_POLICIES = new ConcurrentHashMap<>();
-    private static final Set<MGView> PERSISTENT_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private static final Set<MGView> CLICK_RELEASE_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private static final Set<MGView> CLICK_RELEASE_REGISTERED = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Map<Identifier, CursorPolicy> REGISTERED_POLICIES = new ConcurrentHashMap<>();
+    private static final Set<View> PERSISTENT_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<View> CLICK_RELEASE_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<View> CLICK_RELEASE_REGISTERED = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final boolean[] EMPTY_MOUSE_BUTTONS = new boolean[5];
     private static volatile boolean cursorUnlocked;
 
     private CursorPolicyRegistry() {
     }
 
-    public static void registerPolicy(Identifier id, MGCursorPolicy policy) {
+    public static void registerPolicy(Identifier id, CursorPolicy policy) {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(policy, "policy");
-        MGCursorPolicy existing = REGISTERED_POLICIES.putIfAbsent(id, policy);
+        CursorPolicy existing = REGISTERED_POLICIES.putIfAbsent(id, policy);
         if (existing != null && existing != policy) {
             MineGuiCore.LOGGER.warn("MineGui cursor policy '{}' is already registered; skipping duplicate registration.", id);
         }
     }
 
-    public static MGCursorPolicy resolvePolicy(Identifier id) {
+    public static CursorPolicy resolvePolicy(Identifier id) {
         if (id == null) {
             return null;
         }
         return REGISTERED_POLICIES.get(id);
     }
 
-    public static MGCursorPolicy resolvePolicyOrDefault(Identifier id, MGCursorPolicy fallback) {
-        MGCursorPolicy policy = resolvePolicy(id);
+    public static CursorPolicy resolvePolicyOrDefault(Identifier id, CursorPolicy fallback) {
+        CursorPolicy policy = resolvePolicy(id);
         return policy != null ? policy : fallback;
     }
 
@@ -49,7 +49,7 @@ public final class CursorPolicyRegistry {
         return Collections.unmodifiableSet(new HashSet<>(REGISTERED_POLICIES.keySet()));
     }
 
-    public static void requestPersistentUnlock(MGView view) {
+    public static void requestPersistentUnlock(View view) {
         if (view == null) {
             return;
         }
@@ -57,7 +57,7 @@ public final class CursorPolicyRegistry {
         refreshState();
     }
 
-    public static void releasePersistentUnlock(MGView view) {
+    public static void releasePersistentUnlock(View view) {
         if (view == null) {
             return;
         }
@@ -65,7 +65,7 @@ public final class CursorPolicyRegistry {
         refreshState();
     }
 
-    public static void requestClickReleaseUnlock(MGView view) {
+    public static void requestClickReleaseUnlock(View view) {
         if (view == null) {
             return;
         }
@@ -74,7 +74,7 @@ public final class CursorPolicyRegistry {
         refreshState();
     }
 
-    public static void releaseClickReleaseUnlock(MGView view) {
+    public static void releaseClickReleaseUnlock(View view) {
         if (view == null) {
             return;
         }
@@ -152,7 +152,7 @@ public final class CursorPolicyRegistry {
         if (CursorLockUtils.clientWantsLockCursor()) {
             return;
         }
-        for (MGView view : CLICK_RELEASE_REGISTERED) {
+        for (View view : CLICK_RELEASE_REGISTERED) {
             if (view == null || !view.isVisible()) {
                 continue;
             }

@@ -15,13 +15,13 @@ import java.util.concurrent.ConcurrentMap;
 
 public final class StyleManager {
     private static final ConcurrentMap<String, StyleManager> INSTANCES = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<Identifier, MGStyleDescriptor> DESCRIPTOR_REGISTRY = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Identifier, StyleDescriptor> DESCRIPTOR_REGISTRY = new ConcurrentHashMap<>();
     private static final ThreadLocal<StyleManager> ACTIVE = new ThreadLocal<>();
 
     private final String namespace;
-    private final ThreadLocal<Deque<MGStyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
+    private final ThreadLocal<Deque<StyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
     private final ThreadLocal<ImFont> activeFont = new ThreadLocal<>();
-    private volatile MGStyleDescriptor globalDescriptor;
+    private volatile StyleDescriptor globalDescriptor;
     @Getter
     private volatile Identifier globalStyleKey;
 
@@ -37,33 +37,33 @@ public final class StyleManager {
         return get(GlobalConfigManager.getDefaultNamespace());
     }
 
-    public static void backfillGlobalDescriptors(MGStyleDescriptor descriptor) {
+    public static void backfillGlobalDescriptors(StyleDescriptor descriptor) {
         Objects.requireNonNull(descriptor, "descriptor");
         for (StyleManager manager : INSTANCES.values()) {
             if (manager.globalDescriptor == null) {
-                manager.setGlobalDescriptor(MGStyleDescriptor.builder().fromDescriptor(descriptor).build());
+                manager.setGlobalDescriptor(StyleDescriptor.builder().fromDescriptor(descriptor).build());
             }
         }
     }
 
-    public static void registerDescriptor(Identifier key, MGStyleDescriptor descriptor) {
+    public static void registerDescriptor(Identifier key, StyleDescriptor descriptor) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(descriptor, "descriptor");
         DESCRIPTOR_REGISTRY.put(key, descriptor);
     }
 
-    public static Optional<MGStyleDescriptor> descriptor(Identifier key) {
+    public static Optional<StyleDescriptor> descriptor(Identifier key) {
         if (key == null) {
             return Optional.empty();
         }
-        MGStyleDescriptor descriptor = DESCRIPTOR_REGISTRY.get(key);
+        StyleDescriptor descriptor = DESCRIPTOR_REGISTRY.get(key);
         if (descriptor != null) {
             return Optional.of(descriptor);
         }
         return Optional.empty();
     }
 
-    public static Collection<Map.Entry<Identifier, MGStyleDescriptor>> descriptors() {
+    public static Collection<Map.Entry<Identifier, StyleDescriptor>> descriptors() {
         return Collections.unmodifiableCollection(new ArrayList<>(DESCRIPTOR_REGISTRY.entrySet()));
     }
 
@@ -96,19 +96,19 @@ public final class StyleManager {
         return namespace;
     }
 
-    public Optional<MGStyleDescriptor> getGlobalDescriptor() {
+    public Optional<StyleDescriptor> getGlobalDescriptor() {
         return Optional.ofNullable(globalDescriptor);
     }
 
-    public void setGlobalDescriptor(MGStyleDescriptor descriptor) {
+    public void setGlobalDescriptor(StyleDescriptor descriptor) {
         this.globalDescriptor = Objects.requireNonNull(descriptor, "descriptor");
     }
 
-    public Optional<MGStyleDescriptor> getDescriptor(Identifier key) {
+    public Optional<StyleDescriptor> getDescriptor(Identifier key) {
         return descriptor(key);
     }
 
-    public Map<Identifier, MGStyleDescriptor> snapshotDescriptors() {
+    public Map<Identifier, StyleDescriptor> snapshotDescriptors() {
         return Collections.unmodifiableMap(new ConcurrentHashMap<>(DESCRIPTOR_REGISTRY));
     }
 
@@ -120,20 +120,20 @@ public final class StyleManager {
         applyStyleKey(key, false);
     }
 
-    StyleScope pushRaw(MGStyleDelta delta) {
+    StyleScope pushRaw(StyleDelta delta) {
         Objects.requireNonNull(delta, "delta");
         styleStack.get().push(delta);
         apply();
         return new StyleScope(delta);
     }
 
-    void pop(MGStyleDelta expected) {
-        Deque<MGStyleDelta> stack = styleStack.get();
+    void pop(StyleDelta expected) {
+        Deque<StyleDelta> stack = styleStack.get();
         if (stack.isEmpty()) {
             apply();
             return;
         }
-        MGStyleDelta popped = stack.pop();
+        StyleDelta popped = stack.pop();
         if (popped != expected) {
             stack.clear();
         }
@@ -142,16 +142,16 @@ public final class StyleManager {
 
     public void apply() {
         ImGuiStyle nativeStyle = ImGui.getStyle();
-        MGStyleDescriptor descriptor = resolveDescriptor();
+        StyleDescriptor descriptor = resolveDescriptor();
         Identifier fontKey = descriptor != null ? descriptor.getFontKey() : null;
         Float fontSize = descriptor != null ? descriptor.getFontSize() : null;
         if (descriptor != null) {
             descriptor.applyTo(nativeStyle);
         }
-        Deque<MGStyleDelta> stack = styleStack.get();
+        Deque<StyleDelta> stack = styleStack.get();
         if (!stack.isEmpty()) {
-            for (Iterator<MGStyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
-                MGStyleDelta delta = iterator.next();
+            for (Iterator<StyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+                StyleDelta delta = iterator.next();
                 delta.applyTo(nativeStyle);
                 if (delta.getFontKey() != null) {
                     fontKey = delta.getFontKey();
@@ -164,27 +164,27 @@ public final class StyleManager {
         applyFont(fontKey, fontSize);
     }
 
-    public Optional<MGStyleDescriptor> getEffectiveDescriptor() {
-        MGStyleDescriptor descriptor = resolveDescriptor();
+    public Optional<StyleDescriptor> getEffectiveDescriptor() {
+        StyleDescriptor descriptor = resolveDescriptor();
         if (descriptor == null) {
             return Optional.empty();
         }
-        MGStyleDescriptor effective = descriptor;
-        Deque<MGStyleDelta> stack = styleStack.get();
+        StyleDescriptor effective = descriptor;
+        Deque<StyleDelta> stack = styleStack.get();
         if (!stack.isEmpty()) {
-            for (Iterator<MGStyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
-                MGStyleDelta delta = iterator.next();
+            for (Iterator<StyleDelta> iterator = stack.descendingIterator(); iterator.hasNext(); ) {
+                StyleDelta delta = iterator.next();
                 effective = delta.resolve(effective);
             }
         }
         return Optional.of(effective);
     }
 
-    private MGStyleDescriptor resolveDescriptor() {
-        MGStyleDescriptor descriptor = globalDescriptor;
+    private StyleDescriptor resolveDescriptor() {
+        StyleDescriptor descriptor = globalDescriptor;
         Identifier key = globalStyleKey;
         if (key != null) {
-            MGStyleDescriptor registered = DESCRIPTOR_REGISTRY.get(key);
+            StyleDescriptor registered = DESCRIPTOR_REGISTRY.get(key);
             if (registered != null) {
                 descriptor = registered;
             }
@@ -193,7 +193,7 @@ public final class StyleManager {
     }
 
     private void applyFont(Identifier fontKey, Float fontSize) {
-        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        FontLibrary fontLibrary = FontLibrary.getInstance();
         ImFont targetFont = fontLibrary.ensureFont(fontKey, fontSize);
         ImFont currentFont = activeFont.get();
         if (targetFont == null || targetFont == currentFont) {
@@ -233,10 +233,10 @@ public final class StyleManager {
     }
 
     public final class StyleScope implements AutoCloseable {
-        private final MGStyleDelta delta;
+        private final StyleDelta delta;
         private boolean closed;
 
-        private StyleScope(MGStyleDelta delta) {
+        private StyleScope(StyleDelta delta) {
             this.delta = delta;
         }
 

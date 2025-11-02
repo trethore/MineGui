@@ -9,7 +9,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Resources, mixin configs, and packaged assets remain in `src/client/resources/`, including `assets/minegui/` and `minegui.client.mixins.json` for client mixins.
 - Development scaffolding and debug samples stay under `src/debug/` with Java entrypoints in `src/debug/java/tytoo/minegui_debug/**` and supporting assets in `src/debug/resources/assets/minegui_debug/`.
 - The runtime flow boots through `MineGuiCore` and `ImGuiLoader`, which initialize imgui-java natives, prepare the ImGui context, and integrate with Minecraft's render loop. `UIManager` manages registered `MGView` instances and renders them each frame.
-- Views extend `tytoo.minegui.view.MGView`, rendering raw ImGui calls inside `renderView()`. Layout helpers, cursor controls, and drawing utilities live in `utils` and `constraint`; there are no reusable component subclasses or state containers.
+- Views extend `tytoo.minegui.view.View`, rendering raw ImGui calls inside `renderView()`. Layout helpers, cursor controls, and drawing utilities live in `utils` and `constraint`; there are no reusable component subclasses or state containers.
 
 ## Design & Philosophy
 
