@@ -1,12 +1,12 @@
 package tytoo.minegui.runtime;
 
-import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.persistence.ViewPersistenceAdapter;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -72,11 +72,11 @@ public final class MineGuiNamespaces {
         }
     }
 
-    public static void setDefaultCursorPolicy(Identifier policyId) {
+    public static void setDefaultCursorPolicy(ResourceId policyId) {
         setDefaultCursorPolicy(GlobalConfigManager.getDefaultNamespace(), policyId);
     }
 
-    public static void setDefaultCursorPolicy(String namespace, Identifier policyId) {
+    public static void setDefaultCursorPolicy(String namespace, ResourceId policyId) {
         MineGuiNamespaceContext context = CONTEXTS.get(namespace);
         if (context == null) {
             return;

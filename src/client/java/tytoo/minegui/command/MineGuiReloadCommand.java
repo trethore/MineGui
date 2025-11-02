@@ -6,13 +6,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +74,7 @@ public final class MineGuiReloadCommand {
     private static void applyConfiguredStyle(MineGuiNamespaceContext context) {
         GlobalConfig config = GlobalConfigManager.getConfig(context.namespace());
         String configured = config.getGlobalStyleKey();
-        Identifier styleKey = (configured == null || configured.isBlank()) ? null : Identifier.tryParse(configured);
+        ResourceId styleKey = (configured == null || configured.isBlank()) ? null : ResourceId.tryParse(configured);
         StyleManager styleManager = context.style();
         if (styleManager.getGlobalDescriptor().isEmpty()) {
             StyleManager.get(GlobalConfigManager.getDefaultNamespace())

@@ -1,7 +1,7 @@
 package tytoo.minegui.style;
 
-import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Collection;
 import java.util.Map;
@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 public final class NamedStyleRegistry {
     private static final NamedStyleRegistry INSTANCE = new NamedStyleRegistry();
 
-    private final ConcurrentMap<Identifier, StyleDescriptor> descriptors = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ResourceId, StyleDescriptor> descriptors = new ConcurrentHashMap<>();
 
     private NamedStyleRegistry() {
     }
@@ -22,7 +22,7 @@ public final class NamedStyleRegistry {
         return INSTANCE;
     }
 
-    public void registerDescriptor(Identifier key, StyleDescriptor descriptor) {
+    public void registerDescriptor(ResourceId key, StyleDescriptor descriptor) {
         if (key == null || descriptor == null) {
             return;
         }
@@ -30,7 +30,7 @@ public final class NamedStyleRegistry {
         StyleManager.registerDescriptor(key, descriptor);
     }
 
-    public void registerPreset(Identifier key, Consumer<StyleDescriptor.Builder> builderConsumer, StyleDescriptor base) {
+    public void registerPreset(ResourceId key, Consumer<StyleDescriptor.Builder> builderConsumer, StyleDescriptor base) {
         if (builderConsumer == null || base == null) {
             return;
         }
@@ -39,7 +39,7 @@ public final class NamedStyleRegistry {
         registerDescriptor(key, builder.build());
     }
 
-    public Optional<StyleDescriptor> getDescriptor(Identifier key) {
+    public Optional<StyleDescriptor> getDescriptor(ResourceId key) {
         if (key == null) {
             return Optional.empty();
         }
@@ -50,11 +50,11 @@ public final class NamedStyleRegistry {
         return Optional.empty();
     }
 
-    public Collection<Identifier> keys() {
+    public Collection<ResourceId> keys() {
         return descriptors.keySet();
     }
 
-    public Map<Identifier, StyleDescriptor> snapshot() {
+    public Map<ResourceId, StyleDescriptor> snapshot() {
         return Map.copyOf(descriptors);
     }
 
@@ -62,10 +62,10 @@ public final class NamedStyleRegistry {
         if (baseDescriptor == null) {
             return;
         }
-        Identifier defaultId = Identifier.of(MineGuiCore.ID, "default");
+        ResourceId defaultId = ResourceId.of(MineGuiCore.ID, "default");
         registerDescriptor(defaultId, duplicate(baseDescriptor));
 
-        registerPreset(Identifier.of(MineGuiCore.ID, "compact"), builder -> {
+        registerPreset(ResourceId.of(MineGuiCore.ID, "compact"), builder -> {
             builder.windowPadding(baseDescriptor.getWindowPadding().x() * 0.7f, baseDescriptor.getWindowPadding().y() * 0.7f);
             builder.framePadding(baseDescriptor.getFramePadding().x() * 0.6f, baseDescriptor.getFramePadding().y() * 0.6f);
             builder.itemSpacing(Math.max(4.0f, baseDescriptor.getItemSpacing().x() * 0.6f),
@@ -74,7 +74,7 @@ public final class NamedStyleRegistry {
             builder.frameRounding(Math.max(1.0f, baseDescriptor.getFrameRounding() * 0.5f));
         }, baseDescriptor);
 
-        registerPreset(Identifier.of(MineGuiCore.ID, "spacious"), builder -> {
+        registerPreset(ResourceId.of(MineGuiCore.ID, "spacious"), builder -> {
             builder.windowPadding(baseDescriptor.getWindowPadding().x() + 6.0f, baseDescriptor.getWindowPadding().y() + 6.0f);
             builder.framePadding(baseDescriptor.getFramePadding().x() + 4.0f, baseDescriptor.getFramePadding().y() + 4.0f);
             builder.itemSpacing(baseDescriptor.getItemSpacing().x() + 6.0f, baseDescriptor.getItemSpacing().y() + 4.0f);

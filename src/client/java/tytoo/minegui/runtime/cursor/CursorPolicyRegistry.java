@@ -4,17 +4,20 @@ import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiFocusedFlags;
 import imgui.internal.ImGuiContext;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.util.CursorLockUtils;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 import tytoo.minegui.view.cursor.CursorPolicy;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class CursorPolicyRegistry {
-    private static final Map<Identifier, CursorPolicy> REGISTERED_POLICIES = new ConcurrentHashMap<>();
+    private static final Map<ResourceId, CursorPolicy> REGISTERED_POLICIES = new ConcurrentHashMap<>();
     private static final Set<View> PERSISTENT_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Set<View> CLICK_RELEASE_UNLOCKS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Set<View> CLICK_RELEASE_REGISTERED = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -24,7 +27,7 @@ public final class CursorPolicyRegistry {
     private CursorPolicyRegistry() {
     }
 
-    public static void registerPolicy(Identifier id, CursorPolicy policy) {
+    public static void registerPolicy(ResourceId id, CursorPolicy policy) {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(policy, "policy");
         CursorPolicy existing = REGISTERED_POLICIES.putIfAbsent(id, policy);
@@ -33,19 +36,19 @@ public final class CursorPolicyRegistry {
         }
     }
 
-    public static CursorPolicy resolvePolicy(Identifier id) {
+    public static CursorPolicy resolvePolicy(ResourceId id) {
         if (id == null) {
             return null;
         }
         return REGISTERED_POLICIES.get(id);
     }
 
-    public static CursorPolicy resolvePolicyOrDefault(Identifier id, CursorPolicy fallback) {
+    public static CursorPolicy resolvePolicyOrDefault(ResourceId id, CursorPolicy fallback) {
         CursorPolicy policy = resolvePolicy(id);
         return policy != null ? policy : fallback;
     }
 
-    public static Set<Identifier> registeredPolicies() {
+    public static Set<ResourceId> registeredPolicies() {
         return Set.copyOf(REGISTERED_POLICIES.keySet());
     }
 

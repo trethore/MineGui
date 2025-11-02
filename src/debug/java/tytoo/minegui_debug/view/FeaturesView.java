@@ -6,7 +6,6 @@ import imgui.ImGuiViewport;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
@@ -14,12 +13,13 @@ import tytoo.minegui.helper.window.Window;
 import tytoo.minegui.style.ColorPalette;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ImGuiImageUtils;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui_debug.MineGuiDebugCore;
 
 public final class FeaturesView extends View {
-    private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
+    private static final ResourceId IMGUI_ICON = ResourceId.of("minegui", "icon.png");
     private static final float WINDOW_WIDTH = 560.0f;
     private static final float WINDOW_HEIGHT = 540.0f;
     private static final int SAMPLE_CAPACITY = 64;

@@ -2,7 +2,7 @@ package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Objects;
 
@@ -49,7 +49,7 @@ public final class StyleDelta {
     private final Float curveTessellationTol;
     private final Float circleTessellationMaxError;
     private final ColorPalette colorPalette;
-    private final Identifier fontKey;
+    private final ResourceId fontKey;
     private final Float fontSize;
 
     private StyleDelta(Builder builder) {
@@ -411,7 +411,7 @@ public final class StyleDelta {
         private Float curveTessellationTol;
         private Float circleTessellationMaxError;
         private ColorPalette colorPalette;
-        private Identifier fontKey;
+        private ResourceId fontKey;
         private Float fontSize;
 
         public Builder alpha(float value) {
@@ -679,7 +679,7 @@ public final class StyleDelta {
             return this;
         }
 
-        public Builder fontKey(Identifier value) {
+        public Builder fontKey(ResourceId value) {
             this.fontKey = value;
             return this;
         }

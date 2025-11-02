@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ImGuiImageUtils {
-    private static final Map<Identifier, TextureEntry> CACHE = new ConcurrentHashMap<>();
+    private static final Map<ResourceId, TextureEntry> CACHE = new ConcurrentHashMap<>();
     private static final ThreadLocal<float[]> COLOR_BUFFER = ThreadLocal.withInitial(() -> new float[4]);
     private static final Runnable NO_OP = () -> {
     };
@@ -27,16 +27,16 @@ public final class ImGuiImageUtils {
     private ImGuiImageUtils() {
     }
 
-    public static int textureId(Identifier identifier) {
+    public static int textureId(ResourceId identifier) {
         return ensureTexture(identifier).textureId();
     }
 
-    public static TextureInfo getTextureInfo(Identifier identifier) {
+    public static TextureInfo getTextureInfo(ResourceId identifier) {
         TextureEntry entry = ensureTexture(identifier);
         return entry.info();
     }
 
-    public static void registerExternalTexture(Identifier identifier, int textureId, int width, int height) {
+    public static void registerExternalTexture(ResourceId identifier, int textureId, int width, int height) {
         Objects.requireNonNull(identifier, "identifier");
         if (!RenderSystem.isOnRenderThreadOrInit()) {
             throw new IllegalStateException("ImGui images can only be used on the render thread");
@@ -48,7 +48,7 @@ public final class ImGuiImageUtils {
         }
     }
 
-    public static void drawImage(Identifier identifier, float x1, float y1, float x2, float y2,
+    public static void drawImage(ResourceId identifier, float x1, float y1, float x2, float y2,
                                  int rotation, boolean parity, float u0, float v0, float u1, float v1, float[] color) {
         TextureEntry entry = ensureTexture(identifier);
         float[][] uvs = computeUvs(rotation, parity, u0, v0, u1, v1);
@@ -72,12 +72,12 @@ public final class ImGuiImageUtils {
         );
     }
 
-    public static void drawImage(Identifier identifier, float x1, float y1, float x2, float y2,
+    public static void drawImage(ResourceId identifier, float x1, float y1, float x2, float y2,
                                  int rotation, boolean parity, float[] color) {
         drawImage(identifier, x1, y1, x2, y2, rotation, parity, 0.0f, 0.0f, 1.0f, 1.0f, color);
     }
 
-    public static void drawImage(Identifier identifier, float x1, float y1, float x2, float y2,
+    public static void drawImage(ResourceId identifier, float x1, float y1, float x2, float y2,
                                  int rotation, boolean parity, float u0, float v0, float u1, float v1, int tint) {
         TextureEntry entry = ensureTexture(identifier);
         float[][] uvs = computeUvs(rotation, parity, u0, v0, u1, v1);
@@ -96,7 +96,7 @@ public final class ImGuiImageUtils {
         );
     }
 
-    public static void drawImage(Identifier identifier, float x1, float y1, float x2, float y2, int rotation, boolean parity, int tint) {
+    public static void drawImage(ResourceId identifier, float x1, float y1, float x2, float y2, int rotation, boolean parity, int tint) {
         drawImage(identifier, x1, y1, x2, y2, rotation, parity, 0.0f, 0.0f, 1.0f, 1.0f, tint);
     }
 
@@ -108,7 +108,7 @@ public final class ImGuiImageUtils {
         }
     }
 
-    private static TextureEntry ensureTexture(Identifier identifier) {
+    private static TextureEntry ensureTexture(ResourceId identifier) {
         Objects.requireNonNull(identifier, "identifier");
         if (!RenderSystem.isOnRenderThreadOrInit()) {
             throw new IllegalStateException("ImGui images can only be used on the render thread");
@@ -116,15 +116,16 @@ public final class ImGuiImageUtils {
         return CACHE.computeIfAbsent(identifier, ImGuiImageUtils::loadTexture);
     }
 
-    private static TextureEntry loadTexture(Identifier identifier) {
+    private static TextureEntry loadTexture(ResourceId identifier) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client == null) {
             throw new IllegalStateException("Minecraft client is not available");
         }
         ResourceManager resourceManager = client.getResourceManager();
         TextureManager textureManager = client.getTextureManager();
-        Optional<Resource> resource = resourceManager.getResource(identifier);
-        TextureEntry reused = tryReuseTextureManager(textureManager, identifier, resource.orElse(null));
+        Identifier mcIdentifier = MinecraftIdentifiers.toMinecraft(identifier);
+        Optional<Resource> resource = resourceManager.getResource(mcIdentifier);
+        TextureEntry reused = tryReuseTextureManager(textureManager, mcIdentifier, resource.orElse(null));
         if (reused != null) {
             return reused;
         }
@@ -134,8 +135,8 @@ public final class ImGuiImageUtils {
         return createOwnedTexture(identifier, resource.get());
     }
 
-    private static TextureEntry tryReuseTextureManager(TextureManager textureManager, Identifier identifier, Resource resource) {
-        AbstractTexture texture = textureManager.getTexture(identifier);
+    private static TextureEntry tryReuseTextureManager(TextureManager textureManager, Identifier mcIdentifier, Resource resource) {
+        AbstractTexture texture = textureManager.getTexture(mcIdentifier);
         if (texture == null) {
             return null;
         }
@@ -169,7 +170,7 @@ public final class ImGuiImageUtils {
         }
     }
 
-    private static TextureEntry createOwnedTexture(Identifier identifier, Resource resource) {
+    private static TextureEntry createOwnedTexture(ResourceId identifier, Resource resource) {
         try (InputStream stream = resource.getInputStream()) {
             NativeImage image = NativeImage.read(stream);
             NativeImageBackedTexture texture = new NativeImageBackedTexture(image);

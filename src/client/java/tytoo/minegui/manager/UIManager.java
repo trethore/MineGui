@@ -1,13 +1,13 @@
 package tytoo.minegui.manager;
 
 import lombok.Getter;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profilers;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.style.StyleScope;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
@@ -105,7 +105,7 @@ public final class UIManager {
                     continue;
                 }
                 viewSaveManager.prepareView(view);
-                Identifier originalKey = styleManager.getGlobalStyleKey();
+                ResourceId originalKey = styleManager.getGlobalStyleKey();
                 StyleDescriptor originalDescriptor = styleManager.getGlobalDescriptor().orElse(null);
                 applyViewBaseStyle(view, originalDescriptor);
                 Profilers.get().push(view.getClass().getSimpleName());
@@ -124,7 +124,7 @@ public final class UIManager {
     }
 
     private void applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
-        Identifier styleKey = view.getStyleKey();
+        ResourceId styleKey = view.getStyleKey();
         styleManager.setGlobalStyleKeyTransient(styleKey);
         StyleDescriptor descriptor = fallbackDescriptor != null ? fallbackDescriptor : styleManager.getGlobalDescriptor().orElse(null);
         if (descriptor != null) {
@@ -136,7 +136,7 @@ public final class UIManager {
         styleManager.apply();
     }
 
-    private void restoreBaseStyle(Identifier originalKey, StyleDescriptor originalDescriptor) {
+    private void restoreBaseStyle(ResourceId originalKey, StyleDescriptor originalDescriptor) {
         styleManager.setGlobalStyleKeyTransient(originalKey);
         if (originalDescriptor != null) {
             styleManager.setGlobalDescriptor(originalDescriptor);

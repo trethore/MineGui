@@ -2,11 +2,11 @@ package tytoo.minegui.view;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.NamespaceIds;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
 
@@ -20,7 +20,7 @@ public abstract class View {
     private boolean shouldSave;
     @Getter
     @Setter
-    private Identifier styleKey;
+    private ResourceId styleKey;
     @Getter
     private String namespace;
     private ViewSaveManager viewSaveManager;

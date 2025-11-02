@@ -1,12 +1,12 @@
 package tytoo.minegui;
 
-import net.minecraft.util.Identifier;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.ConfigFeatureProfile;
 import tytoo.minegui.config.ConfigPathStrategies;
 import tytoo.minegui.config.ConfigPathStrategy;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.persistence.ViewPersistenceAdapter;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 
 import java.util.Set;
@@ -17,7 +17,7 @@ public record MineGuiInitializationOptions(
         String configNamespace,
         ConfigFeatureProfile featureProfile,
         ConfigPathStrategy configPathStrategy,
-        Identifier defaultCursorPolicyId,
+        ResourceId defaultCursorPolicyId,
         DockspaceCustomizer dockspaceCustomizer,
         ViewPersistenceAdapter viewPersistenceAdapter
 ) {
@@ -88,8 +88,8 @@ public record MineGuiInitializationOptions(
         return withFeatureProfile(featureProfile.withoutFeature(feature));
     }
 
-    public MineGuiInitializationOptions withDefaultCursorPolicy(Identifier policyId) {
-        Identifier normalized = policyId != null ? policyId : CursorPolicies.clickToLockId();
+    public MineGuiInitializationOptions withDefaultCursorPolicy(ResourceId policyId) {
+        ResourceId normalized = policyId != null ? policyId : CursorPolicies.clickToLockId();
         return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, configPathStrategy, normalized, dockspaceCustomizer, viewPersistenceAdapter);
     }
 
@@ -113,7 +113,7 @@ public record MineGuiInitializationOptions(
         private boolean ignoreGlobalConfig;
         private ConfigFeatureProfile featureProfile = ConfigFeatureProfile.all();
         private ConfigPathStrategy configPathStrategy = ConfigPathStrategies.sandboxed();
-        private Identifier defaultCursorPolicyId = CursorPolicies.clickToLockId();
+        private ResourceId defaultCursorPolicyId = CursorPolicies.clickToLockId();
         private DockspaceCustomizer dockspaceCustomizer = DockspaceCustomizer.noop();
         private ViewPersistenceAdapter viewPersistenceAdapter;
 
@@ -165,7 +165,7 @@ public record MineGuiInitializationOptions(
             return this;
         }
 
-        public Builder defaultCursorPolicyId(Identifier policyId) {
+        public Builder defaultCursorPolicyId(ResourceId policyId) {
             this.defaultCursorPolicyId = policyId;
             return this;
         }

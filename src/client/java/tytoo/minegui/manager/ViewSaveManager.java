@@ -2,7 +2,6 @@ package tytoo.minegui.manager;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfigManager;
@@ -12,6 +11,7 @@ import tytoo.minegui.persistence.ViewPersistenceRequest;
 import tytoo.minegui.persistence.ViewStyleSnapshot;
 import tytoo.minegui.style.StyleJsonSerializer;
 import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 
 import java.io.BufferedReader;
@@ -277,10 +277,10 @@ public final class ViewSaveManager {
         }
         String current = normalizeStyleKey(view.getStyleKey());
         if (saved != null && !Objects.equals(saved, current)) {
-            Identifier identifier = Identifier.tryParse(saved);
+            ResourceId identifier = ResourceId.tryParse(saved);
             if (identifier != null) {
                 view.setStyleKey(identifier);
-                current = saved;
+                current = identifier.toString();
             }
         }
         entry.pendingStyleKey = current;
@@ -351,7 +351,7 @@ public final class ViewSaveManager {
         return exported;
     }
 
-    private String normalizeStyleKey(Identifier identifier) {
+    private String normalizeStyleKey(ResourceId identifier) {
         if (identifier == null) {
             return null;
         }

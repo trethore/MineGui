@@ -3,11 +3,11 @@ package tytoo.minegui_debug.view;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.style.NamedStyleRegistry;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class StyleDebugView extends View {
-    private Identifier selectedKey;
+    private ResourceId selectedKey;
 
     public StyleDebugView() {
         setId("minegui/style_debug");
@@ -25,7 +25,7 @@ public final class StyleDebugView extends View {
     @Override
     protected void renderView() {
         if (selectedKey == null) {
-            selectedKey = Identifier.of(MineGuiCore.ID, "default");
+            selectedKey = ResourceId.of(MineGuiCore.ID, "default");
         }
         ImGui.setNextWindowSize(360.0f, 320.0f, ImGuiCond.FirstUseEver);
         if (!ImGui.begin(scopedWindowTitle("Style Inspector"), ImGuiWindowFlags.AlwaysAutoResize)) {
@@ -34,9 +34,9 @@ public final class StyleDebugView extends View {
         }
 
         NamedStyleRegistry registry = NamedStyleRegistry.getInstance();
-        List<Identifier> keys = new ArrayList<>(registry.keys());
-        keys.sort(Comparator.comparing(Identifier::toString));
-        Identifier globalKey = StyleManager.getInstance().getGlobalStyleKey();
+        List<ResourceId> keys = new ArrayList<>(registry.keys());
+        keys.sort(Comparator.comparing(ResourceId::toString));
+        ResourceId globalKey = StyleManager.getInstance().getGlobalStyleKey();
 
         if (keys.isEmpty()) {
             ImGui.text("No registered styles.");
@@ -46,7 +46,7 @@ public final class StyleDebugView extends View {
 
         ImGui.text("Registered Styles");
         ImGui.separator();
-        for (Identifier key : keys) {
+        for (ResourceId key : keys) {
             boolean selected = key.equals(selectedKey);
             if (ImGui.selectable(key.toString(), selected)) {
                 selectedKey = key;

@@ -6,7 +6,6 @@ import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.internal.ImGuiContext;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
@@ -18,6 +17,7 @@ import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.InputHelper;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -262,7 +262,7 @@ public class ImGuiLoader {
         GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
         String configuredStyleKey = config.getGlobalStyleKey();
         if (configuredStyleKey != null && !configuredStyleKey.isBlank()) {
-            Identifier styleKey = Identifier.tryParse(configuredStyleKey);
+            ResourceId styleKey = ResourceId.tryParse(configuredStyleKey);
             if (styleKey != null) {
                 StyleManager.getInstance().setGlobalStyleKey(styleKey);
             }

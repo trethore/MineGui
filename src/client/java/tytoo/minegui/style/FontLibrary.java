@@ -3,9 +3,9 @@ package tytoo.minegui.style;
 import imgui.*;
 import lombok.Getter;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.util.ResourceId;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,14 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class FontLibrary {
     private static final FontLibrary INSTANCE = new FontLibrary();
-    private static final Identifier DEFAULT_FONT_KEY = Identifier.of(MineGuiCore.ID, "default");
+    private static final ResourceId DEFAULT_FONT_KEY = ResourceId.of(MineGuiCore.ID, "default");
 
     private final ConcurrentHashMap<FontVariant, ImFont> loadedFonts = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Identifier, FontDescriptor> fontDescriptors = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Identifier, Boolean> warnedPostBuild = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Identifier, Identifier> mergeParents = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ResourceId, FontDescriptor> fontDescriptors = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ResourceId, Boolean> warnedPostBuild = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ResourceId, ResourceId> mergeParents = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<FontVariant, byte[]> fontData = new ConcurrentHashMap<>();
-    private final ThreadLocal<Set<Identifier>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
+    private final ThreadLocal<Set<ResourceId>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
     @Getter
     private volatile boolean registrationLocked;
 
@@ -41,11 +41,11 @@ public final class FontLibrary {
         return Math.round(size * 100.0f) / 100.0f;
     }
 
-    public Identifier getDefaultFontKey() {
+    public ResourceId getDefaultFontKey() {
         return DEFAULT_FONT_KEY;
     }
 
-    public void registerFont(Identifier key, FontDescriptor descriptor) {
+    public void registerFont(ResourceId key, FontDescriptor descriptor) {
         if (registrationLocked) {
             MineGuiCore.LOGGER.error("Ignoring font registration for {} after MineGui initialization; register fonts during mod startup.", key);
             return;
@@ -56,13 +56,13 @@ public final class FontLibrary {
         fontDescriptors.put(key, descriptor);
     }
 
-    public void registerMergedFont(Identifier baseKey, Identifier key, FontSource source, float size) {
+    public void registerMergedFont(ResourceId baseKey, ResourceId key, FontSource source, float size) {
         registerMergedFont(baseKey, key, source, size, null, null);
     }
 
     public void registerMergedFont(
-            Identifier baseKey,
-            Identifier key,
+            ResourceId baseKey,
+            ResourceId key,
             FontSource source,
             float size,
             @Nullable GlyphRangeSupplier glyphRanges,
@@ -94,10 +94,10 @@ public final class FontLibrary {
         mergeParents.put(key, baseKey);
     }
 
-    public ImFont ensureFont(Identifier key, @Nullable Float sizeOverride) {
-        Identifier effectiveKey = key != null ? key : DEFAULT_FONT_KEY;
+    public ImFont ensureFont(ResourceId key, @Nullable Float sizeOverride) {
+        ResourceId effectiveKey = key != null ? key : DEFAULT_FONT_KEY;
         FontDescriptor descriptor = fontDescriptors.get(effectiveKey);
-        Identifier descriptorKey = effectiveKey;
+        ResourceId descriptorKey = effectiveKey;
         if (descriptor == null) {
             if (!effectiveKey.equals(DEFAULT_FONT_KEY)) {
                 MineGuiCore.LOGGER.warn("Font descriptor not found for key {}", effectiveKey);
@@ -124,13 +124,13 @@ public final class FontLibrary {
         if (cached != null) {
             return cached;
         }
-        Set<Identifier> stack = loadingKeys.get();
+        Set<ResourceId> stack = loadingKeys.get();
         if (!stack.add(variant.key())) {
             MineGuiCore.LOGGER.error("Detected recursive font load for {}; aborting", variant.key());
             return null;
         }
         try {
-            Identifier baseKey = mergeParents.get(variant.key());
+            ResourceId baseKey = mergeParents.get(variant.key());
             if (baseKey != null && !baseKey.equals(variant.key())) {
                 ImFont baseFont = ensureFont(baseKey, null);
                 if (baseFont == null) {
@@ -181,7 +181,7 @@ public final class FontLibrary {
     }
 
     public void preloadRegisteredFonts() {
-        for (Map.Entry<Identifier, FontDescriptor> entry : fontDescriptors.entrySet()) {
+        for (Map.Entry<ResourceId, FontDescriptor> entry : fontDescriptors.entrySet()) {
             FontDescriptor descriptor = entry.getValue();
             if (descriptor != null) {
                 ensureFont(entry.getKey(), descriptor.size());
@@ -189,7 +189,7 @@ public final class FontLibrary {
         }
     }
 
-    private ImFont findCachedFont(Identifier key, float size) {
+    private ImFont findCachedFont(ResourceId key, float size) {
         FontVariant direct = new FontVariant(key, size);
         ImFont cached = loadedFonts.get(direct);
         if (cached != null) {
@@ -291,6 +291,6 @@ public final class FontLibrary {
         }
     }
 
-    private record FontVariant(Identifier key, float size) {
+    private record FontVariant(ResourceId key, float size) {
     }
 }

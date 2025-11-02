@@ -2,7 +2,7 @@ package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Objects;
 
@@ -49,7 +49,7 @@ public final class StyleDescriptor {
     private final float curveTessellationTol;
     private final float circleTessellationMaxError;
     private final ColorPalette colorPalette;
-    private final Identifier fontKey;
+    private final ResourceId fontKey;
     private final Float fontSize;
 
     private StyleDescriptor(Builder builder) {
@@ -106,7 +106,7 @@ public final class StyleDescriptor {
         return capture(style, ColorPalette.fromStyle(style), null, null);
     }
 
-    public static StyleDescriptor capture(ImGuiStyle style, ColorPalette palette, Identifier fontKey, Float fontSize) {
+    public static StyleDescriptor capture(ImGuiStyle style, ColorPalette palette, ResourceId fontKey, Float fontSize) {
         return builder()
                 .fromStyle(style)
                 .colorPalette(palette)
@@ -211,7 +211,7 @@ public final class StyleDescriptor {
         private float curveTessellationTol = 1.25f;
         private float circleTessellationMaxError = 0.3f;
         private ColorPalette colorPalette = ColorPalette.empty();
-        private Identifier fontKey;
+        private ResourceId fontKey;
         private Float fontSize;
 
         public Builder fromStyle(ImGuiStyle style) {
@@ -576,7 +576,7 @@ public final class StyleDescriptor {
             return this;
         }
 
-        public Builder fontKey(Identifier value) {
+        public Builder fontKey(ResourceId value) {
             this.fontKey = value;
             return this;
         }

@@ -1,6 +1,5 @@
 package tytoo.minegui.runtime;
 
-import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
@@ -10,6 +9,7 @@ import tytoo.minegui.runtime.config.NamespaceConfigAccess;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
 
@@ -22,7 +22,7 @@ public final class MineGuiNamespaceContext {
     private final UIManager uiManager;
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
-    private Identifier defaultCursorPolicyId;
+    private ResourceId defaultCursorPolicyId;
     private CursorPolicy defaultCursorPolicy;
     private volatile DockspaceCustomizer dockspaceCustomizer;
 
@@ -69,7 +69,7 @@ public final class MineGuiNamespaceContext {
         return styleManager;
     }
 
-    public Identifier defaultCursorPolicyId() {
+    public ResourceId defaultCursorPolicyId() {
         return defaultCursorPolicyId;
     }
 
@@ -77,8 +77,8 @@ public final class MineGuiNamespaceContext {
         return defaultCursorPolicy;
     }
 
-    public void setDefaultCursorPolicy(Identifier policyId) {
-        Identifier normalized = policyId != null ? policyId : CursorPolicies.emptyId();
+    public void setDefaultCursorPolicy(ResourceId policyId) {
+        ResourceId normalized = policyId != null ? policyId : CursorPolicies.emptyId();
         CursorPolicy resolved = CursorPolicyRegistry.resolvePolicyOrDefault(normalized, CursorPolicies.empty());
         if (Objects.equals(normalized, defaultCursorPolicyId) && resolved == defaultCursorPolicy) {
             return;
