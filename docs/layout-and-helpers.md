@@ -2,33 +2,40 @@
 MineGui includes lightweight utilities to keep immediate-mode layouts manageable without imposing a full widget framework. Use these helpers to place content, apply constraints, and integrate Minecraft textures inside ImGui windows.
 
 ## What this page covers
-- Stack-based layout helpers (`VStack`, `HStack`, and the `UI` facade)
-- Constraint-driven positioning with `LayoutConstraints` and the solver
+- Stack-based layout helpers (`VStack`, `HStack`, the `UI` facade, and scoped item helpers)
+- Constraint-driven positioning with `LayoutConstraints`, `SizeHints`, and the solver
 - Rendering Minecraft textures through `ImGuiImageUtils`
 - Additional utilities that streamline immediate-mode authoring
 
 ## Stack-Based Layouts
-`VStack` and `HStack` provide structured flow without abandoning ImGui’s immediate model. Scoped helpers in `UI` create predictable spacing and wrap `ImGui.beginGroup()`/`endGroup()` calls for you.
+`VStack` and `HStack` provide structured flow without abandoning ImGui’s immediate model. Scoped helpers in `UI` create predictable spacing, wrap `ImGui.beginGroup()`/`endGroup()`, and expose overloads that accept sizing hints.
 
 ```java
 UI.withVStack(stack -> {
     UI.withVStackItem(stack, () -> ImGui.text("Section Header"));
 
-    VStack.ItemRequest rowRequest = new VStack.ItemRequest()
-            .estimateHeight(28.0f); // reserve space for the row
+    VStack.ItemRequest row = new VStack.ItemRequest()
+            .estimateHeight(32.0f);
 
-    UI.withVStackItem(stack, rowRequest, () -> {
-        UI.withHStack(null, hStack -> {
-            UI.withHItem(hStack, () -> ImGui.button("Apply"));
-            UI.withHItem(hStack, () -> ImGui.sameLine());
-            UI.withHItem(hStack, () -> ImGui.button("Reset"));
+    UI.withVStackItem(stack, row, () -> {
+        HStack.Options rowOptions = new HStack.Options()
+                .spacing(12.0f)
+                .alignment(HStack.Alignment.CENTER)
+                .equalizeHeight(true);
+
+        UI.withHStack(rowOptions, hStack -> {
+            UI.withHItem(hStack, 120.0f, () -> ImGui.button("Apply"));
+            UI.withHItem(hStack, 120.0f, () -> ImGui.button("Reset"));
+            UI.withHItem(hStack, () -> ImGui.textColored(0.5f, 0.8f, 0.5f, 1.0f, "Ready"));
         });
     });
 });
 ```
 
-- Set `VStack.Options.fillMode(VStack.FillMode.MATCH_WIDEST)` to equalize child widths automatically.
-- `UI.withVStackResult(...)` returns a value from the scoped block, allowing you to compute layout-dependent data inline.
+- `VStack.Options.fillMode(VStack.FillMode.MATCH_WIDEST)` equalizes child widths; `uniformWidth(...)` enforces a fixed width.
+- `HStack.Options.equalizeHeight(true)` and `uniformHeight(...)` keep horizontal rows aligned even when items vary in size.
+- `UI.withVStackResult(...)` and `UI.withHStackResult(...)` return values from scoped blocks, letting you compute layout-dependent data inline.
+- `UI.withHItem(...)` overloads accept width/height estimates or an `HStack.ItemRequest` so you can provide `SizeRange` and constraint hints per item.
 
 ## Constraint Placement
 For precise placement, use `LayoutConstraints` with the solver in `helper.constraint` to target specific regions relative to the current window.
@@ -55,7 +62,17 @@ try (VStack stack = VStack.begin(options)) {
 ```
 
 - Combine `RelativeConstraint`, `PixelConstraint`, and `CenterConstraint` to mix relative and absolute positioning.
+- Use `LayoutConstraints.builder().target(...)` when the default window-sized target is not what you need (for example, docking nodes or custom viewports).
+- `SizeHints.itemSize(...)` and `SizeHints.windowSize(...)` bridge constraints into ImGui’s next-item/window APIs, and `ScaleUnit.SCALED` adapts spacing for high-DPI environments.
 - `LayoutConstraintSolver` evaluates constraints each frame; avoid heavy computations inside constraint callbacks to keep rendering smooth.
+
+### Sizing utilities
+MineGui bundles a few helpers to keep size calculations predictable:
+
+- `SizeHints.itemWidth(...)`/`itemSize(...)` allow you to pre-compute sizes (with optional `LayoutConstraints`) and automatically apply them to the next widget.
+- `SizeRange.of(min, max)` clamps widths/heights without additional branching.
+- `ScaleUnit.SCALED` applies framebuffer scale so values stay consistent on high-DPI displays; mix it with `itemWidth(value, unit)` or `HStack.Options.spacing(value, unit)`.
+- `LayoutContext.capture()` exposes the current content region metrics if you need to base estimates on whatever ImGui reports for the parent window.
 
 ## Working with Textures
 `ImGuiImageUtils` bridges Minecraft textures into ImGui draw lists. It caches texture ids and keeps them in sync with resource reloads.
@@ -75,29 +92,33 @@ ImGuiImageUtils.drawImage(
 - During resource reloads (F3 + T), MineGui automatically invalidates cached textures so refreshed assets appear without restarting the client.
 
 ## Window Helpers
-`MGWindow` wraps `ImGui.begin()`/`end()` so you can reuse placement, sizing, and lifecycle callbacks without duplicating boilerplate.
+`Window` wraps `ImGui.begin()`/`end()` so you can reuse placement, sizing, and lifecycle callbacks without duplicating boilerplate.
 
 ```java
 ImBoolean paletteOpen = new ImBoolean(true);
 
-MGWindow.of(view, "Palette")
+Window.of(view, "Palette")
         .flags(ImGuiWindowFlags.AlwaysAutoResize)
         .initPos(Constraints.relative(0.5f), Constraints.pixels(96.0f))
+        .initDimensions(320.0f, 220.0f)
         .open(paletteOpen)
+        .onOpen(() -> ImGui.setScrollHereY(0.0f))
         .render(() -> {
             ImGui.text("Pick a theme and start painting!");
             // render the rest of your view here
         });
 ```
 
-- Titles scoped with `MGWindow.of(view, ...)` reuse the view’s identifier, preventing dock conflicts.
-- Chain `initPos(...)`/`initDimensions(...)` for defaults and `pos(...)`/`dimensions(...)` to enforce placement every frame.
-- Use `open(ImBoolean)` plus `onClose(...)` when you mirror ImGui’s close button with your own view visibility.
+- Titles scoped with `Window.of(view, ...)` reuse the view’s identifier, preventing dock conflicts.
+- Chain `initPos(...)`/`initDimensions(...)` for defaults and `pos(...)`/`dimensions(...)` to enforce placement every frame; both accept numeric values or constraint instances.
+- `onOpen(...)` and `onClose(...)` mirror the view lifecycle when you need to reset scroll positions or persist state.
 
 ## Additional Utilities
 - `InputHelper` exposes ImGui mouse and keyboard helpers for advanced interaction tracking.
 - `CursorLockUtils` contains bridge methods for syncing Minecraft’s cursor lock with ImGui workflows.
 - `ViewportInteractionTracker` reports recent interactions when you implement custom viewport logic or AFK detection.
+- `ResourceId`/`NamespaceIds` build consistent identifiers, `MinecraftIdentifiers` converts to `Identifier`, and `MineGuiText.literal(...)` produces `Text` without verbose boilerplate.
+- `ImGuiUtils`, `ColorUtils`, and `SizeHints` gather recurring math and styling helpers so you can keep views focused on rendering.
 
 ---
 

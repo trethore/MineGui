@@ -5,8 +5,8 @@ import imgui.flag.ImGuiStyleVar;
 import tytoo.minegui.helper.layout.scope.StyleHandle;
 import tytoo.minegui.helper.layout.scope.StyleScope;
 import tytoo.minegui.helper.layout.sizing.ScaleUnit;
-import tytoo.minegui.style.MGStyleDescriptor;
-import tytoo.minegui.style.MGVec2;
+import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.style.Vec2;
 
 public final class Spacing {
     private Spacing() {
@@ -22,11 +22,11 @@ public final class Spacing {
         return stack(chosen.applyWidth(x), chosen.applyHeight(y));
     }
 
-    public static StyleHandle stack(MGStyleDescriptor descriptor) {
+    public static StyleHandle stack(StyleDescriptor descriptor) {
         if (descriptor == null) {
             return new StyleScope(0);
         }
-        MGVec2 spacing = descriptor.getItemSpacing();
+        Vec2 spacing = descriptor.getItemSpacing();
         return stack(spacing.x(), spacing.y());
     }
 
@@ -40,11 +40,11 @@ public final class Spacing {
         return inner(chosen.applyWidth(x), chosen.applyHeight(y));
     }
 
-    public static StyleHandle inner(MGStyleDescriptor descriptor) {
+    public static StyleHandle inner(StyleDescriptor descriptor) {
         if (descriptor == null) {
             return new StyleScope(0);
         }
-        MGVec2 spacing = descriptor.getItemInnerSpacing();
+        Vec2 spacing = descriptor.getItemInnerSpacing();
         return inner(spacing.x(), spacing.y());
     }
 

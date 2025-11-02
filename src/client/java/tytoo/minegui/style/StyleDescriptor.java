@@ -2,31 +2,31 @@ package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Objects;
 
 @Getter
-public final class MGStyleDescriptor {
+public final class StyleDescriptor {
     private final float alpha;
     private final float disabledAlpha;
-    private final MGVec2 windowPadding;
+    private final Vec2 windowPadding;
     private final float windowRounding;
     private final float windowBorderSize;
-    private final MGVec2 windowMinSize;
-    private final MGVec2 windowTitleAlign;
+    private final Vec2 windowMinSize;
+    private final Vec2 windowTitleAlign;
     private final int windowMenuButtonPosition;
     private final float childRounding;
     private final float childBorderSize;
     private final float popupRounding;
     private final float popupBorderSize;
-    private final MGVec2 framePadding;
+    private final Vec2 framePadding;
     private final float frameRounding;
     private final float frameBorderSize;
-    private final MGVec2 itemSpacing;
-    private final MGVec2 itemInnerSpacing;
-    private final MGVec2 cellPadding;
-    private final MGVec2 touchExtraPadding;
+    private final Vec2 itemSpacing;
+    private final Vec2 itemInnerSpacing;
+    private final Vec2 cellPadding;
+    private final Vec2 touchExtraPadding;
     private final float indentSpacing;
     private final float columnsMinSpacing;
     private final float scrollbarSize;
@@ -38,21 +38,21 @@ public final class MGStyleDescriptor {
     private final float tabBorderSize;
     private final float tabMinWidthForCloseButton;
     private final int colorButtonPosition;
-    private final MGVec2 buttonTextAlign;
-    private final MGVec2 selectableTextAlign;
-    private final MGVec2 displayWindowPadding;
-    private final MGVec2 displaySafeAreaPadding;
+    private final Vec2 buttonTextAlign;
+    private final Vec2 selectableTextAlign;
+    private final Vec2 displayWindowPadding;
+    private final Vec2 displaySafeAreaPadding;
     private final float mouseCursorScale;
     private final boolean antiAliasedLines;
     private final boolean antiAliasedLinesUseTex;
     private final boolean antiAliasedFill;
     private final float curveTessellationTol;
     private final float circleTessellationMaxError;
-    private final MGColorPalette colorPalette;
-    private final Identifier fontKey;
+    private final ColorPalette colorPalette;
+    private final ResourceId fontKey;
     private final Float fontSize;
 
-    private MGStyleDescriptor(Builder builder) {
+    private StyleDescriptor(Builder builder) {
         this.alpha = builder.alpha;
         this.disabledAlpha = builder.disabledAlpha;
         this.windowPadding = Objects.requireNonNull(builder.windowPadding, "windowPadding");
@@ -93,7 +93,7 @@ public final class MGStyleDescriptor {
         this.antiAliasedFill = builder.antiAliasedFill;
         this.curveTessellationTol = builder.curveTessellationTol;
         this.circleTessellationMaxError = builder.circleTessellationMaxError;
-        this.colorPalette = builder.colorPalette != null ? builder.colorPalette : MGColorPalette.empty();
+        this.colorPalette = builder.colorPalette != null ? builder.colorPalette : ColorPalette.empty();
         this.fontKey = builder.fontKey;
         this.fontSize = builder.fontSize;
     }
@@ -102,11 +102,11 @@ public final class MGStyleDescriptor {
         return new Builder();
     }
 
-    public static MGStyleDescriptor capture(ImGuiStyle style) {
-        return capture(style, MGColorPalette.fromStyle(style), null, null);
+    public static StyleDescriptor capture(ImGuiStyle style) {
+        return capture(style, ColorPalette.fromStyle(style), null, null);
     }
 
-    public static MGStyleDescriptor capture(ImGuiStyle style, MGColorPalette palette, Identifier fontKey, Float fontSize) {
+    public static StyleDescriptor capture(ImGuiStyle style, ColorPalette palette, ResourceId fontKey, Float fontSize) {
         return builder()
                 .fromStyle(style)
                 .colorPalette(palette)
@@ -162,7 +162,7 @@ public final class MGStyleDescriptor {
         colorPalette.applyTo(style);
     }
 
-    public MGStyleDescriptor withDelta(MGStyleDelta delta) {
+    public StyleDescriptor withDelta(StyleDelta delta) {
         if (delta == null) {
             return this;
         }
@@ -172,23 +172,23 @@ public final class MGStyleDescriptor {
     public static final class Builder {
         private float alpha;
         private float disabledAlpha;
-        private MGVec2 windowPadding = MGVec2.of(0.0f, 0.0f);
+        private Vec2 windowPadding = Vec2.of(0.0f, 0.0f);
         private float windowRounding;
         private float windowBorderSize;
-        private MGVec2 windowMinSize = MGVec2.of(0.0f, 0.0f);
-        private MGVec2 windowTitleAlign = MGVec2.of(0.5f, 0.5f);
+        private Vec2 windowMinSize = Vec2.of(0.0f, 0.0f);
+        private Vec2 windowTitleAlign = Vec2.of(0.5f, 0.5f);
         private int windowMenuButtonPosition;
         private float childRounding;
         private float childBorderSize;
         private float popupRounding;
         private float popupBorderSize;
-        private MGVec2 framePadding = MGVec2.of(0.0f, 0.0f);
+        private Vec2 framePadding = Vec2.of(0.0f, 0.0f);
         private float frameRounding;
         private float frameBorderSize;
-        private MGVec2 itemSpacing = MGVec2.of(0.0f, 0.0f);
-        private MGVec2 itemInnerSpacing = MGVec2.of(0.0f, 0.0f);
-        private MGVec2 cellPadding = MGVec2.of(0.0f, 0.0f);
-        private MGVec2 touchExtraPadding = MGVec2.of(0.0f, 0.0f);
+        private Vec2 itemSpacing = Vec2.of(0.0f, 0.0f);
+        private Vec2 itemInnerSpacing = Vec2.of(0.0f, 0.0f);
+        private Vec2 cellPadding = Vec2.of(0.0f, 0.0f);
+        private Vec2 touchExtraPadding = Vec2.of(0.0f, 0.0f);
         private float indentSpacing;
         private float columnsMinSpacing;
         private float scrollbarSize;
@@ -200,18 +200,18 @@ public final class MGStyleDescriptor {
         private float tabBorderSize;
         private float tabMinWidthForCloseButton;
         private int colorButtonPosition;
-        private MGVec2 buttonTextAlign = MGVec2.of(0.5f, 0.5f);
-        private MGVec2 selectableTextAlign = MGVec2.of(0.0f, 0.0f);
-        private MGVec2 displayWindowPadding = MGVec2.of(0.0f, 0.0f);
-        private MGVec2 displaySafeAreaPadding = MGVec2.of(0.0f, 0.0f);
+        private Vec2 buttonTextAlign = Vec2.of(0.5f, 0.5f);
+        private Vec2 selectableTextAlign = Vec2.of(0.0f, 0.0f);
+        private Vec2 displayWindowPadding = Vec2.of(0.0f, 0.0f);
+        private Vec2 displaySafeAreaPadding = Vec2.of(0.0f, 0.0f);
         private float mouseCursorScale = 1.0f;
         private boolean antiAliasedLines = true;
         private boolean antiAliasedLinesUseTex = true;
         private boolean antiAliasedFill = true;
         private float curveTessellationTol = 1.25f;
         private float circleTessellationMaxError = 0.3f;
-        private MGColorPalette colorPalette = MGColorPalette.empty();
-        private Identifier fontKey;
+        private ColorPalette colorPalette = ColorPalette.empty();
+        private ResourceId fontKey;
         private Float fontSize;
 
         public Builder fromStyle(ImGuiStyle style) {
@@ -261,7 +261,7 @@ public final class MGStyleDescriptor {
             return this;
         }
 
-        public Builder fromDescriptor(MGStyleDescriptor descriptor) {
+        public Builder fromDescriptor(StyleDescriptor descriptor) {
             if (descriptor == null) {
                 return this;
             }
@@ -322,11 +322,11 @@ public final class MGStyleDescriptor {
         }
 
         public Builder windowPadding(float x, float y) {
-            this.windowPadding = MGVec2.of(x, y);
+            this.windowPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder windowPadding(MGVec2 value) {
+        public Builder windowPadding(Vec2 value) {
             this.windowPadding = Objects.requireNonNull(value, "windowPadding");
             return this;
         }
@@ -342,21 +342,21 @@ public final class MGStyleDescriptor {
         }
 
         public Builder windowMinSize(float x, float y) {
-            this.windowMinSize = MGVec2.of(x, y);
+            this.windowMinSize = Vec2.of(x, y);
             return this;
         }
 
-        public Builder windowMinSize(MGVec2 value) {
+        public Builder windowMinSize(Vec2 value) {
             this.windowMinSize = Objects.requireNonNull(value, "windowMinSize");
             return this;
         }
 
         public Builder windowTitleAlign(float x, float y) {
-            this.windowTitleAlign = MGVec2.of(x, y);
+            this.windowTitleAlign = Vec2.of(x, y);
             return this;
         }
 
-        public Builder windowTitleAlign(MGVec2 value) {
+        public Builder windowTitleAlign(Vec2 value) {
             this.windowTitleAlign = Objects.requireNonNull(value, "windowTitleAlign");
             return this;
         }
@@ -387,11 +387,11 @@ public final class MGStyleDescriptor {
         }
 
         public Builder framePadding(float x, float y) {
-            this.framePadding = MGVec2.of(x, y);
+            this.framePadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder framePadding(MGVec2 value) {
+        public Builder framePadding(Vec2 value) {
             this.framePadding = Objects.requireNonNull(value, "framePadding");
             return this;
         }
@@ -407,41 +407,41 @@ public final class MGStyleDescriptor {
         }
 
         public Builder itemSpacing(float x, float y) {
-            this.itemSpacing = MGVec2.of(x, y);
+            this.itemSpacing = Vec2.of(x, y);
             return this;
         }
 
-        public Builder itemSpacing(MGVec2 value) {
+        public Builder itemSpacing(Vec2 value) {
             this.itemSpacing = Objects.requireNonNull(value, "itemSpacing");
             return this;
         }
 
         public Builder itemInnerSpacing(float x, float y) {
-            this.itemInnerSpacing = MGVec2.of(x, y);
+            this.itemInnerSpacing = Vec2.of(x, y);
             return this;
         }
 
-        public Builder itemInnerSpacing(MGVec2 value) {
+        public Builder itemInnerSpacing(Vec2 value) {
             this.itemInnerSpacing = Objects.requireNonNull(value, "itemInnerSpacing");
             return this;
         }
 
         public Builder cellPadding(float x, float y) {
-            this.cellPadding = MGVec2.of(x, y);
+            this.cellPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder cellPadding(MGVec2 value) {
+        public Builder cellPadding(Vec2 value) {
             this.cellPadding = Objects.requireNonNull(value, "cellPadding");
             return this;
         }
 
         public Builder touchExtraPadding(float x, float y) {
-            this.touchExtraPadding = MGVec2.of(x, y);
+            this.touchExtraPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder touchExtraPadding(MGVec2 value) {
+        public Builder touchExtraPadding(Vec2 value) {
             this.touchExtraPadding = Objects.requireNonNull(value, "touchExtraPadding");
             return this;
         }
@@ -502,41 +502,41 @@ public final class MGStyleDescriptor {
         }
 
         public Builder buttonTextAlign(float x, float y) {
-            this.buttonTextAlign = MGVec2.of(x, y);
+            this.buttonTextAlign = Vec2.of(x, y);
             return this;
         }
 
-        public Builder buttonTextAlign(MGVec2 value) {
+        public Builder buttonTextAlign(Vec2 value) {
             this.buttonTextAlign = Objects.requireNonNull(value, "buttonTextAlign");
             return this;
         }
 
         public Builder selectableTextAlign(float x, float y) {
-            this.selectableTextAlign = MGVec2.of(x, y);
+            this.selectableTextAlign = Vec2.of(x, y);
             return this;
         }
 
-        public Builder selectableTextAlign(MGVec2 value) {
+        public Builder selectableTextAlign(Vec2 value) {
             this.selectableTextAlign = Objects.requireNonNull(value, "selectableTextAlign");
             return this;
         }
 
         public Builder displayWindowPadding(float x, float y) {
-            this.displayWindowPadding = MGVec2.of(x, y);
+            this.displayWindowPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder displayWindowPadding(MGVec2 value) {
+        public Builder displayWindowPadding(Vec2 value) {
             this.displayWindowPadding = Objects.requireNonNull(value, "displayWindowPadding");
             return this;
         }
 
         public Builder displaySafeAreaPadding(float x, float y) {
-            this.displaySafeAreaPadding = MGVec2.of(x, y);
+            this.displaySafeAreaPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder displaySafeAreaPadding(MGVec2 value) {
+        public Builder displaySafeAreaPadding(Vec2 value) {
             this.displaySafeAreaPadding = Objects.requireNonNull(value, "displaySafeAreaPadding");
             return this;
         }
@@ -571,12 +571,12 @@ public final class MGStyleDescriptor {
             return this;
         }
 
-        public Builder colorPalette(MGColorPalette value) {
-            this.colorPalette = value != null ? value : MGColorPalette.empty();
+        public Builder colorPalette(ColorPalette value) {
+            this.colorPalette = value != null ? value : ColorPalette.empty();
             return this;
         }
 
-        public Builder fontKey(Identifier value) {
+        public Builder fontKey(ResourceId value) {
             this.fontKey = value;
             return this;
         }
@@ -586,8 +586,8 @@ public final class MGStyleDescriptor {
             return this;
         }
 
-        public MGStyleDescriptor build() {
-            MGStyleDescriptor descriptor = new MGStyleDescriptor(this);
+        public StyleDescriptor build() {
+            StyleDescriptor descriptor = new StyleDescriptor(this);
             StyleValidation.validateDescriptor(descriptor);
             return descriptor;
         }

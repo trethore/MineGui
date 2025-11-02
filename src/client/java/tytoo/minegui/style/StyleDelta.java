@@ -2,31 +2,31 @@ package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Objects;
 
 @Getter
-public final class MGStyleDelta {
+public final class StyleDelta {
     private final Float alpha;
     private final Float disabledAlpha;
-    private final MGVec2 windowPadding;
+    private final Vec2 windowPadding;
     private final Float windowRounding;
     private final Float windowBorderSize;
-    private final MGVec2 windowMinSize;
-    private final MGVec2 windowTitleAlign;
+    private final Vec2 windowMinSize;
+    private final Vec2 windowTitleAlign;
     private final Integer windowMenuButtonPosition;
     private final Float childRounding;
     private final Float childBorderSize;
     private final Float popupRounding;
     private final Float popupBorderSize;
-    private final MGVec2 framePadding;
+    private final Vec2 framePadding;
     private final Float frameRounding;
     private final Float frameBorderSize;
-    private final MGVec2 itemSpacing;
-    private final MGVec2 itemInnerSpacing;
-    private final MGVec2 cellPadding;
-    private final MGVec2 touchExtraPadding;
+    private final Vec2 itemSpacing;
+    private final Vec2 itemInnerSpacing;
+    private final Vec2 cellPadding;
+    private final Vec2 touchExtraPadding;
     private final Float indentSpacing;
     private final Float columnsMinSpacing;
     private final Float scrollbarSize;
@@ -38,21 +38,21 @@ public final class MGStyleDelta {
     private final Float tabBorderSize;
     private final Float tabMinWidthForCloseButton;
     private final Integer colorButtonPosition;
-    private final MGVec2 buttonTextAlign;
-    private final MGVec2 selectableTextAlign;
-    private final MGVec2 displayWindowPadding;
-    private final MGVec2 displaySafeAreaPadding;
+    private final Vec2 buttonTextAlign;
+    private final Vec2 selectableTextAlign;
+    private final Vec2 displayWindowPadding;
+    private final Vec2 displaySafeAreaPadding;
     private final Float mouseCursorScale;
     private final Boolean antiAliasedLines;
     private final Boolean antiAliasedLinesUseTex;
     private final Boolean antiAliasedFill;
     private final Float curveTessellationTol;
     private final Float circleTessellationMaxError;
-    private final MGColorPalette colorPalette;
-    private final Identifier fontKey;
+    private final ColorPalette colorPalette;
+    private final ResourceId fontKey;
     private final Float fontSize;
 
-    private MGStyleDelta(Builder builder) {
+    private StyleDelta(Builder builder) {
         this.alpha = builder.alpha;
         this.disabledAlpha = builder.disabledAlpha;
         this.windowPadding = builder.windowPadding;
@@ -231,9 +231,9 @@ public final class MGStyleDelta {
         }
     }
 
-    public MGStyleDescriptor resolve(MGStyleDescriptor base) {
+    public StyleDescriptor resolve(StyleDescriptor base) {
         Objects.requireNonNull(base, "base");
-        MGStyleDescriptor.Builder builder = MGStyleDescriptor.builder().fromDescriptor(base);
+        StyleDescriptor.Builder builder = StyleDescriptor.builder().fromDescriptor(base);
         if (alpha != null) {
             builder.alpha(alpha);
         }
@@ -354,7 +354,7 @@ public final class MGStyleDelta {
         if (circleTessellationMaxError != null) {
             builder.circleTessellationMaxError(circleTessellationMaxError);
         }
-        MGColorPalette palette = colorPalette != null ? base.getColorPalette().mergedWith(colorPalette) : base.getColorPalette();
+        ColorPalette palette = colorPalette != null ? base.getColorPalette().mergedWith(colorPalette) : base.getColorPalette();
         builder.colorPalette(palette);
         if (fontKey != null) {
             builder.fontKey(fontKey);
@@ -372,23 +372,23 @@ public final class MGStyleDelta {
     public static final class Builder {
         private Float alpha;
         private Float disabledAlpha;
-        private MGVec2 windowPadding;
+        private Vec2 windowPadding;
         private Float windowRounding;
         private Float windowBorderSize;
-        private MGVec2 windowMinSize;
-        private MGVec2 windowTitleAlign;
+        private Vec2 windowMinSize;
+        private Vec2 windowTitleAlign;
         private Integer windowMenuButtonPosition;
         private Float childRounding;
         private Float childBorderSize;
         private Float popupRounding;
         private Float popupBorderSize;
-        private MGVec2 framePadding;
+        private Vec2 framePadding;
         private Float frameRounding;
         private Float frameBorderSize;
-        private MGVec2 itemSpacing;
-        private MGVec2 itemInnerSpacing;
-        private MGVec2 cellPadding;
-        private MGVec2 touchExtraPadding;
+        private Vec2 itemSpacing;
+        private Vec2 itemInnerSpacing;
+        private Vec2 cellPadding;
+        private Vec2 touchExtraPadding;
         private Float indentSpacing;
         private Float columnsMinSpacing;
         private Float scrollbarSize;
@@ -400,18 +400,18 @@ public final class MGStyleDelta {
         private Float tabBorderSize;
         private Float tabMinWidthForCloseButton;
         private Integer colorButtonPosition;
-        private MGVec2 buttonTextAlign;
-        private MGVec2 selectableTextAlign;
-        private MGVec2 displayWindowPadding;
-        private MGVec2 displaySafeAreaPadding;
+        private Vec2 buttonTextAlign;
+        private Vec2 selectableTextAlign;
+        private Vec2 displayWindowPadding;
+        private Vec2 displaySafeAreaPadding;
         private Float mouseCursorScale;
         private Boolean antiAliasedLines;
         private Boolean antiAliasedLinesUseTex;
         private Boolean antiAliasedFill;
         private Float curveTessellationTol;
         private Float circleTessellationMaxError;
-        private MGColorPalette colorPalette;
-        private Identifier fontKey;
+        private ColorPalette colorPalette;
+        private ResourceId fontKey;
         private Float fontSize;
 
         public Builder alpha(float value) {
@@ -425,11 +425,11 @@ public final class MGStyleDelta {
         }
 
         public Builder windowPadding(float x, float y) {
-            this.windowPadding = MGVec2.of(x, y);
+            this.windowPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder windowPadding(MGVec2 value) {
+        public Builder windowPadding(Vec2 value) {
             this.windowPadding = Objects.requireNonNull(value, "windowPadding");
             return this;
         }
@@ -445,21 +445,21 @@ public final class MGStyleDelta {
         }
 
         public Builder windowMinSize(float x, float y) {
-            this.windowMinSize = MGVec2.of(x, y);
+            this.windowMinSize = Vec2.of(x, y);
             return this;
         }
 
-        public Builder windowMinSize(MGVec2 value) {
+        public Builder windowMinSize(Vec2 value) {
             this.windowMinSize = Objects.requireNonNull(value, "windowMinSize");
             return this;
         }
 
         public Builder windowTitleAlign(float x, float y) {
-            this.windowTitleAlign = MGVec2.of(x, y);
+            this.windowTitleAlign = Vec2.of(x, y);
             return this;
         }
 
-        public Builder windowTitleAlign(MGVec2 value) {
+        public Builder windowTitleAlign(Vec2 value) {
             this.windowTitleAlign = Objects.requireNonNull(value, "windowTitleAlign");
             return this;
         }
@@ -490,11 +490,11 @@ public final class MGStyleDelta {
         }
 
         public Builder framePadding(float x, float y) {
-            this.framePadding = MGVec2.of(x, y);
+            this.framePadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder framePadding(MGVec2 value) {
+        public Builder framePadding(Vec2 value) {
             this.framePadding = Objects.requireNonNull(value, "framePadding");
             return this;
         }
@@ -510,41 +510,41 @@ public final class MGStyleDelta {
         }
 
         public Builder itemSpacing(float x, float y) {
-            this.itemSpacing = MGVec2.of(x, y);
+            this.itemSpacing = Vec2.of(x, y);
             return this;
         }
 
-        public Builder itemSpacing(MGVec2 value) {
+        public Builder itemSpacing(Vec2 value) {
             this.itemSpacing = Objects.requireNonNull(value, "itemSpacing");
             return this;
         }
 
         public Builder itemInnerSpacing(float x, float y) {
-            this.itemInnerSpacing = MGVec2.of(x, y);
+            this.itemInnerSpacing = Vec2.of(x, y);
             return this;
         }
 
-        public Builder itemInnerSpacing(MGVec2 value) {
+        public Builder itemInnerSpacing(Vec2 value) {
             this.itemInnerSpacing = Objects.requireNonNull(value, "itemInnerSpacing");
             return this;
         }
 
         public Builder cellPadding(float x, float y) {
-            this.cellPadding = MGVec2.of(x, y);
+            this.cellPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder cellPadding(MGVec2 value) {
+        public Builder cellPadding(Vec2 value) {
             this.cellPadding = Objects.requireNonNull(value, "cellPadding");
             return this;
         }
 
         public Builder touchExtraPadding(float x, float y) {
-            this.touchExtraPadding = MGVec2.of(x, y);
+            this.touchExtraPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder touchExtraPadding(MGVec2 value) {
+        public Builder touchExtraPadding(Vec2 value) {
             this.touchExtraPadding = Objects.requireNonNull(value, "touchExtraPadding");
             return this;
         }
@@ -605,41 +605,41 @@ public final class MGStyleDelta {
         }
 
         public Builder buttonTextAlign(float x, float y) {
-            this.buttonTextAlign = MGVec2.of(x, y);
+            this.buttonTextAlign = Vec2.of(x, y);
             return this;
         }
 
-        public Builder buttonTextAlign(MGVec2 value) {
+        public Builder buttonTextAlign(Vec2 value) {
             this.buttonTextAlign = Objects.requireNonNull(value, "buttonTextAlign");
             return this;
         }
 
         public Builder selectableTextAlign(float x, float y) {
-            this.selectableTextAlign = MGVec2.of(x, y);
+            this.selectableTextAlign = Vec2.of(x, y);
             return this;
         }
 
-        public Builder selectableTextAlign(MGVec2 value) {
+        public Builder selectableTextAlign(Vec2 value) {
             this.selectableTextAlign = Objects.requireNonNull(value, "selectableTextAlign");
             return this;
         }
 
         public Builder displayWindowPadding(float x, float y) {
-            this.displayWindowPadding = MGVec2.of(x, y);
+            this.displayWindowPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder displayWindowPadding(MGVec2 value) {
+        public Builder displayWindowPadding(Vec2 value) {
             this.displayWindowPadding = Objects.requireNonNull(value, "displayWindowPadding");
             return this;
         }
 
         public Builder displaySafeAreaPadding(float x, float y) {
-            this.displaySafeAreaPadding = MGVec2.of(x, y);
+            this.displaySafeAreaPadding = Vec2.of(x, y);
             return this;
         }
 
-        public Builder displaySafeAreaPadding(MGVec2 value) {
+        public Builder displaySafeAreaPadding(Vec2 value) {
             this.displaySafeAreaPadding = Objects.requireNonNull(value, "displaySafeAreaPadding");
             return this;
         }
@@ -674,12 +674,12 @@ public final class MGStyleDelta {
             return this;
         }
 
-        public Builder colorPalette(MGColorPalette value) {
+        public Builder colorPalette(ColorPalette value) {
             this.colorPalette = value;
             return this;
         }
 
-        public Builder fontKey(Identifier value) {
+        public Builder fontKey(ResourceId value) {
             this.fontKey = value;
             return this;
         }
@@ -689,8 +689,8 @@ public final class MGStyleDelta {
             return this;
         }
 
-        public MGStyleDelta build() {
-            MGStyleDelta delta = new MGStyleDelta(this);
+        public StyleDelta build() {
+            StyleDelta delta = new StyleDelta(this);
             StyleValidation.validateDelta(delta);
             return delta;
         }

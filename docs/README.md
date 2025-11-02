@@ -1,5 +1,5 @@
 # MineGui Developer Docs
-MineGui brings Dear ImGui into Fabric-powered Minecraft clients so you can build immediate-mode tooling inside the game. This guide is the home base for contributors: start here to understand the project goals, choose the right deep-dive, and keep your workflow sharp as you extend the library.
+MineGui integrates Dear ImGui with Fabric-powered Minecraft clients, enabling developers to build immediate-mode GUIs directly within the game. This guide is the central resource for contributors: start here to understand the project goals, find the right documentation for your task, and keep your development workflow efficient.
 
 ## What this page covers
 - How the documentation set is organized for new contributors
@@ -7,12 +7,12 @@ MineGui brings Dear ImGui into Fabric-powered Minecraft clients so you can build
 - Quick references for development tips, testing, and clean iteration
 
 ## Welcome to MineGui
-MineGui keeps the runtime lean so mod authors can drive raw ImGui every frame. The core modules under `src/client/java/tytoo/minegui` wrap imgui-java with helpers for namespaces, style management, persistence, and cursor control. Before diving into the details, confirm you are targeting Java 21, Fabric Loader 1.21.4, and Yarn `1.21.4+build.8` so the APIs align with the code in this repository.
+MineGui provides a lean wrapper around `imgui-java`, allowing mod authors to drive raw ImGui calls every frame. The core modules under `src/client/java/tytoo/minegui` add helpers for multi-mod namespaces, style management, state persistence, and cursor control. Before you begin, confirm your environment targets **Java 21**, Fabric Loader `1.21.4`, and Yarn `1.21.4+build.8` to ensure API compatibility.
 
 ## Using These Docs
 Follow the pages in order for the smoothest onboarding. Each document starts with a quick overview, then breaks into focused sections with code snippets. Every page ends with navigation back here along with the suggested next step, so you can progress linearly or jump directly to the system you are working on.
 
-- Begin with [Getting Started](getting-started.md) to install MineGui and build your first `MGView`.
+- Begin with [Getting Started](getting-started.md) to install MineGui and build your first `View`.
 - Continue to [Configuration & Persistence](configuration-and-persistence.md) to learn how namespaces, config files, and view saves link together.
 - Explore [Styling & Fonts](styling-and-fonts.md) when you need theming, custom font atlases, or style export flows.
 - Review [Cursor & Input](cursor-and-input.md) to understand how MineGui manages GLFW state and cursor policies.
@@ -21,9 +21,9 @@ Follow the pages in order for the smoothest onboarding. Each document starts wit
 - Reference [Runtime Flow & Debugging](runtime-flow.md) while tracing lifecycle events or troubleshooting reloads.
 
 ## Development Tips
-- **Keep iterations small**: register new views through `UIManager`, toggle `shouldSave` only when you want MineGui to persist layout or style, and test changes via the debug namespace (`minegui_debug`).
+- **Keep iterations small**: register new views through `UIManager`. Toggle a view’s `shouldSave` property only when you want MineGui to persist its layout or style. Test changes using the bundled debug tools (`minegui_debug` namespace).
 - **Validate with Gradle**: run `./gradlew compileJava` after edits, `./gradlew build` for full checks, and `./gradlew runDebugClient` to exercise the bundled debug overlays.
-- **Leverage commands**: `/minegui reload` refreshes configs and style snapshots; `/minegui export style force` regenerates descriptors for version control.
+- **Use dev commands**: `/minegui reload [namespace]` refreshes JSON configs and view layouts. Use `/minegui export style force [namespace]` to write active style snapshots to disk for version control.
 - **Mind namespaces**: reserve `minegui` for internal tooling; choose explicit namespaces when calling `MineGuiCore.init(...)` or `MineGuiNamespaces.initialize(...)`.
 - **Clean code passes**: prefer focused refactors, descriptive identifiers, and the project’s four-space indentation to keep the codebase consistent.
 

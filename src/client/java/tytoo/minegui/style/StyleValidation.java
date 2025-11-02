@@ -6,7 +6,7 @@ final class StyleValidation {
     private StyleValidation() {
     }
 
-    static void validateDescriptor(MGStyleDescriptor descriptor) {
+    static void validateDescriptor(StyleDescriptor descriptor) {
         Objects.requireNonNull(descriptor, "descriptor");
         ensureFinite(descriptor.getAlpha(), "alpha");
         ensureFinite(descriptor.getDisabledAlpha(), "disabledAlpha");
@@ -45,7 +45,7 @@ final class StyleValidation {
         ensureFinite(descriptor.getCircleTessellationMaxError(), "circleTessellationMaxError");
     }
 
-    static void validateDelta(MGStyleDelta delta) {
+    static void validateDelta(StyleDelta delta) {
         Objects.requireNonNull(delta, "delta");
         ensureFinite(delta.getAlpha(), "alpha");
         ensureFinite(delta.getDisabledAlpha(), "disabledAlpha");
@@ -97,7 +97,7 @@ final class StyleValidation {
         ensureFinite(value.floatValue(), name);
     }
 
-    private static void ensureFinite(MGVec2 value, String name) {
+    private static void ensureFinite(Vec2 value, String name) {
         if (value == null) {
             return;
         }

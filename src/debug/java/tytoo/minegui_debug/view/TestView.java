@@ -8,22 +8,24 @@ import imgui.flag.ImGuiTableFlags;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
-import tytoo.minegui.helper.window.MGWindow;
-import tytoo.minegui.style.MGFontLibrary;
-import tytoo.minegui.style.MGFonts;
+import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.style.FontLibrary;
+import tytoo.minegui.style.Fonts;
 import tytoo.minegui.util.ImGuiImageUtils;
-import tytoo.minegui.view.MGView;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.util.ResourceId;
+import tytoo.minegui.view.View;
+import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui_debug.MineGuiDebugCore;
 
 import java.util.Locale;
 
-public final class TestView extends MGView {
-    private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
+public final class TestView extends View {
+    private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
     private static final float CONTROL_WIDTH = 220f;
     private static final float CHILD_HEIGHT = 220f;
     private static final String[][] TABLE_ROWS = {
@@ -50,8 +52,8 @@ public final class TestView extends MGView {
     private String jetbrainsStatus = "JetBrains Mono pending";
 
     public TestView() {
-        super("minegui_debug:test_view", true);
-        setCursorPolicy(MGCursorPolicies.clickToLock());
+        super(MineGuiDebugCore.ID, "test_view", true);
+        setCursorPolicy(CursorPolicies.clickToLock());
     }
 
     @Override
@@ -61,7 +63,7 @@ public final class TestView extends MGView {
 
     @Override
     protected void renderView() {
-        MGWindow.of(this, "Layout Playground")
+        Window.of(this, "Layout Playground")
                 .flags(ImGuiWindowFlags.NoFocusOnAppearing)
                 .render(() -> {
                     resetFocusIfPending();
@@ -117,17 +119,17 @@ public final class TestView extends MGView {
             UI.withVStackItem(column, () -> {
                 float rowHeight = ImGui.getFrameHeight();
                 UI.withHStack(new HStack.Options().spacing(stackSpacing).alignment(HStack.Alignment.CENTER), row -> {
-                    UI.withHItem(row, new HStack.ItemRequest().estimateWidth(140f).estimateHeight(rowHeight), () -> {
+                    UI.withHItem(row, 140f, rowHeight, () -> {
                         if (ImGui.button("Primary", 140f, 0f)) {
                             logAction("Primary action triggered");
                         }
                     });
-                    UI.withHItem(row, new HStack.ItemRequest().estimateWidth(140f).estimateHeight(rowHeight), () -> {
+                    UI.withHItem(row, 140f, rowHeight, () -> {
                         if (ImGui.button("Secondary", 140f, 0f)) {
                             logAction("Secondary action triggered");
                         }
                     });
-                    UI.withHItem(row, new HStack.ItemRequest().estimateWidth(160f).estimateHeight(rowHeight), () -> {
+                    UI.withHItem(row, 160f, rowHeight, () -> {
                         if (ImGui.checkbox("Child borders", showStackBorders)) {
                             logAction("Stack preview borders " + (showStackBorders.get() ? "enabled" : "disabled"));
                         }
@@ -282,11 +284,11 @@ public final class TestView extends MGView {
             jetbrainsStatus = "JetBrains Mono ready";
             return;
         }
-        ImFont resolved = MGFonts.ensureJetbrainsMono();
+        ImFont resolved = Fonts.ensureJetbrainsMono();
         if (resolved != null) {
             jetbrainsMono = resolved;
             jetbrainsStatus = "JetBrains Mono ready";
-        } else if (MGFontLibrary.getInstance().isRegistrationLocked()) {
+        } else if (FontLibrary.getInstance().isRegistrationLocked()) {
             jetbrainsStatus = "JetBrains Mono unavailable; restart after registering fonts.";
         } else {
             jetbrainsStatus = "JetBrains Mono loading...";

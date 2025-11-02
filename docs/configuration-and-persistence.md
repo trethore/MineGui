@@ -19,7 +19,7 @@ MineGuiNamespaces.initialize(
         MineGuiInitializationOptions.builder("examplemod-tools")
                 .loadGlobalConfig(false)          // opt out of automatic config loads
                 .ignoreGlobalConfig(true)          // keep tooling data ephemeral
-                .defaultCursorPolicyId(MGCursorPolicies.screenId())
+                .defaultCursorPolicyId(CursorPolicies.screenId())
                 .build()
 );
 ```
@@ -27,6 +27,15 @@ MineGuiNamespaces.initialize(
 - The namespace you pass to `MineGuiCore.init(...)` becomes the default for `UIManager.getInstance()` and other singletons.
 - The `minegui` namespace is reserved for MineGui internals—use your mod id or another explicit string.
 - Combine namespaces when you need separate config directories, cursor policies, or persistence adapters.
+
+### Initialization options cheat sheet
+- `loadGlobalConfig(boolean)` decides whether JSON config is read on startup; pair with `ignoreGlobalConfig(true)` when you want a temporary namespace that never touches disk.
+- `featureProfile(...)`, `loadFeatures(...)`, and `saveFeatures(...)` let you toggle individual `ConfigFeature` values, so you can load styles without saving layouts (or vice versa).
+- `configPathStrategy(...)` points saves at a different location using helpers such as `ConfigPathStrategies.flat(...)` or your own implementation.
+- `defaultCursorPolicyId(...)` establishes the namespace-wide cursor policy applied when a view does not set one explicitly.
+- `dockspaceCustomizer(...)` installs a `DockspaceCustomizer` that can tweak dock node flags, create splits, or reposition the dockspace each frame.
+- `viewPersistenceAdapter(...)` swaps in custom persistence so layouts and style snapshots can flow to a mod-specific folder or database.
+- `withNamespace(...)`, `withLoadGlobalConfig(...)`, and other `with*` helpers clone the options record, making it easy to derive variants during runtime setup.
 
 ## Working with Global Config
 `GlobalConfigManager` stores user-facing settings (dockspace, viewport mode, font scale, etc.) under the config directory associated with your namespace. You can adjust where files live, which features load, and how they save.
@@ -51,10 +60,10 @@ MineGuiNamespaces.initialize(options);
 - Use `GlobalConfigManager.save(namespace)` after programmatic changes so the JSON payload mirrors the active state.
 
 ## Persisting Views and Styles
-`ViewSaveManager` pairs each registered `MGView` with layout data (ImGui ini sections) and optional style snapshots. Views must opt in with `setShouldSave(true)` to participate.
+`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views must opt in with `setShouldSave(true)` to participate.
 
 ```java
-public final class InspectorOverlay extends MGView {
+public final class InspectorOverlay extends View {
     public InspectorOverlay() {
         super("example/inspector", true);
     }

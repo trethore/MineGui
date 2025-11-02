@@ -16,6 +16,8 @@ import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.util.ImGuiImageUtils;
+import tytoo.minegui.util.MinecraftIdentifiers;
+import tytoo.minegui.util.ResourceId;
 
 import java.nio.file.Path;
 import java.util.Objects;
@@ -25,6 +27,7 @@ public final class MineGuiCore {
     public static final String ID = "minegui";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
+    private static final ResourceId IMGUI_IMAGES_RELOAD_ID = ResourceId.of(ID, "imgui_images");
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
     private static volatile boolean defaultNamespaceConfigured;
@@ -65,7 +68,7 @@ public final class MineGuiCore {
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public Identifier getFabricId() {
-                return Identifier.of(ID, "imgui_images");
+                return MinecraftIdentifiers.toMinecraft(IMGUI_IMAGES_RELOAD_ID);
             }
 
             @Override

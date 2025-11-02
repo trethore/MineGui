@@ -6,19 +6,21 @@ import imgui.ImGuiViewport;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
-import tytoo.minegui.helper.window.MGWindow;
-import tytoo.minegui.style.MGColorPalette;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.style.ColorPalette;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ImGuiImageUtils;
-import tytoo.minegui.view.MGView;
-import tytoo.minegui.view.cursor.MGCursorPolicies;
+import tytoo.minegui.util.ResourceId;
+import tytoo.minegui.view.View;
+import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui_debug.MineGuiDebugCore;
 
-public final class FeaturesView extends MGView {
-    private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
+public final class FeaturesView extends View {
+    private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
     private static final float WINDOW_WIDTH = 560.0f;
     private static final float WINDOW_HEIGHT = 540.0f;
     private static final int SAMPLE_CAPACITY = 64;
@@ -71,13 +73,13 @@ public final class FeaturesView extends MGView {
     private int selectedHighlight;
 
     public FeaturesView() {
-        super("minegui_debug:features_view", false);
-        setCursorPolicy(MGCursorPolicies.screen());
+        super(MineGuiDebugCore.ID, "features_view", false);
+        setCursorPolicy(CursorPolicies.screen());
         scratchInput.set("Type here to test ImGui input relays.");
     }
 
-    private static MGColorPalette createWindarkPalette() {
-        MGColorPalette.Builder builder = MGColorPalette.builder();
+    private static ColorPalette createWindarkPalette() {
+        ColorPalette.Builder builder = ColorPalette.builder();
         builder.set(ImGuiCol.Text, color(1.0f, 1.0f, 1.0f, 1.0f));
         builder.set(ImGuiCol.TextDisabled, color(0.6f, 0.6f, 0.6f, 1.0f));
         builder.set(ImGuiCol.WindowBg, color(0.1254902f, 0.1254902f, 0.1254902f, 1.0f));
@@ -139,8 +141,8 @@ public final class FeaturesView extends MGView {
     }
 
     @Override
-    public MGStyleDescriptor configureBaseStyle(MGStyleDescriptor descriptor) {
-        var builder = MGStyleDescriptor.builder();
+    public StyleDescriptor configureBaseStyle(StyleDescriptor descriptor) {
+        var builder = StyleDescriptor.builder();
         if (descriptor != null) {
             builder.fromDescriptor(descriptor);
         } else {
@@ -183,7 +185,7 @@ public final class FeaturesView extends MGView {
     @Override
     protected void renderView() {
         advanceAnimation();
-        MGWindow.of(this, "ImGui Features")
+        Window.of(this, "ImGui Features")
                 .initDimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
                 .flags(resolveWindowFlags())
                 .render(() -> UI.withVStack(new VStack.Options().spacing(10.0f).fillMode(VStack.FillMode.MATCH_WIDEST), layout -> {
@@ -293,7 +295,7 @@ public final class FeaturesView extends MGView {
                 ImGui.textWrapped("Stack helpers, constraints, and windows layer together so you can sketch tools quickly. Use stacks for rhythm, constraints for placement, and MGWindow to preserve state.");
             });
             UI.withVStackItem(inner, new VStack.ItemRequest().estimateHeight(200.0f), () -> UI.withHStack(new HStack.Options().spacing(16.0f).alignment(HStack.Alignment.TOP), row -> {
-                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(220.0f), () -> {
+                UI.withHItem(row, 220.0f, () -> {
                     ImGui.text("Stacks");
                     ImGui.textWrapped("Compose vertical and horizontal regions with consistent spacing and alignment hints. Use VStack and HStack together when you need predictable rhythm without losing immediacy.");
                     ImGui.separator();

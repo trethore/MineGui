@@ -6,7 +6,6 @@ import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.internal.ImGuiContext;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
@@ -18,6 +17,7 @@ import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.InputHelper;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -114,7 +114,7 @@ public class ImGuiLoader {
         initializationInProgress = true;
         try {
             MineGuiCore.LOGGER.info("Initializing MineGui context");
-            MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+            FontLibrary fontLibrary = FontLibrary.getInstance();
             fontLibrary.resetRuntime();
             StyleManager.resetAllActiveFonts();
             initializeImGui();
@@ -237,9 +237,9 @@ public class ImGuiLoader {
             defaultConfig.destroy();
         }
 
-        MGFonts.registerDefaults(io);
-        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
-        ImFont defaultFont = MGFonts.ensure(fontLibrary.getDefaultFontKey());
+        Fonts.registerDefaults(io);
+        FontLibrary fontLibrary = FontLibrary.getInstance();
+        ImFont defaultFont = Fonts.ensure(fontLibrary.getDefaultFontKey());
         if (defaultFont != null) {
             io.setFontDefault(defaultFont);
         }
@@ -248,11 +248,11 @@ public class ImGuiLoader {
 
     private static void finalizeInitialStyle(ImFont defaultFont) {
         ImGuiStyle style = ImGui.getStyle();
-        MGFontLibrary fontLibrary = MGFontLibrary.getInstance();
+        FontLibrary fontLibrary = FontLibrary.getInstance();
         Float fontSize = defaultFont != null ? defaultFont.getFontSize() : null;
-        MGStyleDescriptor descriptor = MGStyleDescriptor.capture(
+        StyleDescriptor descriptor = StyleDescriptor.capture(
                 style,
-                MGColorPalette.fromStyle(style),
+                ColorPalette.fromStyle(style),
                 fontLibrary.getDefaultFontKey(),
                 fontSize
         );
@@ -262,7 +262,7 @@ public class ImGuiLoader {
         GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
         String configuredStyleKey = config.getGlobalStyleKey();
         if (configuredStyleKey != null && !configuredStyleKey.isBlank()) {
-            Identifier styleKey = Identifier.tryParse(configuredStyleKey);
+            ResourceId styleKey = ResourceId.tryParse(configuredStyleKey);
             if (styleKey != null) {
                 StyleManager.getInstance().setGlobalStyleKey(styleKey);
             }

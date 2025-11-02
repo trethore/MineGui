@@ -8,7 +8,6 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui_debug.view.FeaturesView;
@@ -31,9 +30,7 @@ public final class MineGuiDebugCore {
         TestView testView = new TestView();
         FeaturesView featuresView = new FeaturesView();
         StyleDebugView styleView = new StyleDebugView();
-        MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
-                MineGuiInitializationOptions.defaults(ID)
-        );
+        MineGuiNamespaceContext context = MineGuiNamespaces.initialize(ID);
         MineGuiNamespaces.setDockspaceCustomizer(ID, state -> state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode));
         context.ui().register(testView);
         context.ui().register(featuresView);

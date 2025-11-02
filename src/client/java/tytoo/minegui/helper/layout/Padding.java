@@ -5,8 +5,8 @@ import imgui.flag.ImGuiStyleVar;
 import tytoo.minegui.helper.layout.scope.StyleHandle;
 import tytoo.minegui.helper.layout.scope.StyleScope;
 import tytoo.minegui.helper.layout.sizing.ScaleUnit;
-import tytoo.minegui.style.MGStyleDescriptor;
-import tytoo.minegui.style.MGVec2;
+import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.style.Vec2;
 
 public final class Padding {
     private Padding() {
@@ -22,11 +22,11 @@ public final class Padding {
         return window(chosen.applyWidth(x), chosen.applyHeight(y));
     }
 
-    public static StyleHandle window(MGStyleDescriptor descriptor) {
+    public static StyleHandle window(StyleDescriptor descriptor) {
         if (descriptor == null) {
             return new StyleScope(0);
         }
-        MGVec2 padding = descriptor.getWindowPadding();
+        Vec2 padding = descriptor.getWindowPadding();
         return window(padding.x(), padding.y());
     }
 
@@ -40,11 +40,11 @@ public final class Padding {
         return frame(chosen.applyWidth(x), chosen.applyHeight(y));
     }
 
-    public static StyleHandle frame(MGStyleDescriptor descriptor) {
+    public static StyleHandle frame(StyleDescriptor descriptor) {
         if (descriptor == null) {
             return new StyleScope(0);
         }
-        MGVec2 padding = descriptor.getFramePadding();
+        Vec2 padding = descriptor.getFramePadding();
         return frame(padding.x(), padding.y());
     }
 
@@ -58,11 +58,11 @@ public final class Padding {
         return cell(chosen.applyWidth(x), chosen.applyHeight(y));
     }
 
-    public static StyleHandle cell(MGStyleDescriptor descriptor) {
+    public static StyleHandle cell(StyleDescriptor descriptor) {
         if (descriptor == null) {
             return new StyleScope(0);
         }
-        MGVec2 padding = descriptor.getCellPadding();
+        Vec2 padding = descriptor.getCellPadding();
         return cell(padding.x(), padding.y());
     }
 

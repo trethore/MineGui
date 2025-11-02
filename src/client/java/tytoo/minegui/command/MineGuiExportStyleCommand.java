@@ -4,10 +4,10 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.util.McClientBridge;
+import tytoo.minegui.util.MineGuiText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,13 +43,13 @@ public final class MineGuiExportStyleCommand {
         List<MineGuiNamespaceContext> targets = collectTargets(namespace);
         if (targets.isEmpty()) {
             if (namespace == null) {
-                source.sendFeedback(Text.literal("MineGui has no registered namespaces to export styles from."));
+                source.sendFeedback(MineGuiText.literal("MineGui has no registered namespaces to export styles from."));
             } else {
-                source.sendError(Text.literal("MineGui namespace '" + namespace + "' is not registered."));
+                source.sendError(MineGuiText.literal("MineGui namespace '" + namespace + "' is not registered."));
             }
             return 0;
         }
-        MinecraftClient.getInstance().execute(() -> {
+        McClientBridge.execute(() -> {
             int totalExports = 0;
             for (MineGuiNamespaceContext context : targets) {
                 totalExports += context.viewSaves().exportStyles(forceRewrite);
@@ -73,7 +73,7 @@ public final class MineGuiExportStyleCommand {
                         + resolvedList
                         + ".";
             }
-            source.sendFeedback(Text.literal(message));
+            source.sendFeedback(MineGuiText.literal(message));
         });
         return targets.size();
     }

@@ -1,6 +1,5 @@
 package tytoo.minegui.util;
 
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 
 @SuppressWarnings("unused")
@@ -14,9 +13,7 @@ public final class InputHelper {
             return false;
         }
         int targetFinalKeyCode = remapToQwerty(targetKeyCode);
-        long handle = McUtils.getMc()
-                .map(mc -> mc.getWindow().getHandle())
-                .orElse(-1L);
+        long handle = McClientBridge.windowHandle();
         return handle != -1L && GLFW.glfwGetKey(handle, targetFinalKeyCode) == GLFW.GLFW_PRESS;
     }
 
@@ -98,7 +95,7 @@ public final class InputHelper {
     }
 
     public static boolean isControlDown() {
-        if (MinecraftClient.IS_SYSTEM_MAC) {
+        if (McClientBridge.isOnMac()) {
             return isKeyPressed(GLFW.GLFW_KEY_LEFT_SUPER) || isKeyPressed(GLFW.GLFW_KEY_RIGHT_SUPER);
         }
         return isKeyPressed(GLFW.GLFW_KEY_LEFT_CONTROL) || isKeyPressed(GLFW.GLFW_KEY_RIGHT_CONTROL);

@@ -4,15 +4,15 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
-import tytoo.minegui.style.MGStyleDescriptor;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
+import tytoo.minegui.util.McClientBridge;
+import tytoo.minegui.util.MineGuiText;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,17 +36,17 @@ public final class MineGuiReloadCommand {
         List<MineGuiNamespaceContext> targets = collectTargets(namespace);
         if (targets.isEmpty()) {
             if (namespace == null) {
-                source.sendFeedback(Text.literal("MineGui has no registered namespaces to reload."));
+                source.sendFeedback(MineGuiText.literal("MineGui has no registered namespaces to reload."));
             } else {
-                source.sendError(Text.literal("MineGui namespace '" + namespace + "' is not registered."));
+                source.sendError(MineGuiText.literal("MineGui namespace '" + namespace + "' is not registered."));
             }
             return 0;
         }
-        MinecraftClient.getInstance().execute(() -> targets.forEach(MineGuiReloadCommand::reloadNamespace));
+        McClientBridge.execute(() -> targets.forEach(MineGuiReloadCommand::reloadNamespace));
         String message = namespace == null
                 ? "MineGui reloaded namespaces: " + targets.stream().map(MineGuiNamespaceContext::namespace).collect(Collectors.joining(", "))
                 : "MineGui namespace '" + namespace + "' reloaded.";
-        source.sendFeedback(Text.literal(message));
+        source.sendFeedback(MineGuiText.literal(message));
         return targets.size();
     }
 
@@ -74,12 +74,12 @@ public final class MineGuiReloadCommand {
     private static void applyConfiguredStyle(MineGuiNamespaceContext context) {
         GlobalConfig config = GlobalConfigManager.getConfig(context.namespace());
         String configured = config.getGlobalStyleKey();
-        Identifier styleKey = (configured == null || configured.isBlank()) ? null : Identifier.tryParse(configured);
+        ResourceId styleKey = (configured == null || configured.isBlank()) ? null : ResourceId.tryParse(configured);
         StyleManager styleManager = context.style();
         if (styleManager.getGlobalDescriptor().isEmpty()) {
             StyleManager.get(GlobalConfigManager.getDefaultNamespace())
                     .getGlobalDescriptor()
-                    .map(descriptor -> MGStyleDescriptor.builder().fromDescriptor(descriptor).build())
+                    .map(descriptor -> StyleDescriptor.builder().fromDescriptor(descriptor).build())
                     .ifPresent(styleManager::setGlobalDescriptor);
         }
         styleManager.setGlobalStyleKey(styleKey);

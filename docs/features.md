@@ -20,14 +20,24 @@ context.ui().register(new ExampleOverlay());
 - Use `MineGuiInitializationOptions.withDefaultCursorPolicy(...)` if you need a namespace-wide override; the default is `click_to_lock`.
 - Call `MineGuiCore.init(...)` once during client startup to activate lifecycle hooks and resource reload listeners.
 
+## UIManager orchestration
+Each namespace receives a dedicated `UIManager` that wires views, cursor policies, styles, and persistence together. When you call `register(view)` the manager:
+
+- Attaches the namespace’s `ViewSaveManager`, immediately applying saved layout/style data if available.
+- Applies the namespace default cursor policy unless the view already set one explicitly.
+- Keeps the view in a render list processed every frame; invisible views are skipped with no extra work on your side.
+- Ensures profiler scopes wrap each view render so you can spot hotspots in the built-in profiler.
+
+Use `unregister(view)` to detach a view permanently—this hides it, removes save hooks, and stops future renders. `UIManager.hasVisibleViews()` is also what powers `MineGuiNamespaces.anyVisible()`, so toggling visibility affects global cursor handling and rendering short-circuiting.
+
 ## Cursor & Input Control
 MineGui wraps GLFW input so your UI captures events without fighting Minecraft’s lock state.
 
 ```java
-public final class ExampleOverlay extends MGView {
+public final class ExampleOverlay extends View {
     public ExampleOverlay() {
         super("examplemod:overlay", true);
-        setCursorPolicy(MGCursorPolicies.screen());
+        setCursorPolicy(CursorPolicies.screen());
     }
 
     @Override
@@ -39,8 +49,8 @@ public final class ExampleOverlay extends MGView {
 }
 ```
 
-- `MGCursorPolicies.clickToLock()` unlocks the cursor until you click the world again, ideal for overlays.
-- `MGCursorPolicies.screen()` keeps the cursor free while the view is open; pair it with modal tooling.
+- `CursorPolicies.clickToLock()` unlocks the cursor until you click the world again, ideal for overlays.
+- `CursorPolicies.screen()` keeps the cursor free while the view is open; pair it with modal tooling.
 - `InputRouter` and the mouse/keyboard mixins ensure ImGui only consumes events when required.
 
 ## Render Loop Integration
@@ -50,9 +60,9 @@ MineGui hooks `RenderSystem.flipFrame` to run ImGui after vanilla rendering, ens
 - Enable viewports and dockspace through `GlobalConfig` or `MineGuiInitializationOptions`, and customize window placement using a `DockspaceCustomizer`.
 
 ## Styles & Fonts
-Style descriptors and fonts live in `StyleManager` and `MGFontLibrary`.
+Style descriptors and fonts live in `StyleManager`, `FontLibrary`, and `Fonts`.
 
-- Register fonts during startup with `MGFonts.registerDefaults(io)` or custom calls; runtime font registration after initialization logs a warning.
+- Register fonts during startup with `Fonts.registerDefaults(io)` or custom calls; runtime font registration after initialization logs a warning.
 - Use `StyleManager.get(namespace)` to apply theme changes or to snapshot descriptors for export.
 - Views can override style with `configureStyleDelta()` for scoped adjustments.
 
@@ -64,9 +74,10 @@ Style descriptors and fonts live in `StyleManager` and `MGFontLibrary`.
 - `/minegui export style force` writes all captured style descriptors to disk so you can version controll them.
 
 ## Utility Helpers
-- `UI.withVStack`/`withHStack` offer lightweight layout helpers that preserve immediate-mode flexibility.
+- `UI.withVStack`/`withHStack` provide scoped stack helpers, and `UI.withHItem(...)` overloads let you declare width/height hints inline.
 - `ImGuiImageUtils` loads Minecraft textures into ImGui draw lists, enabling sprite previews, item icons, and atlas debugging.
 - `CursorLockUtils` and `ViewportInteractionTracker` bridge ImGui input with Minecraft’s own cursor behaviour and AFK handling.
+- `ResourceId`, `NamespaceIds`, `MinecraftIdentifiers`, and `MineGuiText` simplify identifier conversions and text creation when integrating with vanilla APIs.
 
 ---
 

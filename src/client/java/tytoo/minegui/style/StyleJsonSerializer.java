@@ -3,7 +3,7 @@ package tytoo.minegui.style;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import net.minecraft.util.Identifier;
+import tytoo.minegui.util.ResourceId;
 
 import java.util.Map;
 
@@ -13,7 +13,7 @@ public final class StyleJsonSerializer {
     private StyleJsonSerializer() {
     }
 
-    public static String toJson(String namespace, String viewId, Identifier styleKey, MGStyleDescriptor descriptor) {
+    public static String toJson(String namespace, String viewId, ResourceId styleKey, StyleDescriptor descriptor) {
         if (descriptor == null) {
             return null;
         }
@@ -28,7 +28,7 @@ public final class StyleJsonSerializer {
             root.addProperty("styleKey", styleKey.toString());
         }
 
-        Identifier fontKey = descriptor.getFontKey();
+        ResourceId fontKey = descriptor.getFontKey();
         if (fontKey != null) {
             root.addProperty("fontKey", fontKey.toString());
         }
@@ -86,14 +86,14 @@ public final class StyleJsonSerializer {
         return GSON.toJson(root);
     }
 
-    private static JsonObject vec(MGVec2 value) {
+    private static JsonObject vec(Vec2 value) {
         JsonObject vec = new JsonObject();
         vec.addProperty("x", value.x());
         vec.addProperty("y", value.y());
         return vec;
     }
 
-    private static JsonObject colors(MGColorPalette palette) {
+    private static JsonObject colors(ColorPalette palette) {
         if (palette == null || palette.isEmpty()) {
             return null;
         }
