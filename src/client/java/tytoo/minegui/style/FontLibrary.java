@@ -1,6 +1,7 @@
 package tytoo.minegui.style;
 
 import imgui.*;
+import lombok.Getter;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +27,7 @@ public final class FontLibrary {
     private final ConcurrentHashMap<Identifier, Identifier> mergeParents = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<FontVariant, byte[]> fontData = new ConcurrentHashMap<>();
     private final ThreadLocal<Set<Identifier>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
+    @Getter
     private volatile boolean registrationLocked;
 
     private FontLibrary() {
@@ -176,10 +178,6 @@ public final class FontLibrary {
 
     public void lockRegistration() {
         registrationLocked = true;
-    }
-
-    public boolean isRegistrationLocked() {
-        return registrationLocked;
     }
 
     public void preloadRegisteredFonts() {

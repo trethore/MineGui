@@ -6,6 +6,7 @@ import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.util.NamespaceIds;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
 
@@ -41,6 +42,18 @@ public abstract class View {
     protected View(String id, boolean shouldSave) {
         this(id);
         setShouldSave(shouldSave);
+    }
+
+    protected View(String namespace, String path) {
+        this(namespacedId(namespace, path));
+    }
+
+    protected View(String namespace, String path, boolean shouldSave) {
+        this(namespacedId(namespace, path), shouldSave);
+    }
+
+    public static String namespacedId(String namespace, String path) {
+        return NamespaceIds.make(namespace, path);
     }
 
     public final void render() {

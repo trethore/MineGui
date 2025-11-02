@@ -93,7 +93,6 @@ public final class MineGuiNamespaceContext {
     }
 
     public void setDockspaceCustomizer(DockspaceCustomizer customizer) {
-        DockspaceCustomizer normalized = customizer != null ? customizer : DockspaceCustomizer.noop();
-        dockspaceCustomizer = normalized;
+        dockspaceCustomizer = customizer != null ? customizer : DockspaceCustomizer.noop();
     }
 }

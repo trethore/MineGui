@@ -4,24 +4,31 @@ import imgui.ImGui;
 import imgui.ImGuiViewport;
 import imgui.flag.ImGuiCond;
 import imgui.type.ImBoolean;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.constraint.*;
 import tytoo.minegui.helper.constraint.constraints.Constraints;
 import tytoo.minegui.helper.constraint.constraints.PixelConstraint;
 import tytoo.minegui.view.View;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class Window {
     private static final float DEFAULT_WIDTH = 200f;
     private static final float DEFAULT_HEIGHT = 200f;
     private static final Map<String, WindowState> STATE_BY_TITLE = new ConcurrentHashMap<>();
+    private static final Set<String> WARNED_TITLES = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private Window() {
     }
 
     public static Builder of(String title) {
+        if (title != null && !title.contains("##") && WARNED_TITLES.add(title)) {
+            MineGuiCore.LOGGER.warn("MineGui window title '{}' is missing '##' scope; layout persistence may be disabled.", title);
+        }
         return new Builder(title);
     }
 

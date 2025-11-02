@@ -92,6 +92,18 @@ public final class UI {
         }
     }
 
+    public static void withHItem(HStack stack, float width, Runnable body) {
+        Objects.requireNonNull(stack, "stack");
+        Objects.requireNonNull(body, "body");
+        withHItem(stack, new HStack.ItemRequest().estimateWidth(width), body);
+    }
+
+    public static void withHItem(HStack stack, float width, float height, Runnable body) {
+        Objects.requireNonNull(stack, "stack");
+        Objects.requireNonNull(body, "body");
+        withHItem(stack, new HStack.ItemRequest().estimateWidth(width).estimateHeight(height), body);
+    }
+
     public static void withHItem(HStack stack, HStack.ItemRequest request, Runnable body) {
         Objects.requireNonNull(stack, "stack");
         Objects.requireNonNull(body, "body");
@@ -106,6 +118,18 @@ public final class UI {
         try (HStack.ItemScope ignore = stack.next()) {
             return body.get();
         }
+    }
+
+    public static <T> T withHItemResult(HStack stack, float width, Supplier<T> body) {
+        Objects.requireNonNull(stack, "stack");
+        Objects.requireNonNull(body, "body");
+        return withHItemResult(stack, new HStack.ItemRequest().estimateWidth(width), body);
+    }
+
+    public static <T> T withHItemResult(HStack stack, float width, float height, Supplier<T> body) {
+        Objects.requireNonNull(stack, "stack");
+        Objects.requireNonNull(body, "body");
+        return withHItemResult(stack, new HStack.ItemRequest().estimateWidth(width).estimateHeight(height), body);
     }
 
     public static <T> T withHItemResult(HStack stack, HStack.ItemRequest request, Supplier<T> body) {

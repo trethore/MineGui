@@ -1,5 +1,6 @@
 package tytoo.minegui.manager;
 
+import lombok.Getter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profilers;
 import tytoo.minegui.MineGuiCore;
@@ -23,6 +24,7 @@ public final class UIManager {
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
     private final List<View> views = new CopyOnWriteArrayList<>();
+    @Getter
     private volatile CursorPolicy defaultCursorPolicy;
 
     private UIManager(String namespace) {
@@ -66,10 +68,6 @@ public final class UIManager {
         views.remove(view);
         viewSaveManager.unregister(view);
         view.detach();
-    }
-
-    public CursorPolicy getDefaultCursorPolicy() {
-        return defaultCursorPolicy;
     }
 
     public void setDefaultCursorPolicy(CursorPolicy policy) {

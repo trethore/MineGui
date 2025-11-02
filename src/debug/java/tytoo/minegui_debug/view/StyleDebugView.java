@@ -5,8 +5,8 @@ import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import net.minecraft.util.Identifier;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.NamedStyleRegistry;
+import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.view.View;
 

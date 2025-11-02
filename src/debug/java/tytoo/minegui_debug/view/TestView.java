@@ -19,6 +19,7 @@ import tytoo.minegui.style.Fonts;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.view.View;
 import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui_debug.MineGuiDebugCore;
 
 import java.util.Locale;
 
@@ -50,7 +51,7 @@ public final class TestView extends View {
     private String jetbrainsStatus = "JetBrains Mono pending";
 
     public TestView() {
-        super("minegui_debug:test_view", true);
+        super(MineGuiDebugCore.ID, "test_view", true);
         setCursorPolicy(CursorPolicies.clickToLock());
     }
 
@@ -117,17 +118,17 @@ public final class TestView extends View {
             UI.withVStackItem(column, () -> {
                 float rowHeight = ImGui.getFrameHeight();
                 UI.withHStack(new HStack.Options().spacing(stackSpacing).alignment(HStack.Alignment.CENTER), row -> {
-                    UI.withHItem(row, new HStack.ItemRequest().estimateWidth(140f).estimateHeight(rowHeight), () -> {
+                    UI.withHItem(row, 140f, rowHeight, () -> {
                         if (ImGui.button("Primary", 140f, 0f)) {
                             logAction("Primary action triggered");
                         }
                     });
-                    UI.withHItem(row, new HStack.ItemRequest().estimateWidth(140f).estimateHeight(rowHeight), () -> {
+                    UI.withHItem(row, 140f, rowHeight, () -> {
                         if (ImGui.button("Secondary", 140f, 0f)) {
                             logAction("Secondary action triggered");
                         }
                     });
-                    UI.withHItem(row, new HStack.ItemRequest().estimateWidth(160f).estimateHeight(rowHeight), () -> {
+                    UI.withHItem(row, 160f, rowHeight, () -> {
                         if (ImGui.checkbox("Child borders", showStackBorders)) {
                             logAction("Stack preview borders " + (showStackBorders.get() ? "enabled" : "disabled"));
                         }

@@ -46,7 +46,7 @@ public final class CursorPolicyRegistry {
     }
 
     public static Set<Identifier> registeredPolicies() {
-        return Collections.unmodifiableSet(new HashSet<>(REGISTERED_POLICIES.keySet()));
+        return Set.copyOf(REGISTERED_POLICIES.keySet());
     }
 
     public static void requestPersistentUnlock(View view) {

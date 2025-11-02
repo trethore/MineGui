@@ -16,6 +16,7 @@ import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.view.View;
 import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui_debug.MineGuiDebugCore;
 
 public final class FeaturesView extends View {
     private static final Identifier IMGUI_ICON = Identifier.of("minegui", "icon.png");
@@ -71,7 +72,7 @@ public final class FeaturesView extends View {
     private int selectedHighlight;
 
     public FeaturesView() {
-        super("minegui_debug:features_view", false);
+        super(MineGuiDebugCore.ID, "features_view", false);
         setCursorPolicy(CursorPolicies.screen());
         scratchInput.set("Type here to test ImGui input relays.");
     }
@@ -293,7 +294,7 @@ public final class FeaturesView extends View {
                 ImGui.textWrapped("Stack helpers, constraints, and windows layer together so you can sketch tools quickly. Use stacks for rhythm, constraints for placement, and MGWindow to preserve state.");
             });
             UI.withVStackItem(inner, new VStack.ItemRequest().estimateHeight(200.0f), () -> UI.withHStack(new HStack.Options().spacing(16.0f).alignment(HStack.Alignment.TOP), row -> {
-                UI.withHItem(row, new HStack.ItemRequest().estimateWidth(220.0f), () -> {
+                UI.withHItem(row, 220.0f, () -> {
                     ImGui.text("Stacks");
                     ImGui.textWrapped("Compose vertical and horizontal regions with consistent spacing and alignment hints. Use VStack and HStack together when you need predictable rhythm without losing immediacy.");
                     ImGui.separator();

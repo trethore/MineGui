@@ -20,6 +20,10 @@ public final class MineGuiNamespaces {
     private MineGuiNamespaces() {
     }
 
+    public static MineGuiNamespaceContext initialize(String namespace) {
+        return initialize(MineGuiInitializationOptions.defaults(namespace));
+    }
+
     public static MineGuiNamespaceContext initialize(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = Objects.requireNonNull(options.configNamespace(), "namespace");
