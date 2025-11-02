@@ -2,7 +2,7 @@ name: Notify Discord on Package
 
 on:
   registry_package:
-    types: [published]
+    types: [ published ]
 
 jobs:
   notify:
@@ -33,9 +33,18 @@ jobs:
           {
             "content": "**${NAME}** has a new version: **${VERSION}**",
             "embeds": [{
-              "title": "Maven Dependency",
-              "description": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```",
-              "url": "${URL}"
+              "title": "Dependency Snippets",
+              "url": "${URL}",
+              "fields": [
+                {
+                  "name": "Maven",
+                  "value": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```"
+                },
+                {
+                  "name": "Gradle",
+                  "value": "```groovy\nimplementation \"tytoo.minegui:minegui:${VERSION}\"\n```"
+                }
+              ]
             }]
           }
           EOF
