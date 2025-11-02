@@ -18,42 +18,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Find latest Maven package version (REST, user/org + full/short)
+      - name: Find latest Maven package version (REST, auto-detect name and scope)
         id: latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: trethore
           PKG_TYPE: maven
-          PKG_FULL: tytoo.minegui%2Fminegui
-          PKG_SHORT: minegui
+          WANT_ARTIFACT: minegui
         run: |
           set -e
 
           USER_LIST=$(gh api -H "Accept: application/vnd.github+json" \
             "/users/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || true)
-
           ORG_LIST=$(gh api -H "Accept: application/vnd.github+json" \
             "/orgs/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || true)
 
-          find_pkg_scope() {
-            local NAME="$1"
-            local SCOPE=""
-            echo "$USER_LIST" | jq -e --arg n "$NAME" '.[] | select(.name==$n)' >/dev/null 2>&1 && SCOPE=user
-            if [ -z "$SCOPE" ]; then
-              echo "$ORG_LIST" | jq -e --arg n "$NAME" '.[] | select(.name==$n)' >/dev/null 2>&1 && SCOPE=org
-            fi
-            echo "$SCOPE"
+          pick_name() {
+            jq -r --arg a "$WANT_ARTIFACT" '
+              [.[] | .name] |
+              map(select(. == $a or (endswith("." + $a)))) |
+              (.[0] // empty)
+            '
           }
 
-          SCOPE=$(find_pkg_scope "$PKG_FULL")
-          PKG_NAME="$PKG_FULL"
-          if [ -z "$SCOPE" ]; then
-            SCOPE=$(find_pkg_scope "$PKG_SHORT")
-            PKG_NAME="$PKG_SHORT"
+          PKG_NAME=$(printf '%s' "$USER_LIST" | pick_name)
+          SCOPE="user"
+          if [ -z "$PKG_NAME" ]; then
+            PKG_NAME=$(printf '%s' "$ORG_LIST" | pick_name)
+            [ -n "$PKG_NAME" ] && SCOPE="org"
           fi
 
-          if [ -z "$SCOPE" ]; then
-            echo "Impossible de localiser le package Maven ($PKG_FULL ou $PKG_SHORT) sous $OWNER (user ou org)."
+          if [ -z "$PKG_NAME" ]; then
+            echo "Impossible de localiser le package Maven pour $OWNER."
             echo "USER_LIST: $(echo "$USER_LIST" | jq -r '.[].name' 2>/dev/null || true)"
             echo "ORG_LIST:  $(echo "$ORG_LIST"  | jq -r '.[].name' 2>/dev/null || true)"
             exit 1
