@@ -1,8 +1,8 @@
-name: Notify Discord on New Package Version (poll)
+name: Notify Discord on New Package Version
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Find latest Maven package version (REST, auto-detect name and scope)
+      - name: Find latest Maven package version
         id: latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,11 +27,12 @@ jobs:
           WANT_ARTIFACT: minegui
         run: |
           set -e
-
+          
+          echo "Fetching package lists for owner: ${OWNER}"
           USER_LIST=$(gh api -H "Accept: application/vnd.github+json" \
-            "/users/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || true)
+            "/users/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || echo '[]')
           ORG_LIST=$(gh api -H "Accept: application/vnd.github+json" \
-            "/orgs/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || true)
+            "/orgs/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || echo '[]')
 
           pick_name() {
             jq -r --arg a "$WANT_ARTIFACT" '
@@ -49,11 +50,13 @@ jobs:
           fi
 
           if [ -z "$PKG_NAME" ]; then
-            echo "Impossible de localiser le package Maven pour $OWNER."
-            echo "USER_LIST: $(echo "$USER_LIST" | jq -r '.[].name' 2>/dev/null || true)"
-            echo "ORG_LIST:  $(echo "$ORG_LIST"  | jq -r '.[].name' 2>/dev/null || true)"
+            echo "Error: Unable to locate Maven package for ${OWNER}"
+            echo "Available user packages: $(echo "$USER_LIST" | jq -r '.[].name' 2>/dev/null | tr '\n' ', ' || echo 'none')"
+            echo "Available org packages: $(echo "$ORG_LIST" | jq -r '.[].name' 2>/dev/null | tr '\n' ', ' || echo 'none')"
             exit 1
           fi
+
+          echo "Found package: ${PKG_NAME} (scope: ${SCOPE})"
 
           if [ "$SCOPE" = "user" ]; then
             VERS_JSON=$(gh api -H "Accept: application/vnd.github+json" \
@@ -67,10 +70,12 @@ jobs:
           URL=$(printf '%s' "$VERS_JSON" | jq -r '.[0].html_url // empty')
 
           if [ -z "$VERSION" ]; then
-            echo "Aucune version trouvée pour ${OWNER}/${PKG_NAME}"
+            echo "Error: No version found for ${OWNER}/${PKG_NAME}"
+            echo "API response: $VERS_JSON"
             exit 1
           fi
 
+          echo "Latest version: ${VERSION}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
@@ -81,7 +86,7 @@ jobs:
           path: .gh-notify-dedupe
           key: notify-${{ steps.latest.outputs.version }}
 
-      - name: Build Discord payload (only if new)
+      - name: Build Discord payload
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           NAME: ${{ github.event.repository.name }}
@@ -89,6 +94,7 @@ jobs:
           URL: ${{ steps.latest.outputs.url }}
         run: |
           mkdir -p .gh-notify-dedupe
+          
           cat > payload.json <<'EOF'
           {
             "content": "**${NAME}** has a new version: **${VERSION}**",
@@ -101,19 +107,36 @@ jobs:
                   "value": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```"
                 },
                 {
-                  "name": "Gradle (Fabric)",
-                  "value": "```groovy\nmodImplementation \"tytoo.minegui:minegui:${VERSION}\"\n```"
+                  "name": "Gradle",
+                  "value": "```groovy\nimplementation \"tytoo.minegui:minegui:${VERSION}\"\n```"
                 }
               ]
             }]
           }
           EOF
+          
           sed -i "s|\${NAME}|$NAME|g; s|\${VERSION}|$VERSION|g; s|\${URL}|${URL:-https://github.com/${GITHUB_REPOSITORY}/packages}|g" payload.json
           echo "$VERSION" > .gh-notify-dedupe/last-version.txt
+          
+          echo "Discord payload created for version ${VERSION}"
 
-      - name: Send to Discord (only if new)
+      - name: Send to Discord
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          curl -s -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK_URL"
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "Error: DISCORD_WEBHOOK_URL secret not set"
+            exit 1
+          fi
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK_URL")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "Successfully sent Discord notification (HTTP ${HTTP_CODE})"
+          else
+            echo "Error: Discord webhook failed with HTTP ${HTTP_CODE}"
+            echo "Response: $(echo "$RESPONSE" | head -n-1)"
+            exit 1
+          fi
