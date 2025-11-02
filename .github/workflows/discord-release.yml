@@ -1,32 +1,46 @@
-name: Notify Discord on Package
+name: Notify Discord on New Package Version (poll)
 
 on:
-  registry_package:
-    types: [ published ]
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   notify:
-    if: ${{ github.event.registry_package.package_version != null }}
     runs-on: ubuntu-latest
 
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.event.registry_package.name }}-${{ github.event.registry_package.package_version.name }}
-      cancel-in-progress: true
-
     steps:
+      - name: Get latest Maven package version via gh api
+        id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: trethore
+          PKG_TYPE: maven
+          PKG_NAME: tytoo.minegui%2Fminegui
+        run: |
+          JSON=$(gh api "/users/${OWNER}/packages/${PKG_TYPE}/${PKG_NAME}/versions?per_page=1")
+          VERSION=$(printf '%s' "$JSON" | jq -r '.[0].name')
+          URL=$(printf '%s' "$JSON" | jq -r '.[0].html_url')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Restore dedupe cache
         id: cache
         uses: actions/cache@v4
         with:
           path: .gh-notify-dedupe
-          key: notify-${{ github.event.registry_package.name }}-${{ github.event.registry_package.package_version.name }}
+          key: notify-${{ steps.latest.outputs.version }}
 
-      - name: Compute payload
+      - name: Build Discord payload (only if new)
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           NAME: ${{ github.event.repository.name }}
-          VERSION: ${{ github.event.registry_package.package_version.name }}
-          URL: ${{ github.event.registry_package.package.html_url }}
+          VERSION: ${{ steps.latest.outputs.version }}
+          URL: ${{ steps.latest.outputs.url }}
         run: |
           mkdir -p .gh-notify-dedupe
           cat > payload.json <<'EOF'
@@ -41,18 +55,17 @@ jobs:
                   "value": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```"
                 },
                 {
-                  "name": "Gradle",
-                  "value": "```groovy\nimplementation \"tytoo.minegui:minegui:${VERSION}\"\n```"
+                  "name": "Gradle (Fabric)",
+                  "value": "```groovy\nmodImplementation \"tytoo.minegui:minegui:${VERSION}\"\n```"
                 }
               ]
             }]
           }
           EOF
           sed -i "s|\${NAME}|$NAME|g; s|\${VERSION}|$VERSION|g; s|\${URL}|${URL:-https://github.com/${GITHUB_REPOSITORY}/packages}|g" payload.json
-          # crée un marqueur pour que le cache s'enregistre à la fin
           echo "$VERSION" > .gh-notify-dedupe/last-version.txt
 
-      - name: Send to Discord
+      - name: Send to Discord (only if new)
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
