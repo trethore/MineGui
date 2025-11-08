@@ -9,7 +9,9 @@ import imgui.internal.ImGuiContext;
 import lombok.Getter;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
 import tytoo.minegui.config.NamespaceConfig;
+import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceRenderState;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
@@ -26,6 +28,7 @@ import java.util.List;
 public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
+    private static final NamespaceConfigStore DEFAULT_CONFIG_STORE = new GlobalConfigNamespaceConfigStore();
     private static final String GLSL_VERSION = "#version 150";
     private static float appliedGlobalScale = Float.NaN;
     @Getter
@@ -347,7 +350,7 @@ public class ImGuiLoader {
     private static NamespaceConfig resolveDefaultConfig() {
         MineGuiNamespaceContext context = MineGuiNamespaces.get(MineGuiCore.getConfigNamespace());
         if (context == null) {
-            return NamespaceConfig.defaults(MineGuiCore.getConfigNamespace());
+            return DEFAULT_CONFIG_STORE.load(MineGuiCore.getConfigNamespace());
         }
         return context.config().current();
     }

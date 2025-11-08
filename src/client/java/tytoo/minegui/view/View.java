@@ -3,7 +3,11 @@ package tytoo.minegui.view;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
+import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.layout.LayoutApi;
 import tytoo.minegui.manager.ViewSaveManager;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.MinecraftIdentifiers;
@@ -29,6 +33,8 @@ public abstract class View {
     @Getter
     private CursorPolicy cursorPolicy;
     private boolean cursorPolicyExplicit;
+    private boolean layoutNamespaceWarningLogged;
+    private boolean layoutContextWarningLogged;
 
     protected View() {
         this.id = deriveDefaultId();
@@ -112,11 +118,15 @@ public abstract class View {
     public void attach(String namespace, ViewSaveManager saveManager) {
         this.namespace = namespace;
         this.viewSaveManager = saveManager;
+        this.layoutNamespaceWarningLogged = false;
+        this.layoutContextWarningLogged = false;
     }
 
     public void detach() {
         this.namespace = null;
         this.viewSaveManager = null;
+        this.layoutNamespaceWarningLogged = false;
+        this.layoutContextWarningLogged = false;
     }
 
     public void setVisible(boolean visible) {
@@ -191,5 +201,27 @@ public abstract class View {
         if (visible) {
             this.cursorPolicy.onOpen(this);
         }
+    }
+
+    protected LayoutApi layoutApi() {
+        String currentNamespace = namespace;
+        if (currentNamespace == null || currentNamespace.isBlank()) {
+            if (!layoutNamespaceWarningLogged) {
+                MineGuiCore.LOGGER.warn("View '{}' requested the layout API before attaching to a namespace; returning null.", getClass().getName());
+                layoutNamespaceWarningLogged = true;
+            }
+            return null;
+        }
+        MineGuiNamespaceContext context = MineGuiNamespaces.get(currentNamespace);
+        if (context == null) {
+            if (!layoutContextWarningLogged) {
+                MineGuiCore.LOGGER.warn("View '{}' could not resolve layout API because namespace '{}' is not registered.", getClass().getName(), currentNamespace);
+                layoutContextWarningLogged = true;
+            }
+            return null;
+        }
+        layoutNamespaceWarningLogged = false;
+        layoutContextWarningLogged = false;
+        return context.layout();
     }
 }

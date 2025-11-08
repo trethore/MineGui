@@ -62,6 +62,12 @@ public final class MineGuiReloadCommand {
     }
 
     private static void reloadNamespace(MineGuiNamespaceContext context) {
+        String namespace = context.namespace();
+        if (!GlobalConfigManager.isConfigIgnored(namespace)) {
+            GlobalConfigManager.load(namespace);
+        } else {
+            GlobalConfigManager.ensureContext(namespace);
+        }
         context.config().reload();
         applyConfiguredStyle(context);
     }

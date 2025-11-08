@@ -26,7 +26,7 @@ public record MineGuiInitializationOptions(
         configPathStrategy = configPathStrategy != null ? configPathStrategy : ConfigPathStrategies.sandboxed();
         defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : CursorPolicies.clickToLockId();
         dockspaceCustomizer = dockspaceCustomizer != null ? dockspaceCustomizer : DockspaceCustomizer.noop();
-        configStore = configStore != null ? configStore : new MemoryNamespaceConfigStore();
+        configStore = configStore != null ? configStore : new GlobalConfigNamespaceConfigStore();
     }
 
     public static Builder builder(String namespace) {
@@ -108,7 +108,7 @@ public record MineGuiInitializationOptions(
     }
 
     public MineGuiInitializationOptions withConfigStore(NamespaceConfigStore store) {
-        NamespaceConfigStore normalized = store != null ? store : new MemoryNamespaceConfigStore();
+        NamespaceConfigStore normalized = store != null ? store : new GlobalConfigNamespaceConfigStore();
         return new MineGuiInitializationOptions(loadGlobalConfig, ignoreGlobalConfig, configNamespace, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, viewPersistenceAdapter, normalized);
     }
 
@@ -121,7 +121,7 @@ public record MineGuiInitializationOptions(
         private ResourceId defaultCursorPolicyId = CursorPolicies.clickToLockId();
         private DockspaceCustomizer dockspaceCustomizer = DockspaceCustomizer.noop();
         private ViewPersistenceAdapter viewPersistenceAdapter;
-        private NamespaceConfigStore configStore = new MemoryNamespaceConfigStore();
+        private NamespaceConfigStore configStore = new GlobalConfigNamespaceConfigStore();
 
         private Builder(String namespace) {
             this.namespace = normalizeNamespace(namespace);
@@ -187,7 +187,7 @@ public record MineGuiInitializationOptions(
         }
 
         public Builder configStore(NamespaceConfigStore store) {
-            this.configStore = store;
+            this.configStore = store != null ? store : new GlobalConfigNamespaceConfigStore();
             return this;
         }
 
