@@ -79,11 +79,14 @@ Alternatively, add MineGui through Maven:
 import net.fabricmc.api.ClientModInitializer;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.MineGuiInitializationOptions;
+import tytoo.minegui.runtime.MineGuiContext;
 
 public final class MyModClient implements ClientModInitializer {
+    private MineGuiContext mineGui;
+
     @Override
     public void onInitializeClient() {
-        MineGuiCore.init(MineGuiInitializationOptions.defaults("your_namespace"));
+        mineGui = MineGuiCore.init(MineGuiInitializationOptions.defaults("your_namespace"));
     }
 }
 ```

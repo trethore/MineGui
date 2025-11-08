@@ -11,14 +11,14 @@ This page highlights the core MineGui systems you will use day-to-day, explains 
 MineGui keeps configuration, view saves, and style descriptors isolated by namespace.
 
 ```java
-MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
+MineGuiContext context = MineGuiNamespaces.initialize(
         MineGuiInitializationOptions.defaults("examplemod")
 );
 context.ui().register(new ExampleOverlay());
 ```
 
 - Use `MineGuiInitializationOptions.withDefaultCursorPolicy(...)` if you need a namespace-wide override; the default is `click_to_lock`.
-- Call `MineGuiCore.init(...)` once during client startup to activate lifecycle hooks and resource reload listeners.
+- Call `MineGuiCore.init(...)` once during client startup to activate lifecycle hooks and resource reload listeners and capture the returned `MineGuiContext` if you only need the default namespace.
 
 ## UIManager orchestration
 Each namespace receives a dedicated `UIManager` that wires views, cursor policies, styles, and persistence together. When you call `register(view)` the manager:

@@ -15,7 +15,7 @@ import tytoo.minegui.view.cursor.CursorPolicy;
 
 import java.util.Objects;
 
-public final class MineGuiNamespaceContext {
+public final class MineGuiNamespaceContext implements MineGuiContext {
     private final String namespace;
     private final MineGuiInitializationOptions options;
     private final NamespaceConfigAccess config;
@@ -45,38 +45,47 @@ public final class MineGuiNamespaceContext {
         this.dockspaceCustomizer = options.dockspaceCustomizer();
     }
 
+    @Override
     public String namespace() {
         return namespace;
     }
 
+    @Override
     public MineGuiInitializationOptions options() {
         return options;
     }
 
+    @Override
     public NamespaceConfigAccess config() {
         return config;
     }
 
+    @Override
     public UIManager ui() {
         return uiManager;
     }
 
+    @Override
     public ViewSaveManager viewSaves() {
         return viewSaveManager;
     }
 
+    @Override
     public StyleManager style() {
         return styleManager;
     }
 
+    @Override
     public ResourceId defaultCursorPolicyId() {
         return defaultCursorPolicyId;
     }
 
+    @Override
     public CursorPolicy defaultCursorPolicy() {
         return defaultCursorPolicy;
     }
 
+    @Override
     public void setDefaultCursorPolicy(ResourceId policyId) {
         ResourceId normalized = policyId != null ? policyId : CursorPolicies.emptyId();
         CursorPolicy resolved = CursorPolicyRegistry.resolvePolicyOrDefault(normalized, CursorPolicies.empty());
@@ -88,10 +97,12 @@ public final class MineGuiNamespaceContext {
         this.uiManager.setDefaultCursorPolicy(resolved);
     }
 
+    @Override
     public DockspaceCustomizer dockspaceCustomizer() {
         return dockspaceCustomizer;
     }
 
+    @Override
     public void setDockspaceCustomizer(DockspaceCustomizer customizer) {
         dockspaceCustomizer = customizer != null ? customizer : DockspaceCustomizer.noop();
     }
