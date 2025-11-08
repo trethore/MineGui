@@ -4,6 +4,7 @@ import imgui.ImFont;
 import imgui.ImGui;
 import imgui.ImGuiStyle;
 import lombok.Getter;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
@@ -12,11 +13,15 @@ import tytoo.minegui.util.ResourceId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 public final class StyleManager {
     private static final ConcurrentMap<String, StyleManager> INSTANCES = new ConcurrentHashMap<>();
     private static final ConcurrentMap<ResourceId, StyleDescriptor> DESCRIPTOR_REGISTRY = new ConcurrentHashMap<>();
     private static final ThreadLocal<StyleManager> ACTIVE = new ThreadLocal<>();
+    private static final CopyOnWriteArrayList<Consumer<StyleDescriptor>> GLOBAL_DESCRIPTOR_READY_LISTENERS = new CopyOnWriteArrayList<>();
+    private static volatile StyleDescriptor globalDescriptorSnapshot;
 
     private final String namespace;
     private final ThreadLocal<Deque<StyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
@@ -50,6 +55,33 @@ public final class StyleManager {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(descriptor, "descriptor");
         DESCRIPTOR_REGISTRY.put(key, descriptor);
+    }
+
+    public static void onGlobalDescriptorReady(Consumer<StyleDescriptor> listener) {
+        Objects.requireNonNull(listener, "listener");
+        GLOBAL_DESCRIPTOR_READY_LISTENERS.add(listener);
+        StyleDescriptor descriptor = globalDescriptorSnapshot;
+        if (descriptor == null) {
+            descriptor = getInstance().globalDescriptor;
+            if (descriptor != null) {
+                globalDescriptorSnapshot = descriptor;
+            }
+        }
+        if (descriptor != null) {
+            listener.accept(descriptor);
+        }
+    }
+
+    public static void publishGlobalDescriptor(StyleDescriptor descriptor) {
+        Objects.requireNonNull(descriptor, "descriptor");
+        globalDescriptorSnapshot = descriptor;
+        for (Consumer<StyleDescriptor> listener : GLOBAL_DESCRIPTOR_READY_LISTENERS) {
+            try {
+                listener.accept(descriptor);
+            } catch (RuntimeException exception) {
+                MineGuiCore.LOGGER.error("Failed to notify global style listener", exception);
+            }
+        }
     }
 
     public static Optional<StyleDescriptor> descriptor(ResourceId key) {

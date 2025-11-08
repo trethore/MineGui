@@ -268,6 +268,7 @@ public class ImGuiLoader {
             }
         }
         StyleManager.getInstance().apply();
+        StyleManager.publishGlobalDescriptor(descriptor);
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {

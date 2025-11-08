@@ -60,7 +60,7 @@ MineGuiNamespaces.initialize(options);
 - Use `GlobalConfigManager.save(namespace)` after programmatic changes so the JSON payload mirrors the active state.
 
 ## Persisting Views and Styles
-`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views must opt in with `setShouldSave(true)` to participate.
+`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views must opt in with `setPersistent(true)` to participate.
 
 ```java
 public final class InspectorOverlay extends View {
@@ -125,7 +125,7 @@ MineGuiNamespaces.initialize(
 
 ## Developer Commands and Reloads
 - `/minegui reload` refreshes JSON configs, view layout snapshots, and style JSON. It does not rebuild the ImGui context—restart the client for new fonts.
-- `/minegui export style force` dumps the current style descriptors for all views with `shouldSave=true`.
+- `/minegui export style force` dumps the current style descriptors for all views marked as persistent.
 - `/minegui reload namespace <id>` lets you reload a single namespace if you’ve built custom commands wrapping MineGui’s APIs.
 - Resource reloads (F3 + T) clear ImGui texture caches via `ImGuiImageUtils.invalidateAll()` thanks to the Fabric resource listener registered in `MineGuiCore`.
 

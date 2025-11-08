@@ -104,7 +104,7 @@ public final class ViewSaveManager {
         if (view == null) {
             return;
         }
-        if (!view.isShouldSave()) {
+        if (!view.isPersistent()) {
             entries.remove(view);
             return;
         }
@@ -149,7 +149,7 @@ public final class ViewSaveManager {
             for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
                 View view = entry.getKey();
                 ViewEntry state = entry.getValue();
-                if (view == null || state == null || !view.isShouldSave()) {
+                if (view == null || state == null || !view.isPersistent()) {
                     continue;
                 }
                 if (state.styleSnapshotJson != null) {
@@ -186,7 +186,7 @@ public final class ViewSaveManager {
             return;
         }
         Map<String, Map.Entry<View, ViewEntry>> activeEntries = entries.entrySet().stream()
-                .filter(entry -> entry.getKey().isShouldSave())
+                .filter(entry -> entry.getKey().isPersistent())
                 .collect(Collectors.toMap(entry -> scopedId(entry.getKey()), entry -> entry, (first, second) -> first));
         if (activeEntries.isEmpty()) {
             return;
@@ -233,7 +233,7 @@ public final class ViewSaveManager {
     }
 
     public void captureViewStyle(View view) {
-        if (view == null || !view.isShouldSave()) {
+        if (view == null || !view.isPersistent()) {
             return;
         }
         ViewEntry entry = entries.get(view);
@@ -299,7 +299,7 @@ public final class ViewSaveManager {
         for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
             View view = entry.getKey();
             ViewEntry state = entry.getValue();
-            if (view == null || !view.isShouldSave() || state == null || !state.styleDirty) {
+            if (view == null || !view.isPersistent() || state == null || !state.styleDirty) {
                 continue;
             }
             state.styleDirty = false;
@@ -326,7 +326,7 @@ public final class ViewSaveManager {
         for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
             View view = entry.getKey();
             ViewEntry state = entry.getValue();
-            if (view == null || state == null || !view.isShouldSave() || !state.descriptorDirty) {
+            if (view == null || state == null || !view.isPersistent() || !state.descriptorDirty) {
                 continue;
             }
             ViewPersistenceRequest request = ensureRequest(view, state);

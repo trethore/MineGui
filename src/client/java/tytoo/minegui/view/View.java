@@ -2,9 +2,11 @@ package tytoo.minegui.view;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.util.Identifier;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.util.MinecraftIdentifiers;
 import tytoo.minegui.util.NamespaceIds;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
@@ -17,7 +19,7 @@ public abstract class View {
     private String id;
     @Getter
     @Setter
-    private boolean shouldSave;
+    private boolean persistent;
     @Getter
     @Setter
     private ResourceId styleKey;
@@ -39,17 +41,17 @@ public abstract class View {
         setId(id);
     }
 
-    protected View(String id, boolean shouldSave) {
+    protected View(String id, boolean persistent) {
         this(id);
-        setShouldSave(shouldSave);
+        setPersistent(persistent);
     }
 
     protected View(String namespace, String path) {
         this(namespacedId(namespace, path));
     }
 
-    protected View(String namespace, String path, boolean shouldSave) {
-        this(namespacedId(namespace, path), shouldSave);
+    protected View(String namespace, String path, boolean persistent) {
+        this(namespacedId(namespace, path), persistent);
     }
 
     public static String namespacedId(String namespace, String path) {
@@ -128,7 +130,7 @@ public abstract class View {
         } else {
             cursorPolicy.onClose(this);
             onClose();
-            if (shouldSave && viewSaveManager != null) {
+            if (persistent && viewSaveManager != null) {
                 viewSaveManager.requestSave();
             }
         }
@@ -156,6 +158,24 @@ public abstract class View {
             return;
         }
         updateCursorPolicy(defaultPolicy, false);
+    }
+
+    public View persistent(boolean persistent) {
+        setPersistent(persistent);
+        return this;
+    }
+
+    public View useStyle(ResourceId key) {
+        setStyleKey(key);
+        return this;
+    }
+
+    public View useStyle(Identifier identifier) {
+        if (identifier == null) {
+            setStyleKey(null);
+            return this;
+        }
+        return useStyle(MinecraftIdentifiers.fromMinecraft(identifier));
     }
 
     private void updateCursorPolicy(CursorPolicy nextPolicy, boolean explicit) {

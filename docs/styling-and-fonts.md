@@ -30,6 +30,29 @@ styles.apply();
 - Call `UIManager.get(namespace).register(view)` after setting up styles so views pick up the updated defaults.
 - Use `StyleManager.snapshotDescriptors()` when you need to inspect all registered descriptors (for debugging or exporting).
 
+### Waiting for the default descriptor
+`StyleManager.onGlobalDescriptorReady` lets you react once MineGui captures the base ImGui style and the font atlas is rebuilt. The listener runs immediately if MineGui already initialized and it reruns whenever the default descriptor is refreshed, so you no longer need to poll tick events to register derived descriptors.
+
+```java
+ResourceId workspaceFontKey = ResourceId.of("examplemod", "workspace-font");
+ResourceId workspaceStyleKey = ResourceId.of("examplemod", "workspace-style");
+
+StyleManager.onGlobalDescriptorReady(baseDescriptor -> {
+    StyleDescriptor workspaceDescriptor = StyleDescriptor.builder()
+            .fromDescriptor(baseDescriptor)
+            .windowRounding(10.0f)
+            .fontKey(workspaceFontKey)
+            .fontSize(18.0f)
+            .build();
+    StyleManager.registerDescriptor(workspaceStyleKey, workspaceDescriptor);
+    StyleManager styles = StyleManager.get("examplemod");
+    styles.setGlobalStyleKey(workspaceStyleKey);
+    styles.apply();
+});
+```
+
+- Keep font registration in `FontLibrary` queued before `MineGuiCore.init(...)` so your custom font key is available when the descriptor listener fires.
+
 ## Per-View Style Deltas
 Views can override the active descriptor through `configureBaseStyle` and `configureStyleDelta`. Deltas are stacked and resolved automatically when the view renders.
 
@@ -54,6 +77,7 @@ public final class WarningPanel extends View {
 
 - Return `null` from `configureStyleDelta` when no overrides are required; MineGui short-circuits the allocation.
 - `configureBaseStyle(StyleDescriptor descriptor)` lets you clone and adjust the descriptor before the delta applies—ideal for switching to another named descriptor just for this view.
+- Outside of overrides, call `view.useStyle(ResourceId.of("modid", "descriptor"))` (or pass a `Identifier`) to set a base descriptor fluently.
 
 ## Registering Fonts
 `FontLibrary` loads fonts before the ImGui context initializes. Register fonts during mod startup (before the first frame) to avoid warnings.
@@ -96,7 +120,7 @@ public final class FontBootstrap {
 - After initialization, `FontLibrary` locks registration—late calls log errors and are ignored.
 
 ## Exporting and Debugging Styles
-- Enable `setShouldSave(true)` on a view to capture style deltas for export. Use `/minegui export style force` to write JSON descriptors under the namespace’s view saves directory.
+- Enable `setPersistent(true)` on a view to capture style deltas for export. Use `/minegui export style force` to write JSON descriptors under the namespace’s view saves directory.
 - Leverage `StyleManager.get(namespace).getEffectiveDescriptor()` while debugging to inspect the active colors and font for a view at runtime.
 - If fonts or descriptors appear out of sync, restart the client to rebuild the ImGui context; `/minegui reload` only refreshes JSON payloads.
 

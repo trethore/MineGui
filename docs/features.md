@@ -69,7 +69,7 @@ Style descriptors and fonts live in `StyleManager`, `FontLibrary`, and `Fonts`.
 ## Persistence & Commands
 `ViewSaveManager` keeps ImGui layout ini data and style snapshots per view id.
 
-- Mark a view with `setShouldSave(true)` to persist position, dock layout, and style tweaks.
+- Mark a view with `setPersistent(true)` to persist position, dock layout, and style tweaks.
 - `/minegui reload` refreshes JSON configs and style snapshots; restart the client after changing fonts or other native resources.
 - `/minegui export style force` writes all captured style descriptors to disk so you can version controll them.
 
