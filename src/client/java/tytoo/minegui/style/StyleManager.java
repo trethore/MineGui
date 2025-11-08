@@ -8,6 +8,9 @@ import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.util.ResourceId;
 
 import java.util.*;
@@ -239,11 +242,25 @@ public final class StyleManager {
         activeFont.remove();
     }
 
+    private NamespaceConfigService configService() {
+        MineGuiNamespaceContext context = MineGuiNamespaces.get(namespace);
+        return context != null ? context.config() : null;
+    }
+
     private void persistGlobalStyle(ResourceId key) {
-        if (GlobalConfigManager.isConfigIgnored(namespace)) {
+        NamespaceConfigService configService = configService();
+        boolean configIgnored = configService != null ? configService.isConfigIgnored() : GlobalConfigManager.isConfigIgnored(namespace);
+        if (configIgnored) {
             return;
         }
-        if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES)) {
+        boolean shouldSave = configService != null
+                ? configService.shouldSave(ConfigFeature.STYLE_REFERENCES)
+                : GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES);
+        if (!shouldSave) {
+            return;
+        }
+        if (configService != null) {
+            configService.update(cfg -> cfg.withGlobalStyleKey(key));
             return;
         }
         GlobalConfig config = GlobalConfigManager.getConfig(namespace);

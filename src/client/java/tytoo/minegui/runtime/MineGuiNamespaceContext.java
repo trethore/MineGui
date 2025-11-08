@@ -2,10 +2,11 @@ package tytoo.minegui.runtime;
 
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
-import tytoo.minegui.runtime.config.NamespaceConfigAccess;
+import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
@@ -18,7 +19,7 @@ import java.util.Objects;
 public final class MineGuiNamespaceContext implements MineGuiContext {
     private final String namespace;
     private final MineGuiInitializationOptions options;
-    private final NamespaceConfigAccess config;
+    private final NamespaceConfigService config;
     private final UIManager uiManager;
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
@@ -29,7 +30,8 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
     MineGuiNamespaceContext(String namespace, MineGuiInitializationOptions options) {
         this.namespace = namespace;
         this.options = options;
-        this.config = new NamespaceConfigAccess(namespace);
+        NamespaceConfigStore store = options.configStore();
+        this.config = new NamespaceConfigService(namespace, store);
         this.uiManager = UIManager.get(namespace);
         this.viewSaveManager = ViewSaveManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
@@ -56,7 +58,7 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
     }
 
     @Override
-    public NamespaceConfigAccess config() {
+    public NamespaceConfigService config() {
         return config;
     }
 

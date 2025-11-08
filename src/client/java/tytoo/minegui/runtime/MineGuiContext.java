@@ -4,7 +4,7 @@ import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
-import tytoo.minegui.runtime.config.NamespaceConfigAccess;
+import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicy;
@@ -15,7 +15,7 @@ public interface MineGuiContext {
 
     MineGuiInitializationOptions options();
 
-    NamespaceConfigAccess config();
+    NamespaceConfigService config();
 
     UIManager ui();
 

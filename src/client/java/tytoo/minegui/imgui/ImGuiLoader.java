@@ -9,8 +9,7 @@ import imgui.internal.ImGuiContext;
 import lombok.Getter;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.config.GlobalConfig;
-import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.imgui.dock.DockspaceRenderState;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
@@ -73,11 +72,11 @@ public class ImGuiLoader {
         imGuiGlfw.newFrame();
         CursorPolicyRegistry.onFrameStart();
         ImGui.newFrame();
-        GlobalConfig defaultConfig = GlobalConfigManager.getConfig(GlobalConfigManager.getDefaultNamespace());
+        NamespaceConfig defaultConfig = resolveDefaultConfig();
         applyGlobalScale(defaultConfig);
         renderDockSpace(defaultConfig);
         for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
-            GlobalConfig config = context.config().get();
+            NamespaceConfig config = context.config().current();
             applyGlobalScale(config);
             context.style().apply();
             context.ui().render();
@@ -150,8 +149,8 @@ public class ImGuiLoader {
         }
     }
 
-    private static void renderDockSpace(GlobalConfig config) {
-        if (config == null || !config.isDockspaceEnabled()) {
+    private static void renderDockSpace(NamespaceConfig config) {
+        if (config == null || !config.dockspaceEnabled()) {
             return;
         }
         DockspaceRenderState state = DockspaceRenderState.createDefault(mcWindowX, mcWindowY, mcWindowWidth, mcWindowHeight);
@@ -189,14 +188,14 @@ public class ImGuiLoader {
         appliedGlobalScale = Float.NaN;
 
         final ImGuiIO io = ImGui.getIO();
-        final GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        final NamespaceConfig config = resolveDefaultConfig();
 
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
-        if (config.isDockspaceEnabled()) {
+        if (config.dockspaceEnabled()) {
             io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
         }
-        if (config.isViewportEnabled()) {
+        if (config.viewportEnabled()) {
             io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
             io.setConfigViewportsNoTaskBarIcon(true);
         } else {
@@ -266,13 +265,10 @@ public class ImGuiLoader {
         StyleManager.getInstance().setGlobalDescriptor(descriptor);
         StyleManager.backfillGlobalDescriptors(descriptor);
         NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
-        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
-        String configuredStyleKey = config.getGlobalStyleKey();
-        if (configuredStyleKey != null && !configuredStyleKey.isBlank()) {
-            ResourceId styleKey = ResourceId.tryParse(configuredStyleKey);
-            if (styleKey != null) {
-                StyleManager.getInstance().setGlobalStyleKey(styleKey);
-            }
+        NamespaceConfig config = resolveDefaultConfig();
+        ResourceId configuredStyleKey = config.globalStyleKey();
+        if (configuredStyleKey != null) {
+            StyleManager.getInstance().setGlobalStyleKey(configuredStyleKey);
         }
         StyleManager.getInstance().apply();
         StyleManager.publishGlobalDescriptor(descriptor);
@@ -301,10 +297,10 @@ public class ImGuiLoader {
     }
 
     public static void refreshGlobalScale() {
-        applyGlobalScale(GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()));
+        applyGlobalScale(resolveDefaultConfig());
     }
 
-    private static void applyGlobalScale(GlobalConfig config) {
+    private static void applyGlobalScale(NamespaceConfig config) {
         if (config == null) {
             return;
         }
@@ -312,7 +308,7 @@ public class ImGuiLoader {
         if (context == null || context.isNotValidPtr()) {
             return;
         }
-        float configuredScale = config.getGlobalScale();
+        float configuredScale = config.globalScale();
         if (!Float.isFinite(configuredScale) || configuredScale <= 0.0f) {
             configuredScale = 1.0f;
         }
@@ -346,5 +342,13 @@ public class ImGuiLoader {
             return false;
         }
         return true;
+    }
+
+    private static NamespaceConfig resolveDefaultConfig() {
+        MineGuiNamespaceContext context = MineGuiNamespaces.get(MineGuiCore.getConfigNamespace());
+        if (context == null) {
+            return NamespaceConfig.defaults(MineGuiCore.getConfigNamespace());
+        }
+        return context.config().current();
     }
 }
