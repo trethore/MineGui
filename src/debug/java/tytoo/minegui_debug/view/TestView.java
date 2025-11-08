@@ -12,8 +12,13 @@ import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
+import tytoo.minegui.helper.layout.experimental.GridLayout;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
 import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.layout.LayoutApi;
+import tytoo.minegui.layout.LayoutTemplate;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.style.FontLibrary;
 import tytoo.minegui.style.Fonts;
 import tytoo.minegui.util.ImGuiImageUtils;
@@ -58,6 +63,9 @@ public final class TestView extends View {
     private String jetbrainsStatus = "JetBrains Mono pending";
     private ImFont registrationPhaseFont;
     private String registrationPhaseStatus = "Registration hook pending";
+    private LayoutTemplate layoutDemoTemplate;
+    private LayoutTemplate layoutToolbarTemplate;
+    private LayoutTemplate layoutGridTemplate;
 
     public TestView() {
         super(MineGuiDebugCore.ID, "test_view", true);
@@ -162,16 +170,7 @@ public final class TestView extends View {
                     });
                 });
             });
-            UI.withVStackItem(column, new VStack.ItemRequest().estimateHeight(CHILD_HEIGHT), () -> {
-                ImGui.beginChild("stack_preview_region", 0f, CHILD_HEIGHT - 12f, showStackBorders.get());
-                ImGui.text("Layout preview");
-                ImGui.separator();
-                ImGui.bulletText("Spacing %.1f px".formatted(stackSpacing));
-                ImGui.bulletText(showStackBorders.get() ? "Borders enabled" : "Borders disabled");
-                ImGui.spacing();
-                ImGui.textWrapped("Combine VStack for vertical flow with HStack for aligned toolbars without giving up raw ImGui calls.");
-                ImGui.endChild();
-            });
+            UI.withVStackItem(column, new VStack.ItemRequest().estimateHeight(CHILD_HEIGHT), this::renderLayoutDslPreview);
             UI.withVStackItem(column, () -> {
                 ImGui.text("Stack notes");
                 ImGui.inputTextMultiline("##stack_notes", stackNotes, -1f, 80f);
@@ -311,6 +310,102 @@ public final class TestView extends View {
         ImGui.spacing();
         ImGui.text("Reload workflow");
         ImGui.textWrapped("After MineGui initializes the atlas is locked; restart the client or rerun MineGui before initialization to pick up new fonts.");
+    }
+
+    private void renderLayoutDslPreview() {
+        float childHeight = CHILD_HEIGHT - 12f;
+        ImGui.beginChild("stack_preview_region", 0f, childHeight, showStackBorders.get());
+        LayoutApi api = layoutApi();
+        if (api == null) {
+            ImGui.textWrapped("Layout service is not ready yet. This preview activates once the view is attached to its namespace.");
+            ImGui.endChild();
+            return;
+        }
+        if (layoutDemoTemplate == null) {
+            layoutDemoTemplate = buildLayoutDemo(api);
+        }
+        api.render(layoutDemoTemplate);
+        ImGui.endChild();
+    }
+
+    private LayoutTemplate buildLayoutDemo(LayoutApi api) {
+        LayoutTemplate toolbar = buildToolbar(api);
+        LayoutTemplate stats = buildStatsGrid(api);
+        return api.vertical()
+                .spacing(6f)
+                .padding(8f)
+                .child(slot -> slot.content(() -> {
+                    ImGui.text("Layout API preview");
+                    ImGui.separator();
+                }))
+                .child(slot -> slot.template(toolbar))
+                .child(slot -> slot.content(() -> ImGui.textWrapped("Spacing, padding, and nested layouts cascade automatically. Templates stay immutable, so you can reuse them across frames.")))
+                .child(slot -> slot.template(stats))
+                .build();
+    }
+
+    private LayoutTemplate buildToolbar(LayoutApi api) {
+        if (layoutToolbarTemplate != null) {
+            return layoutToolbarTemplate;
+        }
+        layoutToolbarTemplate = api.row()
+                .spacing(8f)
+                .child(slot -> slot.width(120f).content(() -> {
+                    if (ImGui.button("Play##dsl", 120f, 0f)) {
+                        logAction("DSL toolbar Play");
+                    }
+                }))
+                .child(slot -> slot.width(120f).content(() -> {
+                    if (ImGui.button("Pause##dsl", 120f, 0f)) {
+                        logAction("DSL toolbar Pause");
+                    }
+                }))
+                .child(slot -> slot.width(160f).content(() -> ImGui.checkbox("Borders##dsl", showStackBorders)))
+                .build();
+        return layoutToolbarTemplate;
+    }
+
+    private LayoutTemplate buildStatsGrid(LayoutApi api) {
+        if (layoutGridTemplate != null) {
+            return layoutGridTemplate;
+        }
+        layoutGridTemplate = api.grid()
+                .columns(
+                        GridLayout.ColumnDefinition.weight(1f),
+                        GridLayout.ColumnDefinition.weight(1f))
+                .rowSpacing(4f)
+                .columnSpacing(6f)
+                .cell(cell -> cell.column(0).row(0).content(() -> {
+                    ImGui.text("FPS");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.4f, 1f, 0.6f, 1f, "144");
+                }))
+                .cell(cell -> cell.column(1).row(0).content(() -> {
+                    ImGui.text("Frame Time");
+                    ImGui.sameLine();
+                    ImGui.textColored(1f, 0.8f, 0.4f, 1f, "6.9 ms");
+                }))
+                .cell(cell -> cell.column(0).row(1).content(() -> {
+                    ImGui.text("CPU");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.6f, 0.8f, 1f, 1f, "24%");
+                }))
+                .cell(cell -> cell.column(1).row(1).content(() -> {
+                    ImGui.text("GPU");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.6f, 0.8f, 1f, 1f, "41%");
+                }))
+                .build();
+        return layoutGridTemplate;
+    }
+
+    private LayoutApi layoutApi() {
+        String namespace = getNamespace();
+        if (namespace == null || namespace.isBlank()) {
+            return null;
+        }
+        MineGuiNamespaceContext context = MineGuiNamespaces.get(namespace);
+        return context != null ? context.layout() : null;
     }
 
     private void ensureRegistrationPhaseFont() {

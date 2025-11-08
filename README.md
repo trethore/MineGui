@@ -87,6 +87,7 @@ public final class MyModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         mineGui = MineGuiCore.init(MineGuiInitializationOptions.defaults("your_namespace"));
+        // mineGui.layout() exposes the new layout DSL; mineGui.ui() returns the namespace UI manager.
     }
 }
 ```

@@ -30,6 +30,33 @@ Each namespace receives a dedicated `UIManager` that wires views, cursor policie
 
 Use `unregister(view)` to detach a view permanently—this hides it, removes save hooks, and stops future renders. `UIManager.hasVisibleViews()` is also what powers `MineGuiNamespaces.anyVisible()`, so toggling visibility affects global cursor handling and rendering short-circuiting.
 
+## Layout DSL
+`MineGuiContext.layout()` exposes a modern, immutable DSL so you can compose vertical stacks, rows, and grids without juggling nested `try-with-resources` scopes.
+
+```java
+MineGuiContext context = MineGuiCore.init(MineGuiInitializationOptions.defaults("examplemod"));
+LayoutApi layouts = context.layout();
+
+LayoutTemplate toolbar = layouts.row()
+        .spacing(8f)
+        .child(slot -> slot.width(120f).content(() -> ImGui.button("Save")))
+        .child(slot -> slot.width(120f).content(() -> ImGui.button("Publish")))
+        .build();
+
+LayoutTemplate panel = layouts.vertical()
+        .spacing(6f)
+        .padding(8f)
+        .child(slot -> slot.content(() -> ImGui.text("Project Dashboard")))
+        .child(slot -> slot.template(toolbar))
+        .build();
+
+layouts.render(panel);
+```
+
+- Builders produce immutable `LayoutTemplate`s that you can cache and reuse every frame.
+- Stack builders support spacing, padding, and nested templates; grid builders wrap the existing `GridLayout` helper behind a fluent interface.
+- Rendering a template simply replays its structure, so your immediate-mode code stays in charge of widget state.
+
 ## Cursor & Input Control
 MineGui wraps GLFW input so your UI captures events without fighting Minecraft’s lock state.
 

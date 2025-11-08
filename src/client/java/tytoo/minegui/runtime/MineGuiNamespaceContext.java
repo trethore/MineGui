@@ -4,6 +4,8 @@ import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
+import tytoo.minegui.layout.LayoutApi;
+import tytoo.minegui.layout.LayoutService;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
@@ -23,6 +25,7 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
     private final UIManager uiManager;
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
+    private final LayoutApi layout;
     private ResourceId defaultCursorPolicyId;
     private CursorPolicy defaultCursorPolicy;
     private volatile DockspaceCustomizer dockspaceCustomizer;
@@ -35,6 +38,7 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
         this.uiManager = UIManager.get(namespace);
         this.viewSaveManager = ViewSaveManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
+        this.layout = new LayoutService();
         StyleManager defaultStyleManager = StyleManager.get(GlobalConfigManager.getDefaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {
             defaultStyleManager.getGlobalDescriptor()
@@ -75,6 +79,11 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
     @Override
     public StyleManager style() {
         return styleManager;
+    }
+
+    @Override
+    public LayoutApi layout() {
+        return layout;
     }
 
     @Override

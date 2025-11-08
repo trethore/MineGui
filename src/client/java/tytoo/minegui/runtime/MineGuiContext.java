@@ -2,6 +2,7 @@ package tytoo.minegui.runtime;
 
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
+import tytoo.minegui.layout.LayoutApi;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
@@ -22,6 +23,8 @@ public interface MineGuiContext {
     ViewSaveManager viewSaves();
 
     StyleManager style();
+
+    LayoutApi layout();
 
     ResourceId defaultCursorPolicyId();
 
