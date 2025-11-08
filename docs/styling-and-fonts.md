@@ -119,10 +119,32 @@ public final class FontBootstrap {
 - Use `StyleManager.get(namespace).apply()` or set a style descriptor with `fontKey` pointing to your new font.
 - After initialization, `FontLibrary` locks registration—late calls log errors and are ignored.
 
+### Registration-phase hooks
+Some font setups need access to `ImGuiIO` (for glyph ranges or atlas inputs). Queue those mutations with `FontLibrary.onRegistrationPhase(Consumer<ImGuiIO>)`. MineGui calls the consumer right after the ImGui context is available but before the font atlas builds, so you can safely inspect `io.getFonts()` without racing the initialization lock.
+
+```java
+public final class ComplexGlyphs {
+    public static void register() {
+        FontLibrary library = FontLibrary.getInstance();
+        library.onRegistrationPhase(io -> {
+            short[] cjk = io.getFonts().getGlyphRangesChineseSimplifiedCommon();
+            library.registerFont(
+                    Identifier.of("examplemod", "cjk"),
+                    new FontLibrary.FontDescriptor(
+                            FontLibrary.FontSource.asset("cjk.ttf"),
+                            20.0f,
+                            config -> config.setGlyphRanges(cjk)
+                    )
+            );
+        });
+    }
+}
+```
+
 ## Exporting and Debugging Styles
 - Enable `setPersistent(true)` on a view to capture style deltas for export. Use `/minegui export style force` to write JSON descriptors under the namespace’s view saves directory.
 - Leverage `StyleManager.get(namespace).getEffectiveDescriptor()` while debugging to inspect the active colors and font for a view at runtime.
-- If fonts or descriptors appear out of sync, restart the client to rebuild the ImGui context; `/minegui reload` only refreshes JSON payloads.
+- If fonts or descriptors appear out of sync, restart the client (or reinitialize MineGui before the context finishes loading) to rebuild the ImGui atlas.
 
 ---
 

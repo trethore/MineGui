@@ -85,4 +85,5 @@ public final class MineGuiReloadCommand {
         styleManager.setGlobalStyleKey(styleKey);
         styleManager.apply();
     }
+
 }

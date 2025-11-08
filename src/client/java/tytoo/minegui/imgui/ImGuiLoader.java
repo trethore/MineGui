@@ -6,6 +6,7 @@ import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.internal.ImGuiContext;
+import lombok.Getter;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.GlobalConfig;
@@ -28,6 +29,7 @@ public class ImGuiLoader {
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
     private static final String GLSL_VERSION = "#version 150";
     private static float appliedGlobalScale = Float.NaN;
+    @Getter
     private static volatile boolean contextInitialized;
     private static volatile boolean clientStarted;
     private static volatile boolean initializationInProgress;
@@ -118,6 +120,7 @@ public class ImGuiLoader {
             fontLibrary.resetRuntime();
             StyleManager.resetAllActiveFonts();
             initializeImGui();
+            fontLibrary.runRegistrationPhase(ImGui.getIO());
             fontLibrary.preloadRegisteredFonts();
             imGuiGlfw.init(windowHandle, false);
             imGuiGl3.init(GLSL_VERSION);
@@ -128,9 +131,7 @@ public class ImGuiLoader {
                 return;
             }
             ImGuiImageUtils.invalidateAll();
-            for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
-                contextHandle.style().apply();
-            }
+            reapplyNamespaceStyles();
             fontLibrary.lockRegistration();
             contextInitialized = true;
             initializationFailed = false;
@@ -211,6 +212,12 @@ public class ImGuiLoader {
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
         finalizeInitialStyle(defaultFont);
+    }
+
+    public static void reapplyNamespaceStyles() {
+        for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
+            contextHandle.style().apply();
+        }
     }
 
     private static void endFrame() {
@@ -316,7 +323,7 @@ public class ImGuiLoader {
         appliedGlobalScale = configuredScale;
     }
 
-    private static boolean rebuildFontAtlasTexture() {
+    public static boolean rebuildFontAtlasTexture() {
         ImGuiContext context = ImGui.getCurrentContext();
         if (context == null || context.isNotValidPtr()) {
             MineGuiCore.LOGGER.warn("ImGui context unavailable while rebuilding MineGui font atlas");

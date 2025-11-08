@@ -26,6 +26,8 @@ import java.util.Locale;
 
 public final class TestView extends View {
     private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
+    private static final ResourceId REGISTRATION_PHASE_FONT_KEY = ResourceId.of(MineGuiDebugCore.ID, "registration_phase_demo");
+    private static final float REGISTRATION_PHASE_FONT_SIZE = 20.0f;
     private static final float CONTROL_WIDTH = 220f;
     private static final float CHILD_HEIGHT = 220f;
     private static final String[][] TABLE_ROWS = {
@@ -36,6 +38,10 @@ public final class TestView extends View {
             {"Forms", "Shared buffers keep input state stable between ticks.", "Ready"},
             {"Constraints", "FillMode.MATCH_WIDEST evens out composited toolbars.", "Info"}
     };
+
+    static {
+        installRegistrationPhaseDemo();
+    }
 
     private final ImBoolean showStackBorders = new ImBoolean(true);
     private final ImBoolean showIconPreview = new ImBoolean(true);
@@ -50,10 +56,30 @@ public final class TestView extends View {
     private String lastAction = "Awaiting interaction";
     private ImFont jetbrainsMono;
     private String jetbrainsStatus = "JetBrains Mono pending";
+    private ImFont registrationPhaseFont;
+    private String registrationPhaseStatus = "Registration hook pending";
 
     public TestView() {
         super(MineGuiDebugCore.ID, "test_view", true);
         setCursorPolicy(CursorPolicies.clickToLock());
+    }
+
+    private static void installRegistrationPhaseDemo() {
+        FontLibrary library = FontLibrary.getInstance();
+        library.onRegistrationPhase(io -> {
+            short[] japanese = io.getFonts().getGlyphRangesJapanese();
+            library.registerFont(
+                    REGISTRATION_PHASE_FONT_KEY,
+                    new FontLibrary.FontDescriptor(
+                            FontLibrary.FontSource.asset("notosans.ttf"),
+                            REGISTRATION_PHASE_FONT_SIZE,
+                            config -> {
+                                config.setGlyphRanges(japanese);
+                                config.setRasterizerMultiply(1.05f);
+                            }
+                    )
+            );
+        });
     }
 
     @Override
@@ -258,6 +284,8 @@ public final class TestView extends View {
             ImGuiImageUtils.drawImage(IMGUI_ICON, cursorX, cursorY, cursorX + size, cursorY + size, 0, false, 0xFFFFFFFF);
             ImGui.dummy(size, size);
         }
+        ImGui.separator();
+        renderFontDevSection();
     }
 
     private void renderFooter(VStack layout) {
@@ -268,6 +296,40 @@ public final class TestView extends View {
             ImGui.text("Tester notes");
             ImGui.inputTextMultiline("##test_notes", scratchPad, -1f, 96f);
         });
+    }
+
+    private void renderFontDevSection() {
+        ImGui.text("Font registration hooks");
+        ImGui.textWrapped("Registration-phase callbacks run once ImGui IO exists but before the atlas builds.");
+        ensureRegistrationPhaseFont();
+        ImGui.text(registrationPhaseStatus);
+        if (registrationPhaseFont != null) {
+            ImGui.pushFont(registrationPhaseFont);
+            ImGui.text("Registration hook sample: こんにちは MineGui");
+            ImGui.popFont();
+        }
+        ImGui.spacing();
+        ImGui.text("Reload workflow");
+        ImGui.textWrapped("After MineGui initializes the atlas is locked; restart the client or rerun MineGui before initialization to pick up new fonts.");
+    }
+
+    private void ensureRegistrationPhaseFont() {
+        if (registrationPhaseFont != null) {
+            registrationPhaseStatus = "Registration-phase font ready";
+            return;
+        }
+        FontLibrary library = FontLibrary.getInstance();
+        ImFont resolved = library.ensureFont(REGISTRATION_PHASE_FONT_KEY, REGISTRATION_PHASE_FONT_SIZE);
+        if (resolved != null) {
+            registrationPhaseFont = resolved;
+            registrationPhaseStatus = "Registration-phase font ready";
+            return;
+        }
+        if (library.isRegistrationLocked()) {
+            registrationPhaseStatus = "Registration hook failed; check logs.";
+        } else {
+            registrationPhaseStatus = "Waiting for registration hook.";
+        }
     }
 
     private boolean matchesFilter(String[] row, String filter) {
