@@ -142,7 +142,7 @@ public final class ComplexGlyphs {
 ```
 
 ## Exporting and Debugging Styles
-- Enable `setPersistent(true)` on a view to capture style deltas for export. Use `/minegui export style force` to write JSON descriptors under the namespace’s view saves directory.
+- Views already capture style deltas for export. Leave persistence enabled (the default) or re-enable it before running `/minegui export style force`, which writes JSON descriptors under the namespace’s view saves directory.
 - Leverage `StyleManager.get(namespace).getEffectiveDescriptor()` while debugging to inspect the active colors and font for a view at runtime.
 - If fonts or descriptors appear out of sync, restart the client (or reinitialize MineGui before the context finishes loading) to rebuild the ImGui atlas.
 

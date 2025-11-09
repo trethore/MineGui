@@ -33,7 +33,7 @@ public final class FeaturesView extends View {
             "Cursor control policies"
     };
     private static final String[] HIGHLIGHT_DETAILS = {
-            "MineGui keeps the entire render lifecycle immediate. Each MGView runs inline with the client tick, so authored ImGui commands stay deterministic and easy to reason about even when Minecraft screens change.",
+            "MineGui keeps the entire render lifecycle immediate. Each View runs inline with the client tick, so authored ImGui commands stay deterministic and easy to reason about even when Minecraft screens change.",
             "Helpers like VStack, HStack, and MGWindow add just enough structure for complex tools. Chain them when needed, or fall back to raw ImGui calls without fighting a retained tree or hidden state.",
             "Initialization flows piggyback Fabric events to manage ImGui contexts, namespaces, and dockspace wiring. That keeps overlays live across dimension loads and reconnects without manual plumbing.",
             "Styles translate Dear ImGui metrics, rounding, and palettes into MineGui descriptors. Capture, persist, and reuse themes while respecting namespaces or apply them globally with one call.",
@@ -51,7 +51,7 @@ public final class FeaturesView extends View {
             "Style descriptors captured from live ImGui sessions.",
             "Font library bootstrap with JetBrains Mono fallback.",
             "Image utilities that reuse Minecraft textures safely.",
-            "Save manager hooks for opt-in persistence."
+            "Save manager hooks that keep layouts and styles persistent by default."
     };
     private static final String[][] WIDGET_TABLE_ROWS = {
             {"Progress bar", "Render instantaneous feedback", "Pair with ImGuiIO.getDeltaTime() for smooth animation"},

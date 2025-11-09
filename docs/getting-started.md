@@ -74,7 +74,7 @@ import tytoo.minegui.view.View;
 
 public final class ExampleOverlay extends View {
     public ExampleOverlay() {
-        super("example/overlay", true); // persistent=true captures window position and style
+        super("example/overlay");
     }
 
     @Override
@@ -93,7 +93,7 @@ UIManager.get("examplemod").register(new ExampleOverlay());
 // Or register and immediately show the view with a fluent setup
 UIManager.get("examplemod").registerAndShow(
         new ExampleOverlay()
-                .persistent(true)
+                .persistent(false)
                 .useStyle(ResourceId.of("examplemod", "workspace-style"))
 );
 ```
@@ -101,7 +101,7 @@ UIManager.get("examplemod").registerAndShow(
 Tips:
 - Use `scopedWindowTitle(...)` to ensure unique ImGui ids when docking or multiple instances are visible.
 - Call `setCursorPolicy(...)` (see the cursor guide) if your view should adjust Minecraft’s cursor lock behaviour.
-- Keep `setPersistent(true)` (or the fluent `persistent(true)`) for overlays that benefit from persisted layout; disable it for transient tooling.
+- Views persist layout and style snapshots by default. Call `setPersistent(false)` (or the fluent `persistent(false)`) for transient tooling that should leave no saves behind.
 - Call `registerAndShow(...)` when you want overlays to appear immediately, or `registerAll(viewA, viewB, ...)` when bringing multiple overlays online at once.
 
 ## Verifying the Setup

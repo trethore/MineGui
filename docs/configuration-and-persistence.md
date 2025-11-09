@@ -59,12 +59,12 @@ configService.update(cfg -> cfg
 - Swap storage or sandbox paths by supplying a custom `ConfigPathStrategy` or (in future steps) a different `NamespaceConfigStore`.
 
 ## Persisting Views and Styles
-`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views must opt in with `setPersistent(true)` to participate.
+`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views are persistent by default, so persistence only stops when you call `setPersistent(false)`.
 
 ```java
 public final class InspectorOverlay extends View {
     public InspectorOverlay() {
-        super("example/inspector", true);
+        super("example/inspector");
     }
 
     @Override

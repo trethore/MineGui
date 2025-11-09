@@ -23,7 +23,7 @@ public abstract class View {
     private String id;
     @Getter
     @Setter
-    private boolean persistent;
+    private boolean persistent = true;
     @Getter
     @Setter
     private ResourceId styleKey;

@@ -21,7 +21,7 @@ Follow the pages in order for the smoothest onboarding. Each document starts wit
 - Reference [Runtime Flow & Debugging](runtime-flow.md) while tracing lifecycle events or troubleshooting reloads.
 
 ## Development Tips
-- **Keep iterations small**: register new views through `UIManager`. Toggle a view’s persistence (via `setPersistent(...)`) only when you want MineGui to store its layout or style. Test changes using the bundled debug tools (`minegui_debug` namespace).
+- **Keep iterations small**: register new views through `UIManager`. Views persist by default, so call `setPersistent(false)` when you want a transient overlay. Test changes using the bundled debug tools (`minegui_debug` namespace).
 - **Validate with Gradle**: run `./gradlew compileJava` after edits, `./gradlew build` for full checks, and `./gradlew runDebugClient` to exercise the bundled debug overlays.
 - **Use dev commands**: `/minegui reload [namespace]` refreshes JSON configs and view layouts. Use `/minegui export style force [namespace]` to write active style snapshots to disk for version control.
 - **Mind namespaces**: reserve `minegui` for internal tooling; choose explicit namespaces when calling `MineGuiCore.init(...)` or `MineGuiNamespaces.initialize(...)`.

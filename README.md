@@ -19,7 +19,7 @@ You can find the developer documentation [HERE](docs/introduction.md).
 
 ## Supported Features
 MineGui bundles the full imgui-java runtime and layers tooling around it so you can stay inside Dear ImGui while building Fabric mods:
-- **Full Dear ImGui API** — Views (`MGView`) implement `renderView()` and call native widgets every frame while MineGui drives the render loop.
+- **Full Dear ImGui API** — Views implement `renderView()` and call native widgets every frame while MineGui drives the render loop.
 - **View lifecycle & persistence** — `ViewSaveManager` tracks visibility, persists window state, and lets you plug in custom adapters per namespace.
 - **Themes, fonts & styles** — `StyleManager`, `MGStyleDescriptor`, and `MGFontLibrary` manage transient style deltas, named themes, and registered font atlases.
 - **Layouts & sizing helpers** — `UI` exposes scoped helpers over `VStack`/`HStack`, constraint math, and spacing utilities for common layout patterns.

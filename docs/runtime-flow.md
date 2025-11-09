@@ -19,7 +19,7 @@ Keep your registrations—fonts, styles, cursor policies—before step 3 so they
 
 - Override `onOpen()`/`onClose()` for setup and teardown that must only run while the view is visible.
 - Use `toggleVisibility()` for hotkeys; `View` handles the cursor policy swap automatically.
-- When a view is marked persistent and has an attached save manager, the layout/state snapshot is queued the moment visibility flips to false—no manual flush needed.
+- When persistence is left enabled (the default) and a save manager is attached, the layout/state snapshot is queued the moment visibility flips to false—no manual flush needed.
 
 ## Reload expectations
 - `/minegui reload` re-reads JSON config, view layout snapshots, and style descriptors. It does **not** rebuild the ImGui context or reload fonts.
