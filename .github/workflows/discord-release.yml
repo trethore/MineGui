@@ -113,53 +113,74 @@ jobs:
         id: payload
         env:
           TAG: ${{ steps.latest.outputs.tag }}
+          PACKAGE_NAME: tytoo.minegui.minegui
         run: |
+          set -e
+
           if [ -x "./gradlew" ]; then
             deps=$(./gradlew dependencies --configuration compileClasspath --console=plain -q || ./gradlew dependencies --console=plain -q || true)
           else
             deps=""
           fi
-
           deps_snippet=$(printf '%s\n' "$deps" | sed -n '1,40p')
 
           if command -v cloc >/dev/null 2>&1; then
-            cloc_output=$(cloc src/client/ --quiet || true)
+            cloc_json=$(cloc src/client/ --json --quiet || true)
           else
-            cloc_output=""
+            cloc_json=""
           fi
 
-          summary=$(printf '%s\n' "$cloc_output" | awk '$1=="SUM:" {print $0}')
-          cloc_snippet=$(printf '%s\n' "$cloc_output" | sed -n '1,20p')
-
-          if [ -n "$summary" ]; then
-            files=$(awk '{print $2}' <<< "$summary")
-            blank=$(awk '{print $3}' <<< "$summary")
-            comment=$(awk '{print $4}' <<< "$summary")
-            code=$(awk '{print $5}' <<< "$summary")
+          if [ -n "$cloc_json" ] && echo "$cloc_json" | jq . >/dev/null 2>&1; then
+            files=$(jq -r '.SUM.nFiles // 0' <<< "$cloc_json")
+            code=$(jq -r '.SUM.code // 0' <<< "$cloc_json")
+            blank=$(jq -r '.SUM.blank // 0' <<< "$cloc_json")
+            comment=$(jq -r '.SUM.comment // 0' <<< "$cloc_json")
+            top_langs=$(jq -r '
+              del(.header,.SUM)
+              | to_entries
+              | sort_by(-.value.code)
+              | .[:5]
+              | map("\(.key): files=\(.value.nFiles) code=\(.value.code)")
+              | join("\n")
+            ' <<< "$cloc_json")
           else
             files=0
+            code=0
             blank=0
             comment=0
-            code=0
+            top_langs="n/a"
           fi
 
-          if [ -z "$cloc_snippet" ]; then
-            cloc_snippet="cloc introuvable ou échec de l'analyse"
-          fi
+          group="${PACKAGE_NAME%.*}"
+          artifact="${PACKAGE_NAME##*.}"
 
-          description="**Nouvelle version détectée:** ${TAG}\n\n**Dependencies (extrait)**\n\`\`\`txt\n${deps_snippet}\n\`\`\`\n**Code metrics (src/client)**\n\`\`\`txt\n${cloc_snippet}\n\`\`\`\nFichiers: ${files} | Lignes de code: ${code} | Blancs: ${blank} | Commentaires: ${comment}"
+          maven_snippet=$(printf '<dependency>\n  <groupId>%s</groupId>\n  <artifactId>%s</artifactId>\n  <version>%s</version>\n</dependency>\n' "$group" "$artifact" "$TAG")
+          gradle_snippet=$(printf 'implementation "%s:%s:%s"' "$group" "$artifact" "$TAG")
 
-          description_json=$(printf '%s' "$description" | python3 -c 'import json, sys; print(json.dumps(sys.stdin.read()))')
+          dep_field=$(printf 'Maven\n```xml\n%s\n```\nGradle\n```gradle\n%s\n```' "$maven_snippet" "$gradle_snippet")
+          code_overview=$(printf '```txt\nFichiers: %s\nCode: %s\nBlancs: %s\nCommentaires: %s\n\nTop langages (par LOC):\n%s\n```' "$files" "$code" "$blank" "$comment" "$top_langs")
+          deps_field=$(printf '```txt\n%s\n```' "$deps_snippet")
 
-          jq -n --argjson desc "$description_json" '{
-            "embeds": [
-              {
-                "title": "New package version published",
-                "description": $desc,
-                "color": 5814783
-              }
-            ]
-          }' > payload.json
+          jq -n \
+            --arg title "MineGui - nouvelle version publiee" \
+            --arg desc "**Version:** ${TAG}" \
+            --arg dep "$dep_field" \
+            --arg cov "$code_overview" \
+            --arg dsn "$deps_field" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                color: 5814783,
+                fields: [
+                  { "name": "Dependency Snippets", "value": $dep },
+                  { "name": "Code overview (src/client)", "value": $cov },
+                  { "name": "Gradle dependencies (extrait)", "value": $dsn }
+                ],
+                timestamp: (now | todate)
+              }]
+            }' > payload.json
+
 
       - name: Send Discord notification
         if: steps.check.outputs.new == 'true'
