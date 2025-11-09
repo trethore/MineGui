@@ -2,40 +2,73 @@
 MineGui includes lightweight utilities to keep immediate-mode layouts manageable without imposing a full widget framework. Use these helpers to place content, apply constraints, and integrate Minecraft textures inside ImGui windows.
 
 ## What this page covers
-- Stack-based layout helpers (`VStack`, `HStack`, the `UI` facade, and scoped item helpers)
+- Stack-based layout helpers (`MineGuiContext.layout()`, `VStack`, `HStack`, and scoped item helpers)
 - Constraint-driven positioning with `LayoutConstraints`, `SizeHints`, and the solver
 - Rendering Minecraft textures through `ImGuiImageUtils`
 - Additional utilities that streamline immediate-mode authoring
 
-## Stack-Based Layouts
-`VStack` and `HStack` provide structured flow without abandoning ImGui’s immediate model. Scoped helpers in `UI` create predictable spacing, wrap `ImGui.beginGroup()`/`endGroup()`, and expose overloads that accept sizing hints.
+## Layout DSL
+`MineGuiContext.layout()` exposes immutable builders for vertical stacks, horizontal rows, and grids. Compose a `LayoutTemplate` once and replay it every frame without juggling nested scopes.
 
 ```java
-UI.withVStack(stack -> {
-    UI.withVStackItem(stack, () -> ImGui.text("Section Header"));
+MineGuiContext context = MineGuiCore.init(MineGuiInitializationOptions.defaults("examplemod"));
+LayoutApi layouts = context.layout();
 
-    VStack.ItemRequest row = new VStack.ItemRequest()
-            .estimateHeight(32.0f);
+LayoutTemplate toolbar = layouts.row()
+        .spacing(10.0f)
+        .uniformHeight(32.0f)
+        .child(slot -> slot.width(120.0f).content(() -> ImGui.button("Apply")))
+        .child(slot -> slot.width(120.0f).content(() -> ImGui.button("Reset")))
+        .child(slot -> slot.fillWidth(true).content(() -> ImGui.textColored(0.5f, 0.8f, 0.5f, 1.0f, "Ready")))
+        .build();
 
-    UI.withVStackItem(stack, row, () -> {
+LayoutTemplate panel = layouts.vertical()
+        .spacing(6.0f)
+        .padding(8.0f)
+        .fillMode(VStack.FillMode.MATCH_WIDEST)
+        .child(slot -> slot.content(() -> ImGui.text("Section Header")))
+        .child(slot -> slot.template(toolbar))
+        .build();
+
+layouts.render(panel);
+```
+
+- Builders emit immutable `LayoutTemplate`s so you can cache them between frames or preload a library of toolbars, panels, and grids.
+- `vertical()` accepts `spacing`, `padding`, `fillMode`, and `uniformWidth` so column layouts stay predictable.
+- `row()` mirrors the `HStack` options with spacing, alignment, `equalizeHeight`, and `uniformHeight`.
+- Slot builders accept `width`, `height`, `fillWidth`, or nested templates so you can stay declarative without extra helper classes.
+
+## Low-Level Stack Helpers
+Use `VStack`/`HStack` directly when you want to stay closer to ImGui’s immediate flow or need dynamic control each frame.
+
+```java
+VStack.Options columnOptions = new VStack.Options()
+        .spacing(8.0f)
+        .fillMode(VStack.FillMode.MATCH_WIDEST);
+
+try (VStack column = VStack.begin(columnOptions)) {
+    try (VStack.ItemScope ignored = column.next()) {
+        ImGui.text("Section Header");
+    }
+
+    try (VStack.ItemScope ignored = column.next()) {
         HStack.Options rowOptions = new HStack.Options()
                 .spacing(12.0f)
                 .alignment(HStack.Alignment.CENTER)
                 .equalizeHeight(true);
 
-        UI.withHStack(rowOptions, hStack -> {
-            UI.withHItem(hStack, 120.0f, () -> ImGui.button("Apply"));
-            UI.withHItem(hStack, 120.0f, () -> ImGui.button("Reset"));
-            UI.withHItem(hStack, () -> ImGui.textColored(0.5f, 0.8f, 0.5f, 1.0f, "Ready"));
-        });
-    });
-});
+        try (HStack row = HStack.begin(rowOptions)) {
+            row.next(() -> ImGui.button("Apply"), new HStack.ItemRequest().estimatedWidth(120.0f));
+            row.next(() -> ImGui.button("Reset"), new HStack.ItemRequest().estimatedWidth(120.0f));
+            row.next(() -> ImGui.textColored(0.5f, 0.8f, 0.5f, 1.0f, "Ready"));
+        }
+    }
+}
 ```
 
-- `VStack.Options.fillMode(VStack.FillMode.MATCH_WIDEST)` equalizes child widths; `uniformWidth(...)` enforces a fixed width.
-- `HStack.Options.equalizeHeight(true)` and `uniformHeight(...)` keep horizontal rows aligned even when items vary in size.
-- `UI.withVStackResult(...)` and `UI.withHStackResult(...)` return values from scoped blocks, letting you compute layout-dependent data inline.
-- `UI.withHItem(...)` overloads accept width/height estimates or an `HStack.ItemRequest` so you can provide `SizeRange` and constraint hints per item.
+- `VStack.Options.fillMode(VStack.FillMode.MATCH_WIDEST)` equalizes child widths while `uniformWidth(...)` locks them to a fixed size.
+- `HStack.Options.equalizeHeight(true)` and `uniformHeight(...)` keep horizontal rows aligned even when widgets vary.
+- `VStack.ItemRequest`/`HStack.ItemRequest` accept min/max sizes and height estimates so constraints feed back into layout decisions.
 
 ## Constraint Placement
 For precise placement, use `LayoutConstraints` with the solver in `helper.constraint` to target specific regions relative to the current window.
@@ -112,6 +145,39 @@ Window.of(view, "Palette")
 - Titles scoped with `Window.of(view, ...)` reuse the view’s identifier, preventing dock conflicts.
 - Chain `initPos(...)`/`initDimensions(...)` for defaults and `pos(...)`/`dimensions(...)` to enforce placement every frame; both accept numeric values or constraint instances.
 - `onOpen(...)` and `onClose(...)` mirror the view lifecycle when you need to reset scroll positions or persist state.
+
+## View Sections
+`ViewSection` lets you split a large `View` into lightweight sections without registering more views. Sections render immediately, receive the parent `View`, and stay reusable because they can be stored once and invoked wherever the parent needs them.
+
+```java
+public final class CraftingView extends View {
+    private final ViewSection header = ViewSection.of(this::renderHeader);
+    private final ViewSection body = ViewSection.of(view -> renderInventory(view));
+
+    @Override
+    protected void renderView() {
+        ImGui.begin("Crafting Station");
+        renderSection(header);
+        ImGui.separator();
+        renderSection(body);
+        ImGui.end();
+    }
+
+    private void renderHeader() {
+        ImGui.text("Workbench");
+    }
+
+    private void renderInventory(View view) {
+        ImGui.text("Namespace: " + view.getNamespace());
+        // emit inventory widgets
+    }
+}
+```
+
+- Sections keep their own state and helpers, so `View` subclasses avoid 500-line `renderView()` methods.
+- Use `ViewSection.of(Runnable)` when the section does not need the parent, or `ViewSection.of(Consumer<View>)` when it does.
+- `View.renderSection(section)` is the preferred way to invoke a section; it handles null checks and keeps call sites tidy.
+- Store sections as fields if they need to cache data, or create them inline when composition is simple.
 
 ## Additional Utilities
 - `InputHelper` exposes ImGui mouse and keyboard helpers for advanced interaction tracking.

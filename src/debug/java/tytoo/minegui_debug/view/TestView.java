@@ -20,6 +20,7 @@ import tytoo.minegui.style.Fonts;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
+import tytoo.minegui.view.ViewSection;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui_debug.MineGuiDebugCore;
 
@@ -49,16 +50,19 @@ public final class TestView extends View {
     private final ImString stackNotes = new ImString("Tune spacing to compare stack helpers.", 256);
     private final ImString tableFilter = new ImString(64);
     private final ImString scratchPad = new ImString("Type notes while you explore layouts.", 512);
+    private final ViewSection headerSection = ViewSection.of(this::renderHeaderSection);
     private float stackSpacing = 12f;
     private float leftPanelRatio = 0.4f;
     private float progressValue = 0.45f;
     private boolean clearFocusOnOpen;
     private int selectedTableRow = -1;
     private String lastAction = "Awaiting interaction";
+    private final ViewSection footerSection = ViewSection.of(this::renderFooterSection);
     private ImFont jetbrainsMono;
     private String jetbrainsStatus = "JetBrains Mono pending";
     private LayoutTemplate mainLayoutTemplate;
     private LayoutTemplate layoutDemoTemplate;
+    private final ViewSection tabsSection = ViewSection.of(this::renderTabsSection);
     private LayoutTemplate layoutToolbarTemplate;
     private LayoutTemplate layoutGridTemplate;
 
@@ -268,9 +272,9 @@ public final class TestView extends View {
             mainLayoutTemplate = api.vertical()
                     .spacing(14f)
                     .fillMode(VStack.FillMode.MATCH_WIDEST)
-                    .child(slot -> slot.content(this::renderHeaderSection))
-                    .child(slot -> slot.content(this::renderTabsSection))
-                    .child(slot -> slot.content(this::renderFooterSection))
+                    .child(slot -> slot.content(() -> renderSection(headerSection)))
+                    .child(slot -> slot.content(() -> renderSection(tabsSection)))
+                    .child(slot -> slot.content(() -> renderSection(footerSection)))
                     .build();
         }
         return mainLayoutTemplate;
