@@ -2,11 +2,11 @@ name: Notify Discord on New Package Version
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: read
 
 concurrency:
@@ -18,110 +18,109 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Find latest Maven package version
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install cloc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cloc
+
+      - name: Get latest release tag
         id: latest
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: trethore
-          PKG_TYPE: maven
-          WANT_ARTIFACT: minegui
+          REPO: ${{ github.repository }}
         run: |
-          set -e
-          
-          echo "Fetching package lists for owner: ${OWNER}"
-          USER_LIST=$(gh api -H "Accept: application/vnd.github+json" \
-            "/users/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || echo '[]')
-          ORG_LIST=$(gh api -H "Accept: application/vnd.github+json" \
-            "/orgs/${OWNER}/packages?package_type=${PKG_TYPE}" 2>/dev/null || echo '[]')
-
-          pick_name() {
-            jq -r --arg a "$WANT_ARTIFACT" '
-              [.[] | .name] |
-              map(select(. == $a or (endswith("." + $a)))) |
-              (.[0] // empty)
-            '
-          }
-
-          PKG_NAME=$(printf '%s' "$USER_LIST" | pick_name)
-          SCOPE="user"
-          if [ -z "$PKG_NAME" ]; then
-            PKG_NAME=$(printf '%s' "$ORG_LIST" | pick_name)
-            [ -n "$PKG_NAME" ] && SCOPE="org"
-          fi
-
-          if [ -z "$PKG_NAME" ]; then
-            echo "Error: Unable to locate Maven package for ${OWNER}"
-            echo "Available user packages: $(echo "$USER_LIST" | jq -r '.[].name' 2>/dev/null | tr '\n' ', ' || echo 'none')"
-            echo "Available org packages: $(echo "$ORG_LIST" | jq -r '.[].name' 2>/dev/null | tr '\n' ', ' || echo 'none')"
+          response=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
+          tag=$(printf '%s' "$response" | jq -r '.tag_name')
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "No release tag found"
             exit 1
           fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-          echo "Found package: ${PKG_NAME} (scope: ${SCOPE})"
-
-          if [ "$SCOPE" = "user" ]; then
-            VERS_JSON=$(gh api -H "Accept: application/vnd.github+json" \
-              "/users/${OWNER}/packages/${PKG_TYPE}/${PKG_NAME}/versions?per_page=1")
+      - name: Read last notified version
+        id: last
+        run: |
+          if [ -f ".github/last_notified_version" ]; then
+            value=$(cat .github/last_notified_version)
           else
-            VERS_JSON=$(gh api -H "Accept: application/vnd.github+json" \
-              "/orgs/${OWNER}/packages/${PKG_TYPE}/${PKG_NAME}/versions?per_page=1")
+            value=""
           fi
+          echo "value=$value" >> "$GITHUB_OUTPUT"
 
-          VERSION=$(printf '%s' "$VERS_JSON" | jq -r '.[0].name // empty')
-          URL=$(printf '%s' "$VERS_JSON" | jq -r '.[0].html_url // empty')
-
-          if [ -z "$VERSION" ]; then
-            echo "Error: No version found for ${OWNER}/${PKG_NAME}"
-            echo "API response: $VERS_JSON"
-            exit 1
-          fi
-
-          echo "Latest version: ${VERSION}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-
-      - name: Restore dedupe cache
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: .gh-notify-dedupe
-          key: notify-${{ steps.latest.outputs.version }}
-
-      - name: Build Discord payload
-        if: steps.cache.outputs.cache-hit != 'true'
-        env:
-          NAME: ${{ github.event.repository.name }}
-          VERSION: ${{ steps.latest.outputs.version }}
-          URL: ${{ steps.latest.outputs.url }}
+      - name: Check if new version
+        id: check
         run: |
-          mkdir -p .gh-notify-dedupe
-          
-          cat > payload.json <<'EOF'
-          {
-            "content": "**${NAME}** has a new version: **${VERSION}**",
-            "embeds": [{
-              "title": "Dependency Snippets",
-              "url": "${URL}",
-              "fields": [
-                {
-                  "name": "Maven",
-                  "value": "```xml\n<dependency>\n  <groupId>tytoo.minegui</groupId>\n  <artifactId>minegui</artifactId>\n  <version>${VERSION}</version>\n</dependency>\n```"
-                },
-                {
-                  "name": "Gradle",
-                  "value": "```groovy\nimplementation \"tytoo.minegui:minegui:${VERSION}\"\n```"
-                }
-              ]
-            }]
-          }
-          EOF
-          
-          sed -i "s|\${NAME}|$NAME|g; s|\${VERSION}|$VERSION|g; s|\${URL}|${URL:-https://github.com/${GITHUB_REPOSITORY}/packages}|g" payload.json
-          echo "$VERSION" > .gh-notify-dedupe/last-version.txt
-          
-          echo "Discord payload created for version ${VERSION}"
+          if [ "${{ steps.last.outputs.value }}" = "${{ steps.latest.outputs.tag }}" ]; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Send to Discord
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Generate Discord payload
+        if: steps.check.outputs.new == 'true'
+        id: payload
+        env:
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          if [ -x "./gradlew" ]; then
+            deps=$(./gradlew dependencies --configuration compileClasspath --console=plain -q || ./gradlew dependencies --console=plain -q || true)
+          else
+            deps=""
+          fi
+
+          deps_snippet=$(printf '%s\n' "$deps" | sed -n '1,40p')
+
+          if command -v cloc >/dev/null 2>&1; then
+            cloc_output=$(cloc src/client/ --quiet || true)
+          else
+            cloc_output=""
+          fi
+
+          summary=$(printf '%s\n' "$cloc_output" | awk '$1=="SUM:" {print $0}')
+          cloc_snippet=$(printf '%s\n' "$cloc_output" | sed -n '1,20p')
+
+          if [ -n "$summary" ]; then
+            files=$(awk '{print $2}' <<< "$summary")
+            blank=$(awk '{print $3}' <<< "$summary")
+            comment=$(awk '{print $4}' <<< "$summary")
+            code=$(awk '{print $5}' <<< "$summary")
+          else
+            files=0
+            blank=0
+            comment=0
+            code=0
+          fi
+
+          if [ -z "$cloc_snippet" ]; then
+            cloc_snippet="cloc introuvable ou échec de l'analyse"
+          fi
+
+          description="**Nouvelle version détectée:** ${TAG}\n\n**Dependencies (extrait)**\n\`\`\`txt\n${deps_snippet}\n\`\`\`\n**Code metrics (src/client)**\n\`\`\`txt\n${cloc_snippet}\n\`\`\`\nFichiers: ${files} | Lignes de code: ${code} | Blancs: ${blank} | Commentaires: ${comment}"
+
+          description_json=$(printf '%s' "$description" | python3 -c 'import json, sys; print(json.dumps(sys.stdin.read()))')
+
+          jq -n --argjson desc "$description_json" '{
+            "embeds": [
+              {
+                "title": "New package version published",
+                "description": $desc,
+                "color": 5814783
+              }
+            ]
+          }' > payload.json
+
+      - name: Send Discord notification
+        if: steps.check.outputs.new == 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
@@ -129,10 +128,10 @@ jobs:
             echo "Error: DISCORD_WEBHOOK_URL secret not set"
             exit 1
           fi
-          
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -H "Content-Type: application/json" -X POST -d @payload.json "$DISCORD_WEBHOOK_URL")
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          
+
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "Successfully sent Discord notification (HTTP ${HTTP_CODE})"
           else
@@ -140,3 +139,20 @@ jobs:
             echo "Response: $(echo "$RESPONSE" | head -n-1)"
             exit 1
           fi
+
+      - name: Save last notified version
+        if: steps.check.outputs.new == 'true'
+        env:
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          mkdir -p .github
+          echo "$TAG" > .github/last_notified_version
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/last_notified_version
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          branch="${GITHUB_REF#refs/heads/}"
+          git commit -m "chore: update last notified version to ${TAG}"
+          git push origin "HEAD:${branch}"
