@@ -38,34 +38,33 @@ MineGuiNamespaces.initialize(
 - `withNamespace(...)`, `withLoadGlobalConfig(...)`, and other `with*` helpers clone the options record, making it easy to derive variants during runtime setup.
 
 ## Working with Global Config
-`GlobalConfigManager` stores user-facing settings (dockspace, viewport mode, font scale, etc.) under the config directory associated with your namespace. You can adjust where files live, which features load, and how they save.
+`NamespaceConfigService` (returned from `MineGuiContext.config()`) keeps each namespace’s settings as an immutable `NamespaceConfig` snapshot. Update the config with pure functions and the service writes the changes via its configured store.
 
 ```java
-// Adjust feature profiles per namespace
-NamespaceConfigAccess config = MineGuiNamespaces.get("examplemod")
-        .config();
+MineGuiContext context = MineGuiCore.init(MineGuiInitializationOptions.defaults("examplemod"));
+NamespaceConfigService configService = context.config();
 
-config.setLoadFeatures(Set.of(ConfigFeature.CORE, ConfigFeature.VIEW_LAYOUTS));
-config.disableFeature(ConfigFeature.VIEW_STYLE_SNAPSHOTS);
+// Read the active snapshot
+NamespaceConfig current = configService.current();
+boolean dockspaceEnabled = current.dockspaceEnabled();
 
-// Swap the config path strategy (e.g., to share a directory across namespaces)
-MineGuiInitializationOptions options = MineGuiInitializationOptions.builder("examplemod")
-        .configPathStrategy(ConfigPathStrategies.flat("examplemod"))
-        .build();
-MineGuiNamespaces.initialize(options);
+// Persist updates atomically
+configService.update(cfg -> cfg
+        .withGlobalScale(1.25f)
+        .withViewportEnabled(true));
 ```
 
-- `ConfigFeatureProfile` lets you independently control which features load and which ones save.
-- Call `config.configPath()` or `config.viewSavesPath()` when you need to surface configuration files to users.
-- Use `GlobalConfigManager.save(namespace)` after programmatic changes so the JSON payload mirrors the active state.
+- `ConfigFeatureProfile` still controls which features load/save; configure it through `MineGuiInitializationOptions`.
+- Access `configService.current().configPath()` or `.viewSavesPath()` when you need to surface directories to users.
+- Swap storage or sandbox paths by supplying a custom `ConfigPathStrategy` or (in future steps) a different `NamespaceConfigStore`.
 
 ## Persisting Views and Styles
-`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views must opt in with `setShouldSave(true)` to participate.
+`ViewSaveManager` pairs each registered `View` with layout data (ImGui ini sections) and optional style snapshots. Views are persistent by default, so persistence only stops when you call `setPersistent(false)`.
 
 ```java
 public final class InspectorOverlay extends View {
     public InspectorOverlay() {
-        super("example/inspector", true);
+        super("example/inspector");
     }
 
     @Override
@@ -125,7 +124,7 @@ MineGuiNamespaces.initialize(
 
 ## Developer Commands and Reloads
 - `/minegui reload` refreshes JSON configs, view layout snapshots, and style JSON. It does not rebuild the ImGui context—restart the client for new fonts.
-- `/minegui export style force` dumps the current style descriptors for all views with `shouldSave=true`.
+- `/minegui export style force` dumps the current style descriptors for all views marked as persistent.
 - `/minegui reload namespace <id>` lets you reload a single namespace if you’ve built custom commands wrapping MineGui’s APIs.
 - Resource reloads (F3 + T) clear ImGui texture caches via `ImGuiImageUtils.invalidateAll()` thanks to the Fabric resource listener registered in `MineGuiCore`.
 

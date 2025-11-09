@@ -8,11 +8,12 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui_debug.view.FeaturesView;
 import tytoo.minegui_debug.view.StyleDebugView;
 import tytoo.minegui_debug.view.TestView;
+
+import java.util.Objects;
 
 @SuppressWarnings("unused")
 public final class MineGuiDebugCore {
@@ -22,16 +23,16 @@ public final class MineGuiDebugCore {
     private MineGuiDebugCore() {
     }
 
-    public static void init() {
-        test();
+    public static void init(MineGuiContext context) {
+        Objects.requireNonNull(context, "context");
+        test(context);
     }
 
-    private static void test() {
+    private static void test(MineGuiContext context) {
         TestView testView = new TestView();
         FeaturesView featuresView = new FeaturesView();
         StyleDebugView styleView = new StyleDebugView();
-        MineGuiNamespaceContext context = MineGuiNamespaces.initialize(ID);
-        MineGuiNamespaces.setDockspaceCustomizer(ID, state -> state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode));
+        context.setDockspaceCustomizer(state -> state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode));
         context.ui().register(testView);
         context.ui().register(featuresView);
         context.ui().register(styleView);

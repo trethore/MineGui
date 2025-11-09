@@ -6,10 +6,12 @@ import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.internal.ImGuiContext;
+import lombok.Getter;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.config.GlobalConfig;
-import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
+import tytoo.minegui.config.NamespaceConfig;
+import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceRenderState;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
@@ -26,8 +28,10 @@ import java.util.List;
 public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
+    private static final NamespaceConfigStore DEFAULT_CONFIG_STORE = new GlobalConfigNamespaceConfigStore();
     private static final String GLSL_VERSION = "#version 150";
     private static float appliedGlobalScale = Float.NaN;
+    @Getter
     private static volatile boolean contextInitialized;
     private static volatile boolean clientStarted;
     private static volatile boolean initializationInProgress;
@@ -71,11 +75,11 @@ public class ImGuiLoader {
         imGuiGlfw.newFrame();
         CursorPolicyRegistry.onFrameStart();
         ImGui.newFrame();
-        GlobalConfig defaultConfig = GlobalConfigManager.getConfig(GlobalConfigManager.getDefaultNamespace());
+        NamespaceConfig defaultConfig = resolveDefaultConfig();
         applyGlobalScale(defaultConfig);
         renderDockSpace(defaultConfig);
         for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
-            GlobalConfig config = context.config().get();
+            NamespaceConfig config = context.config().current();
             applyGlobalScale(config);
             context.style().apply();
             context.ui().render();
@@ -118,6 +122,7 @@ public class ImGuiLoader {
             fontLibrary.resetRuntime();
             StyleManager.resetAllActiveFonts();
             initializeImGui();
+            fontLibrary.runRegistrationPhase(ImGui.getIO());
             fontLibrary.preloadRegisteredFonts();
             imGuiGlfw.init(windowHandle, false);
             imGuiGl3.init(GLSL_VERSION);
@@ -128,9 +133,7 @@ public class ImGuiLoader {
                 return;
             }
             ImGuiImageUtils.invalidateAll();
-            for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
-                contextHandle.style().apply();
-            }
+            reapplyNamespaceStyles();
             fontLibrary.lockRegistration();
             contextInitialized = true;
             initializationFailed = false;
@@ -149,8 +152,8 @@ public class ImGuiLoader {
         }
     }
 
-    private static void renderDockSpace(GlobalConfig config) {
-        if (config == null || !config.isDockspaceEnabled()) {
+    private static void renderDockSpace(NamespaceConfig config) {
+        if (config == null || !config.dockspaceEnabled()) {
             return;
         }
         DockspaceRenderState state = DockspaceRenderState.createDefault(mcWindowX, mcWindowY, mcWindowWidth, mcWindowHeight);
@@ -188,14 +191,14 @@ public class ImGuiLoader {
         appliedGlobalScale = Float.NaN;
 
         final ImGuiIO io = ImGui.getIO();
-        final GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
+        final NamespaceConfig config = resolveDefaultConfig();
 
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
-        if (config.isDockspaceEnabled()) {
+        if (config.dockspaceEnabled()) {
             io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
         }
-        if (config.isViewportEnabled()) {
+        if (config.viewportEnabled()) {
             io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
             io.setConfigViewportsNoTaskBarIcon(true);
         } else {
@@ -211,6 +214,12 @@ public class ImGuiLoader {
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
         finalizeInitialStyle(defaultFont);
+    }
+
+    public static void reapplyNamespaceStyles() {
+        for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
+            contextHandle.style().apply();
+        }
     }
 
     private static void endFrame() {
@@ -259,15 +268,13 @@ public class ImGuiLoader {
         StyleManager.getInstance().setGlobalDescriptor(descriptor);
         StyleManager.backfillGlobalDescriptors(descriptor);
         NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
-        GlobalConfig config = GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace());
-        String configuredStyleKey = config.getGlobalStyleKey();
-        if (configuredStyleKey != null && !configuredStyleKey.isBlank()) {
-            ResourceId styleKey = ResourceId.tryParse(configuredStyleKey);
-            if (styleKey != null) {
-                StyleManager.getInstance().setGlobalStyleKey(styleKey);
-            }
+        NamespaceConfig config = resolveDefaultConfig();
+        ResourceId configuredStyleKey = config.globalStyleKey();
+        if (configuredStyleKey != null) {
+            StyleManager.getInstance().setGlobalStyleKey(configuredStyleKey);
         }
         StyleManager.getInstance().apply();
+        StyleManager.publishGlobalDescriptor(descriptor);
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {
@@ -293,10 +300,10 @@ public class ImGuiLoader {
     }
 
     public static void refreshGlobalScale() {
-        applyGlobalScale(GlobalConfigManager.getConfig(MineGuiCore.getConfigNamespace()));
+        applyGlobalScale(resolveDefaultConfig());
     }
 
-    private static void applyGlobalScale(GlobalConfig config) {
+    private static void applyGlobalScale(NamespaceConfig config) {
         if (config == null) {
             return;
         }
@@ -304,7 +311,7 @@ public class ImGuiLoader {
         if (context == null || context.isNotValidPtr()) {
             return;
         }
-        float configuredScale = config.getGlobalScale();
+        float configuredScale = config.globalScale();
         if (!Float.isFinite(configuredScale) || configuredScale <= 0.0f) {
             configuredScale = 1.0f;
         }
@@ -315,7 +322,7 @@ public class ImGuiLoader {
         appliedGlobalScale = configuredScale;
     }
 
-    private static boolean rebuildFontAtlasTexture() {
+    public static boolean rebuildFontAtlasTexture() {
         ImGuiContext context = ImGui.getCurrentContext();
         if (context == null || context.isNotValidPtr()) {
             MineGuiCore.LOGGER.warn("ImGui context unavailable while rebuilding MineGui font atlas");
@@ -338,5 +345,13 @@ public class ImGuiLoader {
             return false;
         }
         return true;
+    }
+
+    private static NamespaceConfig resolveDefaultConfig() {
+        MineGuiNamespaceContext context = MineGuiNamespaces.get(MineGuiCore.getConfigNamespace());
+        if (context == null) {
+            return DEFAULT_CONFIG_STORE.load(MineGuiCore.getConfigNamespace());
+        }
+        return context.config().current();
     }
 }

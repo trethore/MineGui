@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 public final class FontLibrary {
     private static final FontLibrary INSTANCE = new FontLibrary();
@@ -27,6 +29,7 @@ public final class FontLibrary {
     private final ConcurrentHashMap<ResourceId, ResourceId> mergeParents = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<FontVariant, byte[]> fontData = new ConcurrentHashMap<>();
     private final ThreadLocal<Set<ResourceId>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
+    private final CopyOnWriteArrayList<Consumer<ImGuiIO>> registrationPhaseCallbacks = new CopyOnWriteArrayList<>();
     @Getter
     private volatile boolean registrationLocked;
 
@@ -43,6 +46,28 @@ public final class FontLibrary {
 
     public ResourceId getDefaultFontKey() {
         return DEFAULT_FONT_KEY;
+    }
+
+    public void onRegistrationPhase(Consumer<ImGuiIO> registrar) {
+        Objects.requireNonNull(registrar, "registrar");
+        if (registrationLocked) {
+            MineGuiCore.LOGGER.error("Ignoring registration-phase callback after MineGui initialization; register callbacks during mod startup.");
+            return;
+        }
+        registrationPhaseCallbacks.add(registrar);
+    }
+
+    public void runRegistrationPhase(ImGuiIO io) {
+        if (io == null) {
+            return;
+        }
+        for (Consumer<ImGuiIO> callback : registrationPhaseCallbacks) {
+            try {
+                callback.accept(io);
+            } catch (RuntimeException exception) {
+                MineGuiCore.LOGGER.error("Font registration-phase callback failed", exception);
+            }
+        }
     }
 
     public void registerFont(ResourceId key, FontDescriptor descriptor) {

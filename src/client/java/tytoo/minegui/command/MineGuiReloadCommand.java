@@ -4,8 +4,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.style.StyleDescriptor;
@@ -68,13 +68,13 @@ public final class MineGuiReloadCommand {
         } else {
             GlobalConfigManager.ensureContext(namespace);
         }
+        context.config().reload();
         applyConfiguredStyle(context);
     }
 
     private static void applyConfiguredStyle(MineGuiNamespaceContext context) {
-        GlobalConfig config = GlobalConfigManager.getConfig(context.namespace());
-        String configured = config.getGlobalStyleKey();
-        ResourceId styleKey = (configured == null || configured.isBlank()) ? null : ResourceId.tryParse(configured);
+        NamespaceConfig config = context.config().current();
+        ResourceId styleKey = config.globalStyleKey();
         StyleManager styleManager = context.style();
         if (styleManager.getGlobalDescriptor().isEmpty()) {
             StyleManager.get(GlobalConfigManager.getDefaultNamespace())
@@ -85,4 +85,5 @@ public final class MineGuiReloadCommand {
         styleManager.setGlobalStyleKey(styleKey);
         styleManager.apply();
     }
+
 }

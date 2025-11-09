@@ -58,6 +58,24 @@ public final class UIManager {
         }
     }
 
+    public View registerAndShow(View view) {
+        if (view == null) {
+            return null;
+        }
+        register(view);
+        view.show();
+        return view;
+    }
+
+    public void registerAll(View... viewsToRegister) {
+        if (viewsToRegister == null) {
+            return;
+        }
+        for (View view : viewsToRegister) {
+            register(view);
+        }
+    }
+
     public void unregister(View view) {
         if (view == null) {
             return;

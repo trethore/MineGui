@@ -19,7 +19,7 @@ public final class StyleDebugView extends View {
 
     public StyleDebugView() {
         setId("minegui/style_debug");
-        setShouldSave(false);
+        setPersistent(false);
     }
 
     @Override

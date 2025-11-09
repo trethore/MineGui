@@ -104,7 +104,10 @@ public final class VStack implements AutoCloseable {
             plannedHeight = sanitizeLength(resolved.estimatedHeight);
         }
         boolean widthApplied = plannedSize != null && plannedSize.width() > 0f;
-        if (uniformWidth > 0f) {
+        if (resolved.fillAvailableWidth) {
+            ImGui.setNextItemWidth(-1f);
+            widthApplied = true;
+        } else if (uniformWidth > 0f) {
             SizeHints.itemWidth(uniformWidth);
             widthApplied = true;
             plannedWidth = Math.max(plannedWidth, uniformWidth);
@@ -209,6 +212,7 @@ public final class VStack implements AutoCloseable {
         private boolean useSizeHints = true;
         private Float estimatedWidth;
         private Float estimatedHeight;
+        private boolean fillAvailableWidth;
 
         public ItemRequest constraints(LayoutConstraints constraints) {
             this.constraints = constraints;
@@ -237,6 +241,11 @@ public final class VStack implements AutoCloseable {
 
         public ItemRequest estimateHeight(float height) {
             this.estimatedHeight = height;
+            return this;
+        }
+
+        public ItemRequest fillWidth(boolean fill) {
+            this.fillAvailableWidth = fill;
             return this;
         }
     }

@@ -9,6 +9,9 @@ import tytoo.minegui.persistence.FileViewPersistenceAdapter;
 import tytoo.minegui.persistence.ViewPersistenceAdapter;
 import tytoo.minegui.persistence.ViewPersistenceRequest;
 import tytoo.minegui.persistence.ViewStyleSnapshot;
+import tytoo.minegui.runtime.MineGuiNamespaceContext;
+import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.style.StyleJsonSerializer;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ResourceId;
@@ -104,13 +107,18 @@ public final class ViewSaveManager {
         if (view == null) {
             return;
         }
-        if (!view.isShouldSave()) {
+        if (!view.isPersistent()) {
             entries.remove(view);
             return;
         }
         ViewEntry entry = entries.computeIfAbsent(view, unused -> new ViewEntry());
-        boolean loadLayouts = GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_LAYOUTS);
-        boolean loadStyleSnapshots = GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_STYLE_SNAPSHOTS);
+        NamespaceConfigService configService = configService();
+        boolean loadLayouts = configService != null
+                ? configService.shouldLoad(ConfigFeature.VIEW_LAYOUTS)
+                : GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_LAYOUTS);
+        boolean loadStyleSnapshots = configService != null
+                ? configService.shouldLoad(ConfigFeature.VIEW_STYLE_SNAPSHOTS)
+                : GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.VIEW_STYLE_SNAPSHOTS);
         String currentId = view.getId();
         String scopedId = scopedId(view);
         ViewPersistenceRequest request = new ViewPersistenceRequest(namespace, persistenceViewId(currentId), scopedId);
@@ -149,7 +157,7 @@ public final class ViewSaveManager {
             for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
                 View view = entry.getKey();
                 ViewEntry state = entry.getValue();
-                if (view == null || state == null || !view.isShouldSave()) {
+                if (view == null || state == null || !view.isPersistent()) {
                     continue;
                 }
                 if (state.styleSnapshotJson != null) {
@@ -182,11 +190,15 @@ public final class ViewSaveManager {
         if (iniContent == null || iniContent.isEmpty()) {
             return;
         }
-        if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.VIEW_LAYOUTS)) {
+        NamespaceConfigService configService = configService();
+        boolean shouldSaveLayouts = configService != null
+                ? configService.shouldSave(ConfigFeature.VIEW_LAYOUTS)
+                : GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.VIEW_LAYOUTS);
+        if (!shouldSaveLayouts) {
             return;
         }
         Map<String, Map.Entry<View, ViewEntry>> activeEntries = entries.entrySet().stream()
-                .filter(entry -> entry.getKey().isShouldSave())
+                .filter(entry -> entry.getKey().isPersistent())
                 .collect(Collectors.toMap(entry -> scopedId(entry.getKey()), entry -> entry, (first, second) -> first));
         if (activeEntries.isEmpty()) {
             return;
@@ -233,7 +245,7 @@ public final class ViewSaveManager {
     }
 
     public void captureViewStyle(View view) {
-        if (view == null || !view.isShouldSave()) {
+        if (view == null || !view.isPersistent()) {
             return;
         }
         ViewEntry entry = entries.get(view);
@@ -260,17 +272,24 @@ public final class ViewSaveManager {
     }
 
     private void restoreViewStyle(View view, ViewEntry entry) {
-        if (GlobalConfigManager.isConfigIgnored(namespace)) {
+        NamespaceConfigService configService = configService();
+        boolean configIgnored = configService != null ? configService.isConfigIgnored() : GlobalConfigManager.isConfigIgnored(namespace);
+        if (configIgnored) {
             entry.pendingStyleKey = normalizeStyleKey(view.getStyleKey());
             entry.styleDirty = false;
             return;
         }
-        if (!GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.STYLE_REFERENCES)) {
+        boolean shouldLoadStyles = configService != null
+                ? configService.shouldLoad(ConfigFeature.STYLE_REFERENCES)
+                : GlobalConfigManager.shouldLoadFeature(namespace, ConfigFeature.STYLE_REFERENCES);
+        if (!shouldLoadStyles) {
             entry.pendingStyleKey = normalizeStyleKey(view.getStyleKey());
             entry.styleDirty = false;
             return;
         }
-        Map<String, String> styles = GlobalConfigManager.getConfig(namespace).getViewStyles();
+        Map<String, String> styles = configService != null
+                ? configService.current().viewStyles()
+                : GlobalConfigManager.getConfig(namespace).getViewStyles();
         String saved = styles.get(view.getId());
         if (saved != null && saved.isBlank()) {
             saved = null;
@@ -288,18 +307,25 @@ public final class ViewSaveManager {
     }
 
     private void persistViewStyles() {
-        if (GlobalConfigManager.isConfigIgnored(namespace)) {
+        NamespaceConfigService configService = configService();
+        boolean configIgnored = configService != null ? configService.isConfigIgnored() : GlobalConfigManager.isConfigIgnored(namespace);
+        if (configIgnored) {
             return;
         }
-        if (!GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES)) {
+        boolean shouldSaveStyles = configService != null
+                ? configService.shouldSave(ConfigFeature.STYLE_REFERENCES)
+                : GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES);
+        if (!shouldSaveStyles) {
             return;
         }
         boolean changed = false;
-        Map<String, String> styles = GlobalConfigManager.getConfig(namespace).getViewStyles();
+        Map<String, String> styles = configService != null
+                ? new HashMap<>(configService.current().viewStyles())
+                : GlobalConfigManager.getConfig(namespace).getViewStyles();
         for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
             View view = entry.getKey();
             ViewEntry state = entry.getValue();
-            if (view == null || !view.isShouldSave() || state == null || !state.styleDirty) {
+            if (view == null || !view.isPersistent() || state == null || !state.styleDirty) {
                 continue;
             }
             state.styleDirty = false;
@@ -317,7 +343,12 @@ public final class ViewSaveManager {
             }
         }
         if (changed) {
-            GlobalConfigManager.save(namespace);
+            if (configService != null) {
+                Map<String, String> nextStyles = new HashMap<>(styles);
+                configService.update(cfg -> cfg.withViewStyles(nextStyles));
+            } else {
+                GlobalConfigManager.save(namespace);
+            }
         }
     }
 
@@ -326,7 +357,7 @@ public final class ViewSaveManager {
         for (Map.Entry<View, ViewEntry> entry : entries.entrySet()) {
             View view = entry.getKey();
             ViewEntry state = entry.getValue();
-            if (view == null || state == null || !view.isShouldSave() || !state.descriptorDirty) {
+            if (view == null || state == null || !view.isPersistent() || !state.descriptorDirty) {
                 continue;
             }
             ViewPersistenceRequest request = ensureRequest(view, state);
@@ -401,6 +432,11 @@ public final class ViewSaveManager {
 
     private void updateAdapter(ViewPersistenceAdapter adapter) {
         this.adapter = adapter != null ? adapter : DEFAULT_ADAPTER;
+    }
+
+    private NamespaceConfigService configService() {
+        MineGuiNamespaceContext context = MineGuiNamespaces.get(namespace);
+        return context != null ? context.config() : null;
     }
 
     private static final class ViewEntry {

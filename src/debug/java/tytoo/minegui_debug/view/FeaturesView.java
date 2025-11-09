@@ -7,10 +7,11 @@ import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.helper.UI;
 import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
 import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.layout.LayoutApi;
+import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.style.ColorPalette;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ImGuiImageUtils;
@@ -32,7 +33,7 @@ public final class FeaturesView extends View {
             "Cursor control policies"
     };
     private static final String[] HIGHLIGHT_DETAILS = {
-            "MineGui keeps the entire render lifecycle immediate. Each MGView runs inline with the client tick, so authored ImGui commands stay deterministic and easy to reason about even when Minecraft screens change.",
+            "MineGui keeps the entire render lifecycle immediate. Each View runs inline with the client tick, so authored ImGui commands stay deterministic and easy to reason about even when Minecraft screens change.",
             "Helpers like VStack, HStack, and MGWindow add just enough structure for complex tools. Chain them when needed, or fall back to raw ImGui calls without fighting a retained tree or hidden state.",
             "Initialization flows piggyback Fabric events to manage ImGui contexts, namespaces, and dockspace wiring. That keeps overlays live across dimension loads and reconnects without manual plumbing.",
             "Styles translate Dear ImGui metrics, rounding, and palettes into MineGui descriptors. Capture, persist, and reuse themes while respecting namespaces or apply them globally with one call.",
@@ -50,7 +51,7 @@ public final class FeaturesView extends View {
             "Style descriptors captured from live ImGui sessions.",
             "Font library bootstrap with JetBrains Mono fallback.",
             "Image utilities that reuse Minecraft textures safely.",
-            "Save manager hooks for opt-in persistence."
+            "Save manager hooks that keep layouts and styles persistent by default."
     };
     private static final String[][] WIDGET_TABLE_ROWS = {
             {"Progress bar", "Render instantaneous feedback", "Pair with ImGuiIO.getDeltaTime() for smooth animation"},
@@ -71,6 +72,9 @@ public final class FeaturesView extends View {
     private float progressValue = 0.35f;
     private float sliderValue = 32.0f;
     private int selectedHighlight;
+    private LayoutTemplate mainLayoutTemplate;
+    private LayoutTemplate layoutSamplerTemplate;
+    private LayoutTemplate layoutSamplerRowTemplate;
 
     public FeaturesView() {
         super(MineGuiDebugCore.ID, "features_view", false);
@@ -188,12 +192,14 @@ public final class FeaturesView extends View {
         Window.of(this, "ImGui Features")
                 .initDimensions(WINDOW_WIDTH, WINDOW_HEIGHT)
                 .flags(resolveWindowFlags())
-                .render(() -> UI.withVStack(new VStack.Options().spacing(10.0f).fillMode(VStack.FillMode.MATCH_WIDEST), layout -> {
-                    renderHeader(layout);
-                    renderControls(layout);
-                    renderTabs(layout);
-                    renderFooter(layout);
-                }));
+                .render(() -> {
+                    LayoutApi api = layoutApi();
+                    if (api == null) {
+                        renderLayoutUnavailableMessage();
+                        return;
+                    }
+                    api.render(mainLayout(api));
+                });
         renderOverlay();
     }
 
@@ -218,51 +224,45 @@ public final class FeaturesView extends View {
         return flags;
     }
 
-    private void renderHeader(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            ImGui.text("Immediate-mode UI playbook");
-            ImGui.sameLine();
-            ImGui.textDisabled("Press J to toggle");
-            ImGui.separator();
-            ImGui.textWrapped("Explore MineGui features live. Combine stack-based helpers with raw ImGui commands, preview styling, and surface runtime diagnostics without leaving the client.");
-        });
+    private void renderHeaderSection() {
+        ImGui.text("Immediate-mode UI playbook");
+        ImGui.sameLine();
+        ImGui.textDisabled("Press J to toggle");
+        ImGui.separator();
+        ImGui.textWrapped("Explore MineGui features live. Combine stack-based helpers with raw ImGui commands, preview styling, and surface runtime diagnostics without leaving the client.");
     }
 
-    private void renderControls(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            float spacing = ImGui.getStyle().getItemSpacingX();
-            ImGui.checkbox("Animate metrics", animateWidgets);
-            ImGui.sameLine(0.0f, spacing);
-            ImGui.checkbox("Runtime overlay", showOverlay);
-            ImGui.sameLine(0.0f, spacing);
-            ImGui.checkbox("Texture preview", showTexture);
-            ImGui.sameLine(0.0f, spacing);
-            ImGui.checkbox("Pin window position", pinWindow);
-        });
+    private void renderControlSection() {
+        float spacing = ImGui.getStyle().getItemSpacingX();
+        ImGui.checkbox("Animate metrics", animateWidgets);
+        ImGui.sameLine(0.0f, spacing);
+        ImGui.checkbox("Runtime overlay", showOverlay);
+        ImGui.sameLine(0.0f, spacing);
+        ImGui.checkbox("Texture preview", showTexture);
+        ImGui.sameLine(0.0f, spacing);
+        ImGui.checkbox("Pin window position", pinWindow);
     }
 
-    private void renderTabs(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            if (ImGui.beginTabBar("features_tabbar")) {
-                if (ImGui.beginTabItem("Overview")) {
-                    renderOverviewTab();
-                    ImGui.endTabItem();
-                }
-                if (ImGui.beginTabItem("Layouts")) {
-                    renderLayoutTab();
-                    ImGui.endTabItem();
-                }
-                if (ImGui.beginTabItem("Widgets")) {
-                    renderWidgetsTab();
-                    ImGui.endTabItem();
-                }
-                if (ImGui.beginTabItem("Assets")) {
-                    renderAssetsTab();
-                    ImGui.endTabItem();
-                }
-                ImGui.endTabBar();
+    private void renderTabsSection() {
+        if (ImGui.beginTabBar("features_tabbar")) {
+            if (ImGui.beginTabItem("Overview")) {
+                renderOverviewTab();
+                ImGui.endTabItem();
             }
-        });
+            if (ImGui.beginTabItem("Layouts")) {
+                renderLayoutTab();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Widgets")) {
+                renderWidgetsTab();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Assets")) {
+                renderAssetsTab();
+                ImGui.endTabItem();
+            }
+            ImGui.endTabBar();
+        }
     }
 
     private void renderOverviewTab() {
@@ -289,47 +289,12 @@ public final class FeaturesView extends View {
     }
 
     private void renderLayoutTab() {
-        UI.withVStack(new VStack.Options().spacing(8.0f).fillMode(VStack.FillMode.MATCH_WIDEST), inner -> {
-            UI.withVStackItem(inner, () -> {
-                ImGui.text("Layout sampler");
-                ImGui.textWrapped("Stack helpers, constraints, and windows layer together so you can sketch tools quickly. Use stacks for rhythm, constraints for placement, and MGWindow to preserve state.");
-            });
-            UI.withVStackItem(inner, new VStack.ItemRequest().estimateHeight(200.0f), () -> UI.withHStack(new HStack.Options().spacing(16.0f).alignment(HStack.Alignment.TOP), row -> {
-                UI.withHItem(row, 220.0f, () -> {
-                    ImGui.text("Stacks");
-                    ImGui.textWrapped("Compose vertical and horizontal regions with consistent spacing and alignment hints. Use VStack and HStack together when you need predictable rhythm without losing immediacy.");
-                    ImGui.separator();
-                    ImGui.text("Constraints");
-                    ImGui.textWrapped("Anchor overlays relative to viewport safe areas or absolute pixels. Pixel constraints keep HUD tools glued in place while remaining reactive to resolution changes.");
-                });
-                UI.withHItem(row, () -> {
-                    if (ImGui.beginChild("layout_preview_panel", 0.0f, 160.0f, true)) {
-                        ImGui.text("Toolbar preview");
-                        ImGui.spacing();
-                        UI.withHStack(new HStack.Options().spacing(8.0f).alignment(HStack.Alignment.CENTER), previewRow -> {
-                            UI.withHItem(previewRow, () -> ImGui.button("Primary", 110.0f, 0.0f));
-                            UI.withHItem(previewRow, () -> ImGui.button("Secondary", 100.0f, 0.0f));
-                            UI.withHItem(previewRow, () -> ImGui.button("Ghost", 90.0f, 0.0f));
-                        });
-                        ImGui.separator();
-                        ImGui.text("Anchor preview");
-                        ImGui.spacing();
-                        ImGui.text("• Top-left: X=16 px, Y=24 px");
-                        ImGui.text("• Bottom-right: cling to viewport safe area");
-                        ImGui.spacing();
-                        ImGui.textDisabled("MGWindow remembers placement across reloads.");
-                    }
-                    ImGui.endChild();
-                });
-            }));
-            UI.withVStackItem(inner, () -> {
-                ImGui.separator();
-                ImGui.text("Layout checklist");
-                for (String feature : LAYOUT_FEATURES) {
-                    ImGui.bulletText(feature);
-                }
-            });
-        });
+        LayoutApi api = layoutApi();
+        if (api == null) {
+            renderLayoutUnavailableMessage();
+            return;
+        }
+        api.render(layoutSampler(api));
     }
 
     private void renderWidgetsTab() {
@@ -388,11 +353,9 @@ public final class FeaturesView extends View {
         ImGui.textDisabled(IMGUI_ICON.toString());
     }
 
-    private void renderFooter(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            ImGui.separator();
-            ImGui.textDisabled("Namespace minegui_debug · Hotkey J");
-        });
+    private void renderFooterSection() {
+        ImGui.separator();
+        ImGui.textDisabled("Namespace minegui_debug · Hotkey J");
     }
 
     private void renderOverlay() {
@@ -417,5 +380,92 @@ public final class FeaturesView extends View {
         ImGui.text("Progress %.0f%%".formatted(progressValue * 100.0f));
         ImGui.text("Buffer %.0f px".formatted(sliderValue));
         ImGui.end();
+    }
+
+    private LayoutTemplate mainLayout(LayoutApi api) {
+        if (mainLayoutTemplate == null) {
+            mainLayoutTemplate = api.vertical()
+                    .spacing(10.0f)
+                    .fillMode(VStack.FillMode.MATCH_WIDEST)
+                    .child(slot -> slot.content(this::renderHeaderSection))
+                    .child(slot -> slot.content(this::renderControlSection))
+                    .child(slot -> slot.content(this::renderTabsSection))
+                    .child(slot -> slot.content(this::renderFooterSection))
+                    .build();
+        }
+        return mainLayoutTemplate;
+    }
+
+    private LayoutTemplate layoutSampler(LayoutApi api) {
+        if (layoutSamplerTemplate == null) {
+            layoutSamplerTemplate = api.vertical()
+                    .spacing(8.0f)
+                    .fillMode(VStack.FillMode.MATCH_WIDEST)
+                    .child(slot -> slot.content(this::renderLayoutIntro))
+                    .child(slot -> slot.height(200.0f).template(layoutSamplerRow(api)))
+                    .child(slot -> slot.content(() -> {
+                        ImGui.separator();
+                        renderLayoutChecklist();
+                    }))
+                    .build();
+        }
+        return layoutSamplerTemplate;
+    }
+
+    private LayoutTemplate layoutSamplerRow(LayoutApi api) {
+        if (layoutSamplerRowTemplate == null) {
+            layoutSamplerRowTemplate = api.row()
+                    .spacing(16.0f)
+                    .alignment(HStack.Alignment.TOP)
+                    .child(slot -> slot.width(220.0f).content(this::renderLayoutDescriptionPanel))
+                    .child(slot -> slot.content(this::renderLayoutPreviewPanel))
+                    .build();
+        }
+        return layoutSamplerRowTemplate;
+    }
+
+    private void renderLayoutIntro() {
+        ImGui.text("Layout sampler");
+        ImGui.textWrapped("Stack helpers, constraints, and windows layer together so you can sketch tools quickly. Use stacks for rhythm, constraints for placement, and MGWindow to preserve state.");
+    }
+
+    private void renderLayoutDescriptionPanel() {
+        ImGui.text("Stacks");
+        ImGui.textWrapped("Compose vertical and horizontal regions with consistent spacing and alignment hints. Use VStack and HStack together when you need predictable rhythm without losing immediacy.");
+        ImGui.separator();
+        ImGui.text("Constraints");
+        ImGui.textWrapped("Anchor overlays relative to viewport safe areas or absolute pixels. Pixel constraints keep HUD tools glued in place while remaining reactive to resolution changes.");
+    }
+
+    private void renderLayoutPreviewPanel() {
+        if (ImGui.beginChild("layout_preview_panel", 0.0f, 160.0f, true)) {
+            ImGui.text("Toolbar preview");
+            ImGui.spacing();
+            float spacing = ImGui.getStyle().getItemSpacingX();
+            ImGui.button("Primary", 110.0f, 0.0f);
+            ImGui.sameLine(0.0f, spacing);
+            ImGui.button("Secondary", 100.0f, 0.0f);
+            ImGui.sameLine(0.0f, spacing);
+            ImGui.button("Ghost", 90.0f, 0.0f);
+            ImGui.separator();
+            ImGui.text("Anchor preview");
+            ImGui.spacing();
+            ImGui.text("• Top-left: X=16 px, Y=24 px");
+            ImGui.text("• Bottom-right: cling to viewport safe area");
+            ImGui.spacing();
+            ImGui.textDisabled("MGWindow remembers placement across reloads.");
+        }
+        ImGui.endChild();
+    }
+
+    private void renderLayoutChecklist() {
+        ImGui.text("Layout checklist");
+        for (String feature : LAYOUT_FEATURES) {
+            ImGui.bulletText(feature);
+        }
+    }
+
+    private void renderLayoutUnavailableMessage() {
+        ImGui.textDisabled("Layout service unavailable; ensure the view namespace is initialized.");
     }
 }

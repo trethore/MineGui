@@ -9,11 +9,12 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.helper.UI;
-import tytoo.minegui.helper.layout.HStack;
 import tytoo.minegui.helper.layout.VStack;
+import tytoo.minegui.helper.layout.experimental.GridLayout;
 import tytoo.minegui.helper.layout.sizing.SizeHints;
 import tytoo.minegui.helper.window.Window;
+import tytoo.minegui.layout.LayoutApi;
+import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.style.FontLibrary;
 import tytoo.minegui.style.Fonts;
 import tytoo.minegui.util.ImGuiImageUtils;
@@ -26,6 +27,8 @@ import java.util.Locale;
 
 public final class TestView extends View {
     private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
+    private static final ResourceId REGISTRATION_PHASE_FONT_KEY = ResourceId.of(MineGuiDebugCore.ID, "registration_phase_demo");
+    private static final float REGISTRATION_PHASE_FONT_SIZE = 20.0f;
     private static final float CONTROL_WIDTH = 220f;
     private static final float CHILD_HEIGHT = 220f;
     private static final String[][] TABLE_ROWS = {
@@ -36,6 +39,10 @@ public final class TestView extends View {
             {"Forms", "Shared buffers keep input state stable between ticks.", "Ready"},
             {"Constraints", "FillMode.MATCH_WIDEST evens out composited toolbars.", "Info"}
     };
+
+    static {
+        installRegistrationPhaseDemo();
+    }
 
     private final ImBoolean showStackBorders = new ImBoolean(true);
     private final ImBoolean showIconPreview = new ImBoolean(true);
@@ -50,10 +57,32 @@ public final class TestView extends View {
     private String lastAction = "Awaiting interaction";
     private ImFont jetbrainsMono;
     private String jetbrainsStatus = "JetBrains Mono pending";
+    private LayoutTemplate mainLayoutTemplate;
+    private LayoutTemplate layoutDemoTemplate;
+    private LayoutTemplate layoutToolbarTemplate;
+    private LayoutTemplate layoutGridTemplate;
 
     public TestView() {
         super(MineGuiDebugCore.ID, "test_view", true);
         setCursorPolicy(CursorPolicies.clickToLock());
+    }
+
+    private static void installRegistrationPhaseDemo() {
+        FontLibrary library = FontLibrary.getInstance();
+        library.onRegistrationPhase(io -> {
+            short[] japanese = io.getFonts().getGlyphRangesJapanese();
+            library.registerFont(
+                    REGISTRATION_PHASE_FONT_KEY,
+                    new FontLibrary.FontDescriptor(
+                            FontLibrary.FontSource.asset("notosans.ttf"),
+                            REGISTRATION_PHASE_FONT_SIZE,
+                            config -> {
+                                config.setGlyphRanges(japanese);
+                                config.setRasterizerMultiply(1.05f);
+                            }
+                    )
+            );
+        });
     }
 
     @Override
@@ -67,44 +96,41 @@ public final class TestView extends View {
                 .flags(ImGuiWindowFlags.NoFocusOnAppearing)
                 .render(() -> {
                     resetFocusIfPending();
-                    UI.withVStack(new VStack.Options().spacing(14f).fillMode(VStack.FillMode.MATCH_WIDEST), layout -> {
-                        renderHeader(layout);
-                        renderTabs(layout);
-                        renderFooter(layout);
-                    });
+                    LayoutApi api = layoutApi();
+                    if (api == null) {
+                        renderLayoutUnavailableMessage();
+                        return;
+                    }
+                    api.render(mainLayout(api));
                 });
     }
 
-    private void renderHeader(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            ImGui.text("Layout playground");
-            ImGui.separator();
-            ImGui.textWrapped("Exercise MineGui helpers alongside raw ImGui primitives. Explore stacks, split panes, tables, and widget previews to confirm integrations behave as expected.");
-        });
+    private void renderHeaderSection() {
+        ImGui.text("Layout playground");
+        ImGui.separator();
+        ImGui.textWrapped("Exercise MineGui helpers alongside raw ImGui primitives. Explore stacks, split panes, tables, and widget previews to confirm integrations behave as expected.");
     }
 
-    private void renderTabs(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            if (ImGui.beginTabBar("test_view_tabbar")) {
-                if (ImGui.beginTabItem("Stacks")) {
-                    renderStacksTab();
-                    ImGui.endTabItem();
-                }
-                if (ImGui.beginTabItem("Split panels")) {
-                    renderSplitTab();
-                    ImGui.endTabItem();
-                }
-                if (ImGui.beginTabItem("Tables")) {
-                    renderTableTab();
-                    ImGui.endTabItem();
-                }
-                if (ImGui.beginTabItem("Widgets")) {
-                    renderWidgetsTab();
-                    ImGui.endTabItem();
-                }
-                ImGui.endTabBar();
+    private void renderTabsSection() {
+        if (ImGui.beginTabBar("test_view_tabbar")) {
+            if (ImGui.beginTabItem("Stacks")) {
+                renderStacksTab();
+                ImGui.endTabItem();
             }
-        });
+            if (ImGui.beginTabItem("Split panels")) {
+                renderSplitTab();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Tables")) {
+                renderTableTab();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Widgets")) {
+                renderWidgetsTab();
+                ImGui.endTabItem();
+            }
+            ImGui.endTabBar();
+        }
     }
 
     private void renderStacksTab() {
@@ -114,43 +140,20 @@ public final class TestView extends View {
             stackSpacing = spacingHolder[0];
             logAction("Stack spacing set to %.1f px".formatted(stackSpacing));
         }
-        UI.withVStack(new VStack.Options().spacing(stackSpacing).fillMode(VStack.FillMode.MATCH_WIDEST), column -> {
-            UI.withVStackItem(column, () -> ImGui.textWrapped("VStack spacing cascades into nested helpers. Adjust the slider to see shared rhythm across headers, toolbars, and content."));
-            UI.withVStackItem(column, () -> {
-                float rowHeight = ImGui.getFrameHeight();
-                UI.withHStack(new HStack.Options().spacing(stackSpacing).alignment(HStack.Alignment.CENTER), row -> {
-                    UI.withHItem(row, 140f, rowHeight, () -> {
-                        if (ImGui.button("Primary", 140f, 0f)) {
-                            logAction("Primary action triggered");
-                        }
-                    });
-                    UI.withHItem(row, 140f, rowHeight, () -> {
-                        if (ImGui.button("Secondary", 140f, 0f)) {
-                            logAction("Secondary action triggered");
-                        }
-                    });
-                    UI.withHItem(row, 160f, rowHeight, () -> {
-                        if (ImGui.checkbox("Child borders", showStackBorders)) {
-                            logAction("Stack preview borders " + (showStackBorders.get() ? "enabled" : "disabled"));
-                        }
-                    });
-                });
-            });
-            UI.withVStackItem(column, new VStack.ItemRequest().estimateHeight(CHILD_HEIGHT), () -> {
-                ImGui.beginChild("stack_preview_region", 0f, CHILD_HEIGHT - 12f, showStackBorders.get());
-                ImGui.text("Layout preview");
-                ImGui.separator();
-                ImGui.bulletText("Spacing %.1f px".formatted(stackSpacing));
-                ImGui.bulletText(showStackBorders.get() ? "Borders enabled" : "Borders disabled");
-                ImGui.spacing();
-                ImGui.textWrapped("Combine VStack for vertical flow with HStack for aligned toolbars without giving up raw ImGui calls.");
-                ImGui.endChild();
-            });
-            UI.withVStackItem(column, () -> {
-                ImGui.text("Stack notes");
-                ImGui.inputTextMultiline("##stack_notes", stackNotes, -1f, 80f);
-            });
-        });
+        LayoutApi api = layoutApi();
+        if (api == null) {
+            renderLayoutUnavailableMessage();
+            return;
+        }
+        LayoutTemplate template = api.vertical()
+                .spacing(stackSpacing)
+                .fillMode(VStack.FillMode.MATCH_WIDEST)
+                .child(slot -> slot.content(() -> ImGui.textWrapped("VStack spacing cascades into nested helpers. Adjust the slider to see shared rhythm across headers, toolbars, and content.")))
+                .child(slot -> slot.content(this::renderStackToolbarInline))
+                .child(slot -> slot.height(CHILD_HEIGHT).content(this::renderLayoutDslPreview))
+                .child(slot -> slot.content(this::renderStackNotes))
+                .build();
+        api.render(template);
     }
 
     private void renderSplitTab() {
@@ -260,14 +263,136 @@ public final class TestView extends View {
         }
     }
 
-    private void renderFooter(VStack layout) {
-        UI.withVStackItem(layout, () -> {
-            ImGui.separator();
-            ImGui.text("Last action: " + lastAction);
-            ImGui.spacing();
-            ImGui.text("Tester notes");
-            ImGui.inputTextMultiline("##test_notes", scratchPad, -1f, 96f);
-        });
+    private LayoutTemplate mainLayout(LayoutApi api) {
+        if (mainLayoutTemplate == null) {
+            mainLayoutTemplate = api.vertical()
+                    .spacing(14f)
+                    .fillMode(VStack.FillMode.MATCH_WIDEST)
+                    .child(slot -> slot.content(this::renderHeaderSection))
+                    .child(slot -> slot.content(this::renderTabsSection))
+                    .child(slot -> slot.content(this::renderFooterSection))
+                    .build();
+        }
+        return mainLayoutTemplate;
+    }
+
+    private void renderFooterSection() {
+        ImGui.separator();
+        ImGui.text("Last action: " + lastAction);
+        ImGui.spacing();
+        ImGui.text("Tester notes");
+        ImGui.inputTextMultiline("##test_notes", scratchPad, -1f, 96f);
+    }
+
+    private void renderStackToolbarInline() {
+        float spacing = Math.max(0f, stackSpacing);
+        if (ImGui.button("Primary", 140f, 0f)) {
+            logAction("Primary action triggered");
+        }
+        ImGui.sameLine(0f, spacing);
+        if (ImGui.button("Secondary", 140f, 0f)) {
+            logAction("Secondary action triggered");
+        }
+        ImGui.sameLine(0f, spacing);
+        if (ImGui.checkbox("Child borders", showStackBorders)) {
+            logAction("Stack preview borders " + (showStackBorders.get() ? "enabled" : "disabled"));
+        }
+    }
+
+    private void renderStackNotes() {
+        ImGui.text("Stack notes");
+        ImGui.inputTextMultiline("##stack_notes", stackNotes, -1f, 80f);
+    }
+
+    private void renderLayoutDslPreview() {
+        float childHeight = CHILD_HEIGHT - 12f;
+        ImGui.beginChild("stack_preview_region", 0f, childHeight, showStackBorders.get());
+        LayoutApi api = layoutApi();
+        if (api == null) {
+            ImGui.textWrapped("Layout service is not ready yet. This preview activates once the view is attached to its namespace.");
+            ImGui.endChild();
+            return;
+        }
+        if (layoutDemoTemplate == null) {
+            layoutDemoTemplate = buildLayoutDemo(api);
+        }
+        api.render(layoutDemoTemplate);
+        ImGui.endChild();
+    }
+
+    private LayoutTemplate buildLayoutDemo(LayoutApi api) {
+        LayoutTemplate toolbar = buildToolbar(api);
+        LayoutTemplate stats = buildStatsGrid(api);
+        return api.vertical()
+                .spacing(6f)
+                .padding(8f)
+                .child(slot -> slot.content(() -> {
+                    ImGui.text("Layout API preview");
+                    ImGui.separator();
+                }))
+                .child(slot -> slot.template(toolbar))
+                .child(slot -> slot.content(() -> ImGui.textWrapped("Spacing, padding, and nested layouts cascade automatically. Templates stay immutable, so you can reuse them across frames.")))
+                .child(slot -> slot.template(stats))
+                .build();
+    }
+
+    private LayoutTemplate buildToolbar(LayoutApi api) {
+        if (layoutToolbarTemplate != null) {
+            return layoutToolbarTemplate;
+        }
+        layoutToolbarTemplate = api.row()
+                .spacing(8f)
+                .child(slot -> slot.width(120f).content(() -> {
+                    if (ImGui.button("Play##dsl", 120f, 0f)) {
+                        logAction("DSL toolbar Play");
+                    }
+                }))
+                .child(slot -> slot.width(120f).content(() -> {
+                    if (ImGui.button("Pause##dsl", 120f, 0f)) {
+                        logAction("DSL toolbar Pause");
+                    }
+                }))
+                .child(slot -> slot.width(160f).content(() -> ImGui.checkbox("Borders##dsl", showStackBorders)))
+                .build();
+        return layoutToolbarTemplate;
+    }
+
+    private LayoutTemplate buildStatsGrid(LayoutApi api) {
+        if (layoutGridTemplate != null) {
+            return layoutGridTemplate;
+        }
+        layoutGridTemplate = api.grid()
+                .columns(
+                        GridLayout.ColumnDefinition.weight(1f),
+                        GridLayout.ColumnDefinition.weight(1f))
+                .rowSpacing(4f)
+                .columnSpacing(6f)
+                .cell(cell -> cell.column(0).row(0).content(() -> {
+                    ImGui.text("FPS");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.4f, 1f, 0.6f, 1f, "144");
+                }))
+                .cell(cell -> cell.column(1).row(0).content(() -> {
+                    ImGui.text("Frame Time");
+                    ImGui.sameLine();
+                    ImGui.textColored(1f, 0.8f, 0.4f, 1f, "6.9 ms");
+                }))
+                .cell(cell -> cell.column(0).row(1).content(() -> {
+                    ImGui.text("CPU");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.6f, 0.8f, 1f, 1f, "24%");
+                }))
+                .cell(cell -> cell.column(1).row(1).content(() -> {
+                    ImGui.text("GPU");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.6f, 0.8f, 1f, 1f, "41%");
+                }))
+                .build();
+        return layoutGridTemplate;
+    }
+
+    private void renderLayoutUnavailableMessage() {
+        ImGui.textDisabled("Layout service is not available for this view yet.");
     }
 
     private boolean matchesFilter(String[] row, String filter) {

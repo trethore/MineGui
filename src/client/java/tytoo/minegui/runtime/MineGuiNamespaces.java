@@ -20,11 +20,11 @@ public final class MineGuiNamespaces {
     private MineGuiNamespaces() {
     }
 
-    public static MineGuiNamespaceContext initialize(String namespace) {
+    public static MineGuiContext initialize(String namespace) {
         return initialize(MineGuiInitializationOptions.defaults(namespace));
     }
 
-    public static MineGuiNamespaceContext initialize(MineGuiInitializationOptions options) {
+    public static MineGuiContext initialize(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = Objects.requireNonNull(options.configNamespace(), "namespace");
         GlobalConfigManager.setConfigPathStrategy(namespace, options.configPathStrategy());

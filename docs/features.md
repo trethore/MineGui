@@ -11,14 +11,14 @@ This page highlights the core MineGui systems you will use day-to-day, explains 
 MineGui keeps configuration, view saves, and style descriptors isolated by namespace.
 
 ```java
-MineGuiNamespaceContext context = MineGuiNamespaces.initialize(
+MineGuiContext context = MineGuiNamespaces.initialize(
         MineGuiInitializationOptions.defaults("examplemod")
 );
 context.ui().register(new ExampleOverlay());
 ```
 
 - Use `MineGuiInitializationOptions.withDefaultCursorPolicy(...)` if you need a namespace-wide override; the default is `click_to_lock`.
-- Call `MineGuiCore.init(...)` once during client startup to activate lifecycle hooks and resource reload listeners.
+- Call `MineGuiCore.init(...)` once during client startup to activate lifecycle hooks and resource reload listeners and capture the returned `MineGuiContext` if you only need the default namespace.
 
 ## UIManager orchestration
 Each namespace receives a dedicated `UIManager` that wires views, cursor policies, styles, and persistence together. When you call `register(view)` the manager:
@@ -29,6 +29,33 @@ Each namespace receives a dedicated `UIManager` that wires views, cursor policie
 - Ensures profiler scopes wrap each view render so you can spot hotspots in the built-in profiler.
 
 Use `unregister(view)` to detach a view permanently—this hides it, removes save hooks, and stops future renders. `UIManager.hasVisibleViews()` is also what powers `MineGuiNamespaces.anyVisible()`, so toggling visibility affects global cursor handling and rendering short-circuiting.
+
+## Layout DSL
+`MineGuiContext.layout()` exposes a modern, immutable DSL so you can compose vertical stacks, rows, and grids without juggling nested `try-with-resources` scopes.
+
+```java
+MineGuiContext context = MineGuiCore.init(MineGuiInitializationOptions.defaults("examplemod"));
+LayoutApi layouts = context.layout();
+
+LayoutTemplate toolbar = layouts.row()
+        .spacing(8f)
+        .child(slot -> slot.width(120f).content(() -> ImGui.button("Save")))
+        .child(slot -> slot.width(120f).content(() -> ImGui.button("Publish")))
+        .build();
+
+LayoutTemplate panel = layouts.vertical()
+        .spacing(6f)
+        .padding(8f)
+        .child(slot -> slot.content(() -> ImGui.text("Project Dashboard")))
+        .child(slot -> slot.template(toolbar))
+        .build();
+
+layouts.render(panel);
+```
+
+- Builders produce immutable `LayoutTemplate`s that you can cache and reuse every frame.
+- Stack builders support spacing, padding, and nested templates; grid builders wrap the existing `GridLayout` helper behind a fluent interface.
+- Rendering a template simply replays its structure, so your immediate-mode code stays in charge of widget state.
 
 ## Cursor & Input Control
 MineGui wraps GLFW input so your UI captures events without fighting Minecraft’s lock state.
@@ -69,9 +96,9 @@ Style descriptors and fonts live in `StyleManager`, `FontLibrary`, and `Fonts`.
 ## Persistence & Commands
 `ViewSaveManager` keeps ImGui layout ini data and style snapshots per view id.
 
-- Mark a view with `setShouldSave(true)` to persist position, dock layout, and style tweaks.
+- Views persist layout, dock data, and styles automatically; call `setPersistent(false)` for overlays that should never write saves.
 - `/minegui reload` refreshes JSON configs and style snapshots; restart the client after changing fonts or other native resources.
-- `/minegui export style force` writes all captured style descriptors to disk so you can version controll them.
+- `/minegui export style force` writes all captured style descriptors to disk so you can version control them.
 
 ## Utility Helpers
 - `UI.withVStack`/`withHStack` provide scoped stack helpers, and `UI.withHItem(...)` overloads let you declare width/height hints inline.

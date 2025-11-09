@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.ImGuiLoader;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.MineGuiNamespaceContext;
 import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.util.ImGuiImageUtils;
@@ -37,7 +38,7 @@ public final class MineGuiCore {
     private MineGuiCore() {
     }
 
-    public static synchronized void init(MineGuiInitializationOptions options) {
+    public static synchronized MineGuiContext init(MineGuiInitializationOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = options.configNamespace();
         if (ID.equals(namespace)) {
@@ -55,10 +56,11 @@ public final class MineGuiCore {
                 LOGGER.info("MineGui default namespace remains '{}'; additional namespace '{}' registered without overriding the default.", defaultNamespace, namespace);
             }
         }
-        MineGuiNamespaces.initialize(options);
+        MineGuiContext context = MineGuiNamespaces.initialize(options);
         registerReloadListener();
         registerLifecycleHandlers();
         MineGuiClientCommands.register();
+        return context;
     }
 
     private static synchronized void registerReloadListener() {
