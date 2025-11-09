@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   packages: read
 
 concurrency:
@@ -89,32 +89,21 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Read last notified version
-        id: last
-        run: |
-          if [ -f ".github/last_notified_version" ]; then
-            value=$(cat .github/last_notified_version)
-          else
-            value=""
-          fi
-          echo "value=$value" >> "$GITHUB_OUTPUT"
-
-      - name: Check if new version
-        id: check
-        run: |
-          if [ "${{ steps.last.outputs.value }}" = "${{ steps.latest.outputs.tag }}" ]; then
-            echo "new=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "new=true" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Restore dedupe cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .gh-notify-dedupe
+          key: notify-${{ steps.latest.outputs.tag }}
 
       - name: Generate Discord payload
-        if: steps.check.outputs.new == 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         id: payload
         env:
           TAG: ${{ steps.latest.outputs.tag }}
           PACKAGE_NAME: tytoo.minegui.minegui
         run: |
+          mkdir -p .gh-notify-dedupe
           set -e
 
           if [ -x "./gradlew" ]; then
@@ -180,10 +169,11 @@ jobs:
                 timestamp: (now | todate)
               }]
             }' > payload.json
+          echo "$TAG" > .gh-notify-dedupe/last-version.txt
 
 
       - name: Send Discord notification
-        if: steps.check.outputs.new == 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
@@ -203,19 +193,3 @@ jobs:
             exit 1
           fi
 
-      - name: Save last notified version
-        if: steps.check.outputs.new == 'true'
-        env:
-          TAG: ${{ steps.latest.outputs.tag }}
-        run: |
-          mkdir -p .github
-          echo "$TAG" > .github/last_notified_version
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/last_notified_version
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          branch="${GITHUB_REF#refs/heads/}"
-          git commit -m "chore: update last notified version to ${TAG}"
-          git push origin "HEAD:${branch}"
