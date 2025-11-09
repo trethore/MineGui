@@ -104,6 +104,10 @@ public final class HStack implements AutoCloseable {
             plannedHeight = sanitizeLength(resolved.estimatedHeight);
         }
         boolean widthApplied = plannedSize != null && plannedSize.width() > 0f;
+        if (resolved.fillAvailableWidth) {
+            ImGui.setNextItemWidth(-1f);
+            widthApplied = true;
+        }
         if (!widthApplied && plannedWidth > 0f) {
             SizeHints.itemWidth(plannedWidth);
         }
@@ -221,6 +225,7 @@ public final class HStack implements AutoCloseable {
         private boolean useSizeHints = true;
         private Float estimatedWidth;
         private Float estimatedHeight;
+        private boolean fillAvailableWidth;
 
         public ItemRequest constraints(LayoutConstraints constraints) {
             this.constraints = constraints;
@@ -249,6 +254,11 @@ public final class HStack implements AutoCloseable {
 
         public ItemRequest estimateHeight(float height) {
             this.estimatedHeight = height;
+            return this;
+        }
+
+        public ItemRequest fillWidth(boolean fill) {
+            this.fillAvailableWidth = fill;
             return this;
         }
     }

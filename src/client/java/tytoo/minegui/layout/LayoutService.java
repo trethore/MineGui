@@ -155,7 +155,7 @@ public final class LayoutService implements LayoutApi {
                 if (cell.fillWidth()) {
                     request.fillWidth(true);
                 }
-                try (GridLayout.CellScope scope = layout.cell(cell.column(), cell.row(), request)) {
+                try (GridLayout.CellScope ignored = layout.cell(cell.column(), cell.row(), request)) {
                     renderNode(cell.node());
                 }
             }
@@ -163,10 +163,16 @@ public final class LayoutService implements LayoutApi {
     }
 
     private VStack.ItemRequest createVStackRequest(LayoutNodes.LayoutSlot slot) {
-        if (slot.estimatedWidth() == null && slot.estimatedHeight() == null) {
+        boolean needsRequest = slot.estimatedWidth() != null
+                || slot.estimatedHeight() != null
+                || slot.fillWidth();
+        if (!needsRequest) {
             return null;
         }
         VStack.ItemRequest request = new VStack.ItemRequest();
+        if (slot.fillWidth()) {
+            request.fillWidth(true);
+        }
         if (slot.estimatedWidth() != null) {
             request.estimateWidth(slot.estimatedWidth());
         }
@@ -177,10 +183,16 @@ public final class LayoutService implements LayoutApi {
     }
 
     private HStack.ItemRequest createHStackRequest(LayoutNodes.LayoutSlot slot) {
-        if (slot.estimatedWidth() == null && slot.estimatedHeight() == null) {
+        boolean needsRequest = slot.estimatedWidth() != null
+                || slot.estimatedHeight() != null
+                || slot.fillWidth();
+        if (!needsRequest) {
             return null;
         }
         HStack.ItemRequest request = new HStack.ItemRequest();
+        if (slot.fillWidth()) {
+            request.fillWidth(true);
+        }
         if (slot.estimatedWidth() != null) {
             request.estimateWidth(slot.estimatedWidth());
         }
