@@ -39,12 +39,12 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE_SLUG: tytoo.minegui/minegui
+          PACKAGE_NAME: tytoo.minegui.minegui
           PACKAGE_TYPE: maven
         run: |
           owner=${REPO%%/*}
           repo=${REPO#*/}
-          encoded_package=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$PACKAGE_SLUG")
+          encoded_package=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$PACKAGE_NAME")
           base_url="https://api.github.com"
 
           fetch_versions() {
