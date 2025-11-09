@@ -203,6 +203,13 @@ public abstract class View {
         }
     }
 
+    protected final void renderSection(ViewSection section) {
+        if (section == null) {
+            return;
+        }
+        section.render(this);
+    }
+
     protected LayoutApi layoutApi() {
         String currentNamespace = namespace;
         if (currentNamespace == null || currentNamespace.isBlank()) {

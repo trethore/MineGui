@@ -115,10 +115,6 @@ public final class TestView extends View {
         ImGui.textWrapped("Exercise MineGui helpers alongside raw ImGui primitives. Explore stacks, split panes, tables, and widget previews to confirm integrations behave as expected.");
     }
 
-    private void renderSection(ViewSection section) {
-        section.render(this);
-    }
-
     private void renderTabsSection() {
         if (ImGui.beginTabBar("test_view_tabbar")) {
             if (ImGui.beginTabItem("Stacks")) {
