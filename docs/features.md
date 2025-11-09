@@ -101,7 +101,7 @@ Style descriptors and fonts live in `StyleManager`, `FontLibrary`, and `Fonts`.
 - `/minegui export style force` writes all captured style descriptors to disk so you can version control them.
 
 ## Utility Helpers
-- `UI.withVStack`/`withHStack` provide scoped stack helpers, and `UI.withHItem(...)` overloads let you declare width/height hints inline.
+- `LayoutApi` templates and the raw `VStack`/`HStack` helpers cover column/row composition, including `HStack.ItemRequest` width and height hints.
 - `ImGuiImageUtils` loads Minecraft textures into ImGui draw lists, enabling sprite previews, item icons, and atlas debugging.
 - `CursorLockUtils` and `ViewportInteractionTracker` bridge ImGui input with Minecraft’s own cursor behaviour and AFK handling.
 - `ResourceId`, `NamespaceIds`, `MinecraftIdentifiers`, and `MineGuiText` simplify identifier conversions and text creation when integrating with vanilla APIs.

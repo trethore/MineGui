@@ -22,7 +22,7 @@ MineGui bundles the full imgui-java runtime and layers tooling around it so you 
 - **Full Dear ImGui API** — Views implement `renderView()` and call native widgets every frame while MineGui drives the render loop.
 - **View lifecycle & persistence** — `ViewSaveManager` tracks visibility, persists window state, and lets you plug in custom adapters per namespace.
 - **Themes, fonts & styles** — `StyleManager`, `MGStyleDescriptor`, and `MGFontLibrary` manage transient style deltas, named themes, and registered font atlases.
-- **Layouts & sizing helpers** — `UI` exposes scoped helpers over `VStack`/`HStack`, constraint math, and spacing utilities for common layout patterns.
+- **Layouts & sizing helpers** — `MineGuiContext.layout()` offers stack/grid builders while `VStack`/`HStack` keep constraint math and spacing utilities immediate-mode friendly.
 - **Textures & drawing utilities** — `ImGuiImageUtils` streams Minecraft textures into ImGui draw lists, handles UV transforms, and keeps caches in sync with the client renderer.
 - **Namespaces, config & commands** — `MineGuiInitializationOptions` wires global config, cursor policies, and persistence per namespace, while commands like `/minegui reload` refresh live styles during development.
 
