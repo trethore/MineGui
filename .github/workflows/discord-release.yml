@@ -39,10 +39,16 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE_NAME: minegui
+          PACKAGE_SLUG: tytoo.minegui/minegui
           PACKAGE_TYPE: maven
         run: |
           owner=${REPO%%/*}
+          repo=${REPO#*/}
+          encoded_package=$(python3 - <<'PY' "$PACKAGE_SLUG"
+import sys, urllib.parse
+print(urllib.parse.quote(sys.argv[1], safe=''))
+PY
+)
           base_url="https://api.github.com"
           headers=(
             -H "Accept: application/vnd.github+json"
@@ -55,13 +61,20 @@ jobs:
             curl -s -w "\n%{http_code}" "${headers[@]}" "${base_url}/${path}"
           }
 
-          endpoint="users/${owner}/packages/${PACKAGE_TYPE}/${PACKAGE_NAME}/versions?per_page=1"
+          endpoint="users/${owner}/packages/${PACKAGE_TYPE}/${encoded_package}/versions?per_page=1"
           response=$(fetch_versions "$endpoint")
           body=$(printf '%s' "$response" | head -n -1)
           status=$(printf '%s' "$response" | tail -n1)
 
           if [ "$status" -eq 404 ]; then
-            endpoint="orgs/${owner}/packages/${PACKAGE_TYPE}/${PACKAGE_NAME}/versions?per_page=1"
+            endpoint="orgs/${owner}/packages/${PACKAGE_TYPE}/${encoded_package}/versions?per_page=1"
+            response=$(fetch_versions "$endpoint")
+            body=$(printf '%s' "$response" | head -n -1)
+            status=$(printf '%s' "$response" | tail -n1)
+          fi
+
+          if [ "$status" -eq 404 ]; then
+            endpoint="repos/${owner}/${repo}/packages/${PACKAGE_TYPE}/${encoded_package}/versions?per_page=1"
             response=$(fetch_versions "$endpoint")
             body=$(printf '%s' "$response" | head -n -1)
             status=$(printf '%s' "$response" | tail -n1)
