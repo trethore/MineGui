@@ -106,13 +106,6 @@ jobs:
           mkdir -p .gh-notify-dedupe
           set -e
 
-          if [ -x "./gradlew" ]; then
-            deps=$(./gradlew dependencies --configuration compileClasspath --console=plain -q || ./gradlew dependencies --console=plain -q || true)
-          else
-            deps=""
-          fi
-          deps_snippet=$(printf '%s\n' "$deps" | sed -n '1,40p')
-
           if command -v cloc >/dev/null 2>&1; then
             cloc_json=$(cloc src/client/ --json --quiet || true)
           else
@@ -147,15 +140,12 @@ jobs:
           gradle_snippet=$(printf 'implementation "%s:%s:%s"' "$group" "$artifact" "$TAG")
 
           dep_field=$(printf 'Maven\n```xml\n%s\n```\nGradle\n```gradle\n%s\n```' "$maven_snippet" "$gradle_snippet")
-          code_overview=$(printf '```txt\nFichiers: %s\nCode: %s\nBlancs: %s\nCommentaires: %s\n\nTop langages (par LOC):\n%s\n```' "$files" "$code" "$blank" "$comment" "$top_langs")
-          deps_field=$(printf '```txt\n%s\n```' "$deps_snippet")
-
+          code_overview=$(printf '```txt\nFiles: %s\nCode: %s\nBlank: %s\nComments: %s\n\nTop languages (by LOC):\n%s\n```' "$files" "$code" "$blank" "$comment" "$top_langs")
           jq -n \
-            --arg title "MineGui - nouvelle version publiee" \
+            --arg title "MineGui - new version released" \
             --arg desc "**Version:** ${TAG}" \
             --arg dep "$dep_field" \
             --arg cov "$code_overview" \
-            --arg dsn "$deps_field" \
             '{
               embeds: [{
                 title: $title,
@@ -163,8 +153,7 @@ jobs:
                 color: 5814783,
                 fields: [
                   { "name": "Dependency Snippets", "value": $dep },
-                  { "name": "Code overview (src/client)", "value": $cov },
-                  { "name": "Gradle dependencies (extrait)", "value": $dsn }
+                  { "name": "Code overview", "value": $cov }
                 ],
                 timestamp: (now | todate)
               }]
