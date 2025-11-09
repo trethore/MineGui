@@ -43,15 +43,40 @@ jobs:
           PACKAGE_TYPE: maven
         run: |
           owner=${REPO%%/*}
-          response=$(curl -s \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/users/${owner}/packages/${PACKAGE_TYPE}/${PACKAGE_NAME}/versions?per_page=1")
-          tag=$(printf '%s' "$response" | jq -r '.[0].name // empty')
+          base_url="https://api.github.com"
+          headers=(
+            -H "Accept: application/vnd.github+json"
+            -H "Authorization: Bearer ${GITHUB_TOKEN}"
+            -H "X-GitHub-Api-Version: 2022-11-28"
+          )
+
+          fetch_versions() {
+            local path=$1
+            curl -s -w "\n%{http_code}" "${headers[@]}" "${base_url}/${path}"
+          }
+
+          endpoint="users/${owner}/packages/${PACKAGE_TYPE}/${PACKAGE_NAME}/versions?per_page=1"
+          response=$(fetch_versions "$endpoint")
+          body=$(printf '%s' "$response" | head -n -1)
+          status=$(printf '%s' "$response" | tail -n1)
+
+          if [ "$status" -eq 404 ]; then
+            endpoint="orgs/${owner}/packages/${PACKAGE_TYPE}/${PACKAGE_NAME}/versions?per_page=1"
+            response=$(fetch_versions "$endpoint")
+            body=$(printf '%s' "$response" | head -n -1)
+            status=$(printf '%s' "$response" | tail -n1)
+          fi
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Failed to fetch package versions (HTTP ${status})"
+            printf '%s\n' "$body"
+            exit 1
+          fi
+
+          tag=$(printf '%s' "$body" | jq -r 'if type=="array" and length>0 then .[0].name // empty else empty end')
           if [ -z "$tag" ]; then
             echo "No package version found"
-            printf '%s\n' "$response"
+            printf '%s\n' "$body"
             exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
