@@ -17,23 +17,30 @@ public final class GridLayoutBuilder {
     GridLayoutBuilder() {
     }
 
+    private static Float sanitizeSpacing(float spacing) {
+        if (!Float.isFinite(spacing)) {
+            return null;
+        }
+        return Math.max(0f, spacing);
+    }
+
     public GridLayoutBuilder columns(GridLayout.ColumnDefinition... columns) {
-        this.columns = columns != null ? columns.clone() : null;
+        this.columns = columns;
         return this;
     }
 
     public GridLayoutBuilder rows(GridLayout.RowDefinition... rows) {
-        this.rows = rows != null ? rows.clone() : null;
+        this.rows = rows;
         return this;
     }
 
     public GridLayoutBuilder columnSpacing(float spacing) {
-        this.columnSpacing = spacing;
+        this.columnSpacing = sanitizeSpacing(spacing);
         return this;
     }
 
     public GridLayoutBuilder rowSpacing(float spacing) {
-        this.rowSpacing = spacing;
+        this.rowSpacing = sanitizeSpacing(spacing);
         return this;
     }
 
@@ -59,11 +66,11 @@ public final class GridLayoutBuilder {
 
     public LayoutTemplate build() {
         LayoutNodes.GridDefinition definition = new LayoutNodes.GridDefinition(
-                columns != null ? columns.clone() : null,
-                rows != null ? rows.clone() : null,
+                columns,
+                rows,
                 columnSpacing,
                 rowSpacing,
-                List.copyOf(cells)
+                cells
         );
         return new LayoutTemplate(new LayoutNodes.GridNode(definition));
     }
@@ -79,7 +86,7 @@ public final class GridLayoutBuilder {
         private boolean fillWidth;
 
         public GridCellBuilder content(LayoutRenderable renderable) {
-            this.node = LayoutNodes.render(renderable);
+            this.node = LayoutNodes.render(Objects.requireNonNull(renderable, "renderable"));
             return this;
         }
 

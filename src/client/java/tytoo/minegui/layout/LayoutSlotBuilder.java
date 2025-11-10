@@ -9,7 +9,7 @@ public final class LayoutSlotBuilder {
     private boolean fillWidth;
 
     public LayoutSlotBuilder content(LayoutRenderable renderable) {
-        this.node = LayoutNodes.render(renderable);
+        this.node = LayoutNodes.render(Objects.requireNonNull(renderable, "renderable"));
         return this;
     }
 

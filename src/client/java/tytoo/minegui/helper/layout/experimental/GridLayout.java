@@ -195,16 +195,15 @@ public final class GridLayout implements AutoCloseable {
     }
 
     public CellScope cell(int column, int row) {
-        return cell(column, row, new CellRequest());
+        return cell(column, row, null);
     }
 
     public CellScope cell(int column, int row, CellRequest request) {
         ensureOpen();
         int columnIndex = sanitizeIndex(column);
         int rowIndex = sanitizeIndex(row);
-        CellRequest resolved = request != null ? request : new CellRequest();
-        int columnSpan = sanitizeSpan(resolved.columnSpan);
-        int rowSpan = sanitizeSpan(resolved.rowSpan);
+        int columnSpan = request != null ? sanitizeSpan(request.columnSpan) : 1;
+        int rowSpan = request != null ? sanitizeSpan(request.rowSpan) : 1;
         if (columnIndex < 0 || columnIndex >= columns.length) {
             throw new IllegalArgumentException("Column out of bounds: " + columnIndex);
         }
@@ -219,7 +218,7 @@ public final class GridLayout implements AutoCloseable {
         LayoutCursor.moveTo(posX, posY);
         float availableWidth = spanWidth(columnIndex, columnSpan);
         float availableHeight = spanHeight(rowIndex, rowSpan);
-        LayoutConstraints layoutConstraints = resolved.constraints;
+        LayoutConstraints layoutConstraints = request != null ? request.constraints : null;
         Constraints direct = layoutConstraints != null ? layoutConstraints.directConstraints() : null;
         LayoutConstraintSolver.LayoutResult planned = null;
         if (direct != null) {
@@ -242,21 +241,26 @@ public final class GridLayout implements AutoCloseable {
         if (plannedHeight <= 0f && layoutConstraints != null && layoutConstraints.heightOverrideValue() != null) {
             plannedHeight = sanitizeLength(layoutConstraints.heightOverrideValue());
         }
-        if (plannedWidth <= 0f && resolved.estimatedWidth != null) {
-            plannedWidth = sanitizeLength(resolved.estimatedWidth);
+        Float estimatedWidth = request != null ? request.estimatedWidth : null;
+        Float estimatedHeight = request != null ? request.estimatedHeight : null;
+        if (plannedWidth <= 0f && estimatedWidth != null) {
+            plannedWidth = sanitizeLength(estimatedWidth);
         }
-        if (plannedHeight <= 0f && resolved.estimatedHeight != null) {
-            plannedHeight = sanitizeLength(resolved.estimatedHeight);
+        if (plannedHeight <= 0f && estimatedHeight != null) {
+            plannedHeight = sanitizeLength(estimatedHeight);
         }
-        if (resolved.widthRange != null && plannedWidth > 0f) {
-            plannedWidth = resolved.widthRange.clamp(plannedWidth);
+        SizeRange widthRange = request != null ? request.widthRange : null;
+        SizeRange heightRange = request != null ? request.heightRange : null;
+        if (widthRange != null && plannedWidth > 0f) {
+            plannedWidth = widthRange.clamp(plannedWidth);
         }
-        if (resolved.heightRange != null && plannedHeight > 0f) {
-            plannedHeight = resolved.heightRange.clamp(plannedHeight);
+        if (heightRange != null && plannedHeight > 0f) {
+            plannedHeight = heightRange.clamp(plannedHeight);
         }
+        boolean fillAvailableWidth = request != null && request.fillAvailableWidth;
         if (plannedWidth > 0f) {
             SizeHints.itemWidth(plannedWidth);
-        } else if (resolved.fillAvailableWidth && availableWidth > 0f) {
+        } else if (fillAvailableWidth && availableWidth > 0f) {
             SizeHints.itemWidth(availableWidth);
         }
         ImGui.beginGroup();

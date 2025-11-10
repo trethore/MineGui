@@ -10,6 +10,11 @@ public record AspectRatioConstraint(float ratio) implements WidthConstraint, Hei
         this.ratio = normalizeRatio(ratio);
     }
 
+    private static float normalizeRatio(float raw) {
+        float sanitized = Float.isFinite(raw) ? Math.abs(raw) : 0f;
+        return sanitized > 1e-6f ? sanitized : 1f;
+    }
+
     @Override
     public float calculateWidth(ConstraintTarget target, float parentWidth) {
         float h = target.measuredHeight();
@@ -27,10 +32,5 @@ public record AspectRatioConstraint(float ratio) implements WidthConstraint, Hei
             return 0f;
         }
         return value;
-    }
-
-    private static float normalizeRatio(float raw) {
-        float sanitized = Float.isFinite(raw) ? Math.abs(raw) : 0f;
-        return sanitized > 1e-6f ? sanitized : 1f;
     }
 }

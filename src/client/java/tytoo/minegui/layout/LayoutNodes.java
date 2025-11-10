@@ -101,6 +101,8 @@ final class LayoutNodes {
             Float rowSpacing,
             List<GridCell> cells) {
         GridDefinition {
+            columns = columns != null ? columns.clone() : null;
+            rows = rows != null ? rows.clone() : null;
             cells = Collections.unmodifiableList(new ArrayList<>(cells));
         }
     }

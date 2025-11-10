@@ -98,7 +98,7 @@ public final class StackLayoutBuilder {
                 alignment,
                 equalizeHeight,
                 uniformHeight,
-                List.copyOf(slots)
+                slots
         ));
     }
 
