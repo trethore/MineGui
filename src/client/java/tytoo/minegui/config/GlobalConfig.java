@@ -33,6 +33,19 @@ public final class GlobalConfig {
         return DEFAULT_VIEW_SAVES_PATH;
     }
 
+    private static Map<String, String> sanitizeViewStyles(Map<String, String> source) {
+        Map<String, String> cleaned = new HashMap<>();
+        for (Map.Entry<String, String> entry : source.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key == null || value == null) {
+                continue;
+            }
+            cleaned.put(key, value);
+        }
+        return cleaned;
+    }
+
     public boolean isViewportEnabled() {
         return viewport;
     }
@@ -56,15 +69,17 @@ public final class GlobalConfig {
     public Map<String, String> getViewStyles() {
         if (viewStyles == null) {
             viewStyles = new HashMap<>();
+        } else {
+            viewStyles.entrySet().removeIf(entry -> entry.getKey() == null || entry.getValue() == null);
         }
         return viewStyles;
     }
 
     public void setViewStyles(Map<String, String> viewStyles) {
-        if (viewStyles == null) {
+        if (viewStyles == null || viewStyles.isEmpty()) {
             this.viewStyles = new HashMap<>();
             return;
         }
-        this.viewStyles = new HashMap<>(viewStyles);
+        this.viewStyles = sanitizeViewStyles(viewStyles);
     }
 }

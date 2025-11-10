@@ -94,6 +94,7 @@ public final class StyleDebugView extends View {
             manager.apply();
         }
     }
+
     private StyleManager resolveStyleManager() {
         String namespace = getNamespace();
         if (namespace == null || namespace.isBlank()) {

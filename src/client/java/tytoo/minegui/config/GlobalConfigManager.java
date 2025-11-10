@@ -17,10 +17,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public final class GlobalConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String DEFAULT_NAMESPACE = MineGuiCore.ID;
+    private static final Pattern VALID_NAMESPACE = Pattern.compile("[A-Za-z0-9._-]+");
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
     private static final Path CONFIG_ROOT = determineConfigRoot();
     private static final Path NAMESPACE_ROOT = CONFIG_ROOT.resolve(MineGuiCore.ID).normalize();
@@ -56,6 +58,7 @@ public final class GlobalConfigManager {
 
     public static synchronized void setAutoLoadEnabled(String namespace, boolean enabled) {
         ConfigState state = context(namespace);
+        state.autoLoadPreference = enabled;
         if (state.configIgnored) {
             state.autoLoadEnabled = false;
             return;
@@ -81,6 +84,8 @@ public final class GlobalConfigManager {
         state.configIgnored = ignored;
         if (ignored) {
             state.autoLoadEnabled = false;
+        } else {
+            state.autoLoadEnabled = state.autoLoadPreference;
         }
         state.loaded = false;
     }
@@ -144,25 +149,31 @@ public final class GlobalConfigManager {
         GlobalConfig baseDocument = readConfig(state.defaultConfigFile);
         GlobalConfig snapshot = cloneConfig(baseDocument != null ? baseDocument : new GlobalConfig());
         ensureViewPath(snapshot);
-        Path snapshotConfigPath = resolveConfigPath(state, snapshot);
+        ConfigPathResolution snapshotPaths = resolvePaths(state, snapshot);
+        applyResolvedPaths(snapshot, snapshotPaths);
+        Path snapshotConfigPath = snapshotPaths.configFile();
 
         if (state.featureProfile.shouldLoad(ConfigFeature.CORE)) {
             GlobalConfig overrideConfig = readConfig(snapshotConfigPath);
             if (overrideConfig != null) {
                 snapshot = cloneConfig(overrideConfig);
                 ensureViewPath(snapshot);
-                snapshotConfigPath = resolveConfigPath(state, snapshot);
+                snapshotPaths = resolvePaths(state, snapshot);
+                applyResolvedPaths(snapshot, snapshotPaths);
+                snapshotConfigPath = snapshotPaths.configFile();
             }
         }
 
-        Path snapshotViewPath = resolveViewSavesPath(state, snapshot);
+        Path snapshotViewPath = snapshotPaths.viewSavesDirectory();
         ensureDirectory(snapshotConfigPath.getParent());
         ensureDirectory(snapshotViewPath);
 
         GlobalConfig runtime = applyLoadProfile(snapshot, state.featureProfile);
         ensureViewPath(runtime);
-        Path runtimeConfigPath = resolveConfigPath(state, runtime);
-        Path runtimeViewPath = resolveViewSavesPath(state, runtime);
+        ConfigPathResolution runtimePaths = resolvePaths(state, runtime);
+        applyResolvedPaths(runtime, runtimePaths);
+        Path runtimeConfigPath = runtimePaths.configFile();
+        Path runtimeViewPath = runtimePaths.viewSavesDirectory();
         ensureDirectory(runtimeConfigPath.getParent());
         ensureDirectory(runtimeViewPath);
 
@@ -198,8 +209,10 @@ public final class GlobalConfigManager {
         }
 
         ensureViewPath(state.config);
-        Path runtimeConfigPath = resolveConfigPath(state, state.config);
-        Path runtimeViewPath = resolveViewSavesPath(state, state.config);
+        ConfigPathResolution runtimePaths = resolvePaths(state, state.config);
+        applyResolvedPaths(state.config, runtimePaths);
+        Path runtimeConfigPath = runtimePaths.configFile();
+        Path runtimeViewPath = runtimePaths.viewSavesDirectory();
         ensureDirectory(runtimeConfigPath.getParent());
         ensureDirectory(runtimeViewPath);
 
@@ -339,10 +352,23 @@ public final class GlobalConfigManager {
     }
 
     private static String sanitizeNamespace(String namespace) {
-        if (namespace == null || namespace.isBlank()) {
+        if (namespace == null) {
             return DEFAULT_NAMESPACE;
         }
-        return namespace;
+        String trimmed = namespace.trim();
+        if (trimmed.isEmpty()) {
+            return DEFAULT_NAMESPACE;
+        }
+        if (!VALID_NAMESPACE.matcher(trimmed).matches()) {
+            MineGuiCore.LOGGER.warn("Invalid namespace '{}'; using default '{}'", namespace, DEFAULT_NAMESPACE);
+            return DEFAULT_NAMESPACE;
+        }
+        Path resolved = NAMESPACE_ROOT.resolve(trimmed).normalize();
+        if (!resolved.startsWith(NAMESPACE_ROOT)) {
+            MineGuiCore.LOGGER.warn("Namespace '{}' resolves outside of MineGui config root; using default '{}'", namespace, DEFAULT_NAMESPACE);
+            return DEFAULT_NAMESPACE;
+        }
+        return trimmed;
     }
 
     private static Path determineConfigRoot() {
@@ -486,6 +512,14 @@ public final class GlobalConfigManager {
         return new ConfigPathResolution(configPath, viewPath);
     }
 
+    private static void applyResolvedPaths(GlobalConfig target, ConfigPathResolution resolution) {
+        if (target == null || resolution == null) {
+            return;
+        }
+        target.setConfigPath(relativizeToConfigRoot(resolution.configFile()));
+        target.setViewSavesPath(relativizeToConfigRoot(resolution.viewSavesDirectory()));
+    }
+
     private static ConfigPathRequest buildRequest(ConfigState state, String configPath, String viewPath) {
         return new ConfigPathRequest(
                 state.namespace,
@@ -613,6 +647,7 @@ public final class GlobalConfigManager {
         private ConfigFeatureProfile featureProfile;
         private ConfigPathStrategy strategy;
         private boolean autoLoadEnabled;
+        private boolean autoLoadPreference;
         private boolean configIgnored;
         private boolean loaded;
 
@@ -628,6 +663,7 @@ public final class GlobalConfigManager {
             this.featureProfile = ConfigFeatureProfile.all();
             this.strategy = DEFAULT_STRATEGY;
             this.autoLoadEnabled = true;
+            this.autoLoadPreference = true;
             this.configIgnored = false;
             this.loaded = false;
         }
