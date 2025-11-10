@@ -23,6 +23,7 @@ public final class UIManager {
     private final String namespace;
     private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
+    @Getter
     private final List<View> views = new CopyOnWriteArrayList<>();
     @Getter
     private volatile CursorPolicy defaultCursorPolicy;
@@ -124,7 +125,7 @@ public final class UIManager {
                 }
                 viewSaveManager.prepareView(view);
                 ResourceId originalKey = styleManager.getGlobalStyleKey();
-                StyleDescriptor originalDescriptor = styleManager.getGlobalDescriptor().orElse(null);
+                StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
                 applyViewBaseStyle(view, originalDescriptor);
                 Profilers.get().push(view.getClass().getSimpleName());
                 StyleDelta delta = view.configureStyleDelta();
@@ -143,8 +144,10 @@ public final class UIManager {
 
     private void applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
         ResourceId styleKey = view.getStyleKey();
-        styleManager.setGlobalStyleKeyTransient(styleKey);
-        StyleDescriptor descriptor = fallbackDescriptor != null ? fallbackDescriptor : styleManager.getGlobalDescriptor().orElse(null);
+        if (styleKey != null) {
+            styleManager.setGlobalStyleKeyTransient(styleKey);
+        }
+        StyleDescriptor descriptor = styleManager.getEffectiveDescriptor().orElse(fallbackDescriptor);
         if (descriptor != null) {
             StyleDescriptor updated = view.configureBaseStyle(descriptor);
             if (updated != null && updated != descriptor) {

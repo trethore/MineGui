@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.style.NamedStyleRegistry;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
@@ -36,7 +37,8 @@ public final class StyleDebugView extends View {
         NamedStyleRegistry registry = NamedStyleRegistry.getInstance();
         List<ResourceId> keys = new ArrayList<>(registry.keys());
         keys.sort(Comparator.comparing(ResourceId::toString));
-        ResourceId globalKey = StyleManager.getInstance().getGlobalStyleKey();
+        StyleManager manager = resolveStyleManager();
+        ResourceId globalKey = manager.getGlobalStyleKey();
 
         if (keys.isEmpty()) {
             ImGui.text("No registered styles.");
@@ -64,19 +66,40 @@ public final class StyleDebugView extends View {
             }
             ImGui.sameLine();
             if (ImGui.button("Apply Global")) {
-                StyleManager.getInstance().setGlobalStyleKey(selectedKey);
-                StyleManager.getInstance().apply();
+                applyGlobal(manager, selectedKey);
             }
             ImGui.sameLine();
             if (ImGui.button("Reset Global")) {
-                StyleManager.getInstance().setGlobalStyleKey(null);
-                StyleManager.getInstance().apply();
+                applyGlobal(manager, null);
             }
 
             registry.getDescriptor(selectedKey).ifPresent(this::renderDescriptorDetails);
         }
 
         ImGui.end();
+    }
+
+    private void applyGlobal(StyleManager manager, ResourceId key) {
+        if (manager == null) {
+            return;
+        }
+        String namespace = getNamespace();
+        if (namespace != null && !namespace.isBlank()) {
+            UIManager uiManager = UIManager.get(namespace);
+            for (View view : uiManager.getViews()) {
+                view.setStyleKey(key);
+            }
+        } else {
+            manager.setGlobalStyleKey(key);
+            manager.apply();
+        }
+    }
+    private StyleManager resolveStyleManager() {
+        String namespace = getNamespace();
+        if (namespace == null || namespace.isBlank()) {
+            return StyleManager.getInstance();
+        }
+        return StyleManager.get(namespace);
     }
 
     private void renderDescriptorDetails(StyleDescriptor descriptor) {

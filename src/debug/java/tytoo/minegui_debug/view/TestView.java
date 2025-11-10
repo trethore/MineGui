@@ -17,6 +17,9 @@ import tytoo.minegui.layout.LayoutApi;
 import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.style.FontLibrary;
 import tytoo.minegui.style.Fonts;
+import tytoo.minegui.style.NamedStyleRegistry;
+import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
@@ -29,7 +32,9 @@ import java.util.Locale;
 public final class TestView extends View {
     private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
     private static final ResourceId REGISTRATION_PHASE_FONT_KEY = ResourceId.of(MineGuiDebugCore.ID, "registration_phase_demo");
+    private static final ResourceId REGISTRATION_PHASE_STYLE_KEY = ResourceId.of(MineGuiDebugCore.ID, "registration_phase_demo_style");
     private static final float REGISTRATION_PHASE_FONT_SIZE = 20.0f;
+    private static final String JAPANESE_SAMPLE = "日本語プレビュー - こんにちは MineGui";
     private static final float CONTROL_WIDTH = 220f;
     private static final float CHILD_HEIGHT = 220f;
     private static final String[][] TABLE_ROWS = {
@@ -67,7 +72,7 @@ public final class TestView extends View {
     private LayoutTemplate layoutGridTemplate;
 
     public TestView() {
-        super(MineGuiDebugCore.ID, "test_view", true);
+        super(MineGuiDebugCore.ID, "test_view", false);
         setCursorPolicy(CursorPolicies.clickToLock());
     }
 
@@ -87,6 +92,15 @@ public final class TestView extends View {
                     )
             );
         });
+        StyleManager.onGlobalDescriptorReady(descriptor -> {
+            StyleDescriptor.Builder builder = StyleDescriptor.builder();
+            if (descriptor != null) {
+                builder.fromDescriptor(descriptor);
+            }
+            builder.fontKey(REGISTRATION_PHASE_FONT_KEY);
+            builder.fontSize(REGISTRATION_PHASE_FONT_SIZE);
+            NamedStyleRegistry.getInstance().registerDescriptor(REGISTRATION_PHASE_STYLE_KEY, builder.build());
+        });
     }
 
     @Override
@@ -96,7 +110,7 @@ public final class TestView extends View {
 
     @Override
     protected void renderView() {
-        Window.of(this, "Layout Playground")
+        Window.of(this, "Playground")
                 .flags(ImGuiWindowFlags.NoFocusOnAppearing)
                 .render(() -> {
                     resetFocusIfPending();
@@ -113,6 +127,9 @@ public final class TestView extends View {
         ImGui.text("Layout playground");
         ImGui.separator();
         ImGui.textWrapped("Exercise MineGui helpers alongside raw ImGui primitives. Explore stacks, split panes, tables, and widget previews to confirm integrations behave as expected.");
+        ImGui.separator();
+        ImGui.text("Japanese preview:");
+        ImGui.text(JAPANESE_SAMPLE);
     }
 
     private void renderTabsSection() {

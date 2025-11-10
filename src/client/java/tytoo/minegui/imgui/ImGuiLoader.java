@@ -122,7 +122,6 @@ public class ImGuiLoader {
             fontLibrary.resetRuntime();
             StyleManager.resetAllActiveFonts();
             initializeImGui();
-            fontLibrary.runRegistrationPhase(ImGui.getIO());
             fontLibrary.preloadRegisteredFonts();
             imGuiGlfw.init(windowHandle, false);
             imGuiGl3.init(GLSL_VERSION);
@@ -186,6 +185,7 @@ public class ImGuiLoader {
     }
 
     private static void initializeImGui() {
+        FontLibrary fontLibrary = FontLibrary.getInstance();
         ImGuiContext context = ImGui.createContext();
         ImGui.setCurrentContext(context);
         appliedGlobalScale = Float.NaN;
@@ -207,6 +207,7 @@ public class ImGuiLoader {
 
         ImFont defaultFont = configureDefaultFonts(io);
         applyGlobalScale(config);
+        fontLibrary.runRegistrationPhase(io);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             final ImGuiStyle style = ImGui.getStyle();
