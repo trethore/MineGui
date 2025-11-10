@@ -72,23 +72,43 @@ public final class LayoutConstraints {
         return Optional.ofNullable(rawX);
     }
 
+    public Float rawXValue() {
+        return rawX;
+    }
+
     public Optional<Float> rawY() {
         return Optional.ofNullable(rawY);
+    }
+
+    public Float rawYValue() {
+        return rawY;
     }
 
     public Optional<Float> widthOverride() {
         return Optional.ofNullable(widthOverride);
     }
 
+    public Float widthOverrideValue() {
+        return widthOverride;
+    }
+
     public Optional<Float> heightOverride() {
         return Optional.ofNullable(heightOverride);
+    }
+
+    public Float heightOverrideValue() {
+        return heightOverride;
     }
 
     public Optional<ConstraintTarget> targetOverride() {
         return Optional.ofNullable(targetOverride);
     }
 
-    Constraints directConstraints() {
+    public ConstraintTarget targetOverrideValue() {
+        return targetOverride;
+    }
+
+    public Constraints directConstraints() {
         return constraints;
     }
 

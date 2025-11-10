@@ -35,7 +35,7 @@ public final class HStack implements AutoCloseable {
         this.spacing = resolveSpacing(resolved);
         this.alignment = resolved.alignment != null ? resolved.alignment : Alignment.TOP;
         this.equalizeHeight = resolved.equalizeHeight;
-        this.uniformHeight = sanitizeLength(resolved.uniformHeight);
+        this.uniformHeight = StackMetrics.sanitizeLength(resolved.uniformHeight);
         this.cursorOffsetX = 0f;
         this.lineHeight = this.uniformHeight;
     }
@@ -66,23 +66,6 @@ public final class HStack implements AutoCloseable {
         return Math.max(0f, resolved);
     }
 
-    private static float sanitizeLength(Float value) {
-        if (value == null) {
-            return 0f;
-        }
-        if (!Float.isFinite(value)) {
-            return 0f;
-        }
-        return Math.max(0f, value);
-    }
-
-    private static float sanitizeLength(float value) {
-        if (!Float.isFinite(value)) {
-            return 0f;
-        }
-        return Math.max(0f, value);
-    }
-
     public ItemScope next() {
         return next(new ItemRequest());
     }
@@ -95,13 +78,13 @@ public final class HStack implements AutoCloseable {
         if (resolved.useSizeHints && resolved.constraints != null) {
             plannedSize = SizeHints.itemSize(resolved.constraints, resolved.widthRange, resolved.heightRange, context);
         }
-        float plannedWidth = plannedSize != null ? sanitizeLength(plannedSize.width()) : 0f;
-        float plannedHeight = plannedSize != null ? sanitizeLength(plannedSize.height()) : 0f;
+        float plannedWidth = plannedSize != null ? StackMetrics.sanitizeLength(plannedSize.width()) : 0f;
+        float plannedHeight = plannedSize != null ? StackMetrics.sanitizeLength(plannedSize.height()) : 0f;
         if (plannedWidth <= 0f && resolved.estimatedWidth != null) {
-            plannedWidth = sanitizeLength(resolved.estimatedWidth);
+            plannedWidth = StackMetrics.sanitizeLength(resolved.estimatedWidth);
         }
         if (plannedHeight <= 0f && resolved.estimatedHeight != null) {
-            plannedHeight = sanitizeLength(resolved.estimatedHeight);
+            plannedHeight = StackMetrics.sanitizeLength(resolved.estimatedHeight);
         }
         boolean widthApplied = plannedSize != null && plannedSize.width() > 0f;
         if (resolved.fillAvailableWidth) {
@@ -138,8 +121,8 @@ public final class HStack implements AutoCloseable {
     }
 
     private void onItemClosed(float width, float height, float offsetY) {
-        float resolvedWidth = sanitizeLength(width);
-        float resolvedHeight = sanitizeLength(height);
+        float resolvedWidth = StackMetrics.sanitizeLength(width);
+        float resolvedHeight = StackMetrics.sanitizeLength(height);
         cursorOffsetX += resolvedWidth;
         float baseline = Math.max(uniformHeight, lineHeight);
         float extent = Math.max(resolvedHeight + offsetY, resolvedHeight);
@@ -150,15 +133,15 @@ public final class HStack implements AutoCloseable {
     }
 
     private float computeTargetHeight(float plannedHeight) {
-        float sanitized = sanitizeLength(plannedHeight);
+        float sanitized = StackMetrics.sanitizeLength(plannedHeight);
         float candidate = Math.max(lineHeight, sanitized);
         candidate = Math.max(candidate, uniformHeight);
         return candidate;
     }
 
     private float computeAlignmentOffset(float plannedHeight, float targetHeight) {
-        float sanitizedHeight = sanitizeLength(plannedHeight);
-        float sanitizedTarget = Math.max(sanitizeLength(targetHeight), sanitizedHeight);
+        float sanitizedHeight = StackMetrics.sanitizeLength(plannedHeight);
+        float sanitizedTarget = Math.max(StackMetrics.sanitizeLength(targetHeight), sanitizedHeight);
         return switch (alignment) {
             case TOP -> 0f;
             case CENTER -> Math.max(0f, (sanitizedTarget - sanitizedHeight) * 0.5f);

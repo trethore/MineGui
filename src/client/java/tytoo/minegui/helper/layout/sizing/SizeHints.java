@@ -115,17 +115,11 @@ public final class SizeHints {
             float height = 0f;
             return new ComputedSize(width, height);
         }
-        float widthOverride = request.widthOverride().orElse(Float.NaN);
-        if (!Float.isFinite(widthOverride) || widthOverride <= 0f) {
-            widthOverride = 0f;
-        }
-        float heightOverride = request.heightOverride().orElse(Float.NaN);
-        if (!Float.isFinite(heightOverride) || heightOverride <= 0f) {
-            heightOverride = 0f;
-        }
-        float resolvedWidth = widthOverride;
-        float resolvedHeight = heightOverride;
-        Constraints constraints = request.constraints().orElse(null);
+        Float widthOverrideValue = request.widthOverrideValue();
+        Float heightOverrideValue = request.heightOverrideValue();
+        float resolvedWidth = widthOverrideValue != null ? widthOverrideValue : 0f;
+        float resolvedHeight = heightOverrideValue != null ? heightOverrideValue : 0f;
+        Constraints constraints = request.directConstraints();
         LayoutConstraintSolver.LayoutResult result = null;
         if (constraints != null) {
             LayoutConstraintSolver.LayoutFrame frame = context != null

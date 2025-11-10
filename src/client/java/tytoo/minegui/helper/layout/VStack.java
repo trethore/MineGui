@@ -34,7 +34,7 @@ public final class VStack implements AutoCloseable {
         this.originY = ImGui.getCursorPosY();
         this.spacing = resolveSpacing(resolved);
         this.fillMode = resolved.fillMode != null ? resolved.fillMode : FillMode.NONE;
-        this.uniformWidth = sanitizeLength(resolved.uniformWidth);
+        this.uniformWidth = StackMetrics.sanitizeLength(resolved.uniformWidth);
         this.cursorOffsetY = 0f;
         this.stackWidth = 0f;
         this.widestWidth = this.uniformWidth;
@@ -66,23 +66,6 @@ public final class VStack implements AutoCloseable {
         return Math.max(0f, resolved);
     }
 
-    private static float sanitizeLength(Float value) {
-        if (value == null) {
-            return 0f;
-        }
-        if (!Float.isFinite(value)) {
-            return 0f;
-        }
-        return Math.max(0f, value);
-    }
-
-    private static float sanitizeLength(float value) {
-        if (!Float.isFinite(value)) {
-            return 0f;
-        }
-        return Math.max(0f, value);
-    }
-
     public ItemScope next() {
         return next(new ItemRequest());
     }
@@ -95,13 +78,13 @@ public final class VStack implements AutoCloseable {
         if (resolved.useSizeHints && resolved.constraints != null) {
             plannedSize = SizeHints.itemSize(resolved.constraints, resolved.widthRange, resolved.heightRange, context);
         }
-        float plannedWidth = plannedSize != null ? sanitizeLength(plannedSize.width()) : 0f;
-        float plannedHeight = plannedSize != null ? sanitizeLength(plannedSize.height()) : 0f;
+        float plannedWidth = plannedSize != null ? StackMetrics.sanitizeLength(plannedSize.width()) : 0f;
+        float plannedHeight = plannedSize != null ? StackMetrics.sanitizeLength(plannedSize.height()) : 0f;
         if (plannedWidth <= 0f && resolved.estimatedWidth != null) {
-            plannedWidth = sanitizeLength(resolved.estimatedWidth);
+            plannedWidth = StackMetrics.sanitizeLength(resolved.estimatedWidth);
         }
         if (plannedHeight <= 0f && resolved.estimatedHeight != null) {
-            plannedHeight = sanitizeLength(resolved.estimatedHeight);
+            plannedHeight = StackMetrics.sanitizeLength(resolved.estimatedHeight);
         }
         boolean widthApplied = plannedSize != null && plannedSize.width() > 0f;
         if (resolved.fillAvailableWidth) {
@@ -148,8 +131,8 @@ public final class VStack implements AutoCloseable {
     }
 
     private void onItemClosed(float width, float height) {
-        float resolvedWidth = sanitizeLength(width);
-        float resolvedHeight = sanitizeLength(height);
+        float resolvedWidth = StackMetrics.sanitizeLength(width);
+        float resolvedHeight = StackMetrics.sanitizeLength(height);
         cursorOffsetY += resolvedHeight;
         stackWidth = Math.max(stackWidth, resolvedWidth);
         widestWidth = Math.max(widestWidth, resolvedWidth);

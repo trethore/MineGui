@@ -22,12 +22,14 @@ public final class LayoutCursor {
     public static void moveTo(LayoutConstraints request, LayoutContext context) {
         LayoutConstraints constraints = request != null ? request : LayoutConstraints.empty();
         LayoutContext layoutContext = context != null ? context : LayoutContext.capture();
-        float rawX = constraints.rawX().orElse(Float.NaN);
-        float rawY = constraints.rawY().orElse(Float.NaN);
-        boolean hasRawX = Float.isFinite(rawX);
-        boolean hasRawY = Float.isFinite(rawY);
+        Float rawXValue = constraints.rawXValue();
+        Float rawYValue = constraints.rawYValue();
+        boolean hasRawX = rawXValue != null;
+        boolean hasRawY = rawYValue != null;
+        float rawX = hasRawX ? rawXValue : Float.NaN;
+        float rawY = hasRawY ? rawYValue : Float.NaN;
         LayoutConstraintSolver.LayoutResult result = null;
-        Constraints constraintSet = constraints.constraints().orElse(null);
+        Constraints constraintSet = constraints.directConstraints();
         if (constraintSet != null && (!hasRawX || !hasRawY)) {
             LayoutConstraintSolver.LayoutFrame frame = layoutContext.toLayoutFrame(constraints);
             result = LayoutConstraintSolver.resolve(constraintSet, frame);

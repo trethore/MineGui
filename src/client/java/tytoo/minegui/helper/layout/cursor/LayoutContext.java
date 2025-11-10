@@ -159,13 +159,13 @@ public final class LayoutContext {
 
     public LayoutConstraintSolver.LayoutFrame toLayoutFrame(LayoutConstraints request) {
         LayoutConstraints safeRequest = request != null ? request : LayoutConstraints.empty();
-        ConstraintTarget target = safeRequest
-                .targetOverride()
-                .orElseGet(this::constraintTarget);
+        ConstraintTarget target = safeRequest.targetOverrideValue() != null
+                ? safeRequest.targetOverrideValue()
+                : constraintTarget();
         float parentWidth = contentRegionWidth();
         float parentHeight = contentRegionHeight();
-        float contentWidth = safeRequest.widthOverride().orElse(0f);
-        float contentHeight = safeRequest.heightOverride().orElse(0f);
+        float contentWidth = safeRequest.widthOverrideValue() != null ? safeRequest.widthOverrideValue() : 0f;
+        float contentHeight = safeRequest.heightOverrideValue() != null ? safeRequest.heightOverrideValue() : 0f;
         return new LayoutConstraintSolver.LayoutFrame(
                 parentWidth,
                 parentHeight,

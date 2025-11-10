@@ -26,6 +26,7 @@ public final class GridLayout implements AutoCloseable {
     private final float[] columnOffsets;
     private final List<RowState> rows;
     private final List<RowDefinition> rowDefinitions;
+    private float lastAvailableWidth;
     private int usedRowBound;
     private int usedColumnBound;
     private boolean closed;
@@ -40,8 +41,12 @@ public final class GridLayout implements AutoCloseable {
         this.originY = ImGui.getCursorPosY();
         this.columnSpacing = resolveColumnSpacing(resolved);
         this.rowSpacing = resolveRowSpacing(resolved);
-        this.columns = resolveColumns(resolved, chosenContext, columnSpacing);
+        ColumnDefinition[] normalizedColumns = normalizeColumnDefinitions(resolved.columns);
+        this.columns = initializeColumnPlans(normalizedColumns);
+        float initialAvailableWidth = Math.max(0f, Math.max(chosenContext.contentRegionWidth(), chosenContext.contentRegionAvailX()));
+        assignColumnWidths(columns, initialAvailableWidth, columnSpacing);
         this.columnOffsets = computeColumnOffsets(columns, columnSpacing);
+        this.lastAvailableWidth = initialAvailableWidth;
         this.rowDefinitions = resolved.rows != null ? Arrays.asList(resolved.rows.clone()) : List.of();
         this.rows = new ArrayList<>();
     }
@@ -86,30 +91,39 @@ public final class GridLayout implements AutoCloseable {
         return Math.max(0f, resolved);
     }
 
-    private static ColumnPlan[] resolveColumns(Options options, LayoutContext context, float spacing) {
-        ColumnDefinition[] definitions = options.columns != null ? options.columns.clone() : null;
-        if (definitions == null || definitions.length == 0) {
-            definitions = new ColumnDefinition[]{ColumnDefinition.auto()};
+    private static ColumnDefinition[] normalizeColumnDefinitions(ColumnDefinition[] definitions) {
+        ColumnDefinition[] source = definitions != null && definitions.length > 0
+                ? definitions.clone()
+                : new ColumnDefinition[]{ColumnDefinition.auto()};
+        for (int i = 0; i < source.length; i++) {
+            if (source[i] == null) {
+                source[i] = ColumnDefinition.auto();
+            }
         }
-        int count = definitions.length;
-        float available = Math.max(0f, Math.max(context.contentRegionWidth(), context.contentRegionAvailX()));
+        return source;
+    }
+
+    private static ColumnPlan[] initializeColumnPlans(ColumnDefinition[] definitions) {
+        ColumnPlan[] plans = new ColumnPlan[definitions.length];
+        for (int i = 0; i < definitions.length; i++) {
+            plans[i] = new ColumnPlan(definitions[i]);
+        }
+        return plans;
+    }
+
+    private static void assignColumnWidths(ColumnPlan[] plans, float availableWidth, float spacing) {
+        int count = plans.length;
         float spacingTotal = spacing * Math.max(0, count - 1);
-        float budget = Math.max(0f, available - spacingTotal);
-        ColumnPlan[] plans = new ColumnPlan[count];
+        float budget = Math.max(0f, availableWidth - spacingTotal);
         float totalFixed = 0f;
         float totalWeight = 0f;
         int autoCount = 0;
-        for (int i = 0; i < count; i++) {
-            ColumnDefinition definition = definitions[i];
-            if (definition == null) {
-                definition = ColumnDefinition.auto();
-            }
-            switch (definition.type()) {
-                case FIXED -> totalFixed += definition.fixedWidth();
-                case WEIGHT -> totalWeight += definition.weight();
+        for (ColumnPlan plan : plans) {
+            switch (plan.definition.type()) {
+                case FIXED -> totalFixed += plan.definition.fixedWidth();
+                case WEIGHT -> totalWeight += plan.definition.weight();
                 case AUTO -> autoCount++;
             }
-            plans[i] = new ColumnPlan(definition);
         }
         float remaining = Math.max(0f, budget - totalFixed);
         if (totalWeight > 0f) {
@@ -144,7 +158,6 @@ public final class GridLayout implements AutoCloseable {
                 }
             }
         }
-        return plans;
     }
 
     private static float[] computeColumnOffsets(ColumnPlan[] plans, float spacing) {
@@ -200,17 +213,18 @@ public final class GridLayout implements AutoCloseable {
             throw new IllegalArgumentException("Column span exceeds column count");
         }
         ensureRow(rowIndex + rowSpan - 1);
+        refreshColumnsIfNeeded();
         float posX = originX + columnOffsets[columnIndex];
         float posY = originY + rowOffset(rowIndex);
         LayoutCursor.moveTo(posX, posY);
         float availableWidth = spanWidth(columnIndex, columnSpan);
         float availableHeight = spanHeight(rowIndex, rowSpan);
         LayoutConstraints layoutConstraints = resolved.constraints;
-        Constraints direct = layoutConstraints != null ? layoutConstraints.constraints().orElse(null) : null;
+        Constraints direct = layoutConstraints != null ? layoutConstraints.directConstraints() : null;
         LayoutConstraintSolver.LayoutResult planned = null;
         if (direct != null) {
-            float contentWidth = layoutConstraints.widthOverride().orElse(0f);
-            float contentHeight = layoutConstraints.heightOverride().orElse(0f);
+            float contentWidth = layoutConstraints.widthOverrideValue() != null ? layoutConstraints.widthOverrideValue() : 0f;
+            float contentHeight = layoutConstraints.heightOverrideValue() != null ? layoutConstraints.heightOverrideValue() : 0f;
             LayoutConstraintSolver.LayoutFrame frame = new LayoutConstraintSolver.LayoutFrame(
                     availableWidth,
                     availableHeight,
@@ -222,11 +236,11 @@ public final class GridLayout implements AutoCloseable {
         }
         float plannedWidth = planned != null ? sanitizeLength(planned.width()) : 0f;
         float plannedHeight = planned != null ? sanitizeLength(planned.height()) : 0f;
-        if (plannedWidth <= 0f && layoutConstraints != null) {
-            plannedWidth = sanitizeLength(layoutConstraints.widthOverride().orElse(Float.NaN));
+        if (plannedWidth <= 0f && layoutConstraints != null && layoutConstraints.widthOverrideValue() != null) {
+            plannedWidth = sanitizeLength(layoutConstraints.widthOverrideValue());
         }
-        if (plannedHeight <= 0f && layoutConstraints != null) {
-            plannedHeight = sanitizeLength(layoutConstraints.heightOverride().orElse(Float.NaN));
+        if (plannedHeight <= 0f && layoutConstraints != null && layoutConstraints.heightOverrideValue() != null) {
+            plannedHeight = sanitizeLength(layoutConstraints.heightOverrideValue());
         }
         if (plannedWidth <= 0f && resolved.estimatedWidth != null) {
             plannedWidth = sanitizeLength(resolved.estimatedWidth);
@@ -384,6 +398,21 @@ public final class GridLayout implements AutoCloseable {
                 accumulated += columnSpacing;
             }
         }
+    }
+
+    private void refreshColumnsIfNeeded() {
+        float currentAvailable = currentAvailableWidth();
+        if (Math.abs(currentAvailable - lastAvailableWidth) <= 0.5f) {
+            return;
+        }
+        assignColumnWidths(columns, currentAvailable, columnSpacing);
+        refreshColumnOffsets();
+        lastAvailableWidth = currentAvailable;
+    }
+
+    private float currentAvailableWidth() {
+        LayoutContext context = LayoutContext.capture();
+        return Math.max(0f, Math.max(context.contentRegionWidth(), context.contentRegionAvailX()));
     }
 
     private void onScopeClosed(CellScope scope, float measuredWidth, float measuredHeight) {

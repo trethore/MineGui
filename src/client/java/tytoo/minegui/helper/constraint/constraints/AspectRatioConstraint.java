@@ -6,21 +6,31 @@ import tytoo.minegui.helper.constraint.WidthConstraint;
 
 public record AspectRatioConstraint(float ratio) implements WidthConstraint, HeightConstraint {
 
+    public AspectRatioConstraint(float ratio) {
+        this.ratio = normalizeRatio(ratio);
+    }
+
     @Override
     public float calculateWidth(ConstraintTarget target, float parentWidth) {
         float h = target.measuredHeight();
-        if (h > 0f) {
-            return h * ratio;
-        }
-        return target.measuredWidth();
+        return h > 0f ? h * ratio : sanitizeFallback(target.measuredWidth());
     }
 
     @Override
     public float calculateHeight(ConstraintTarget target, float parentHeight) {
         float w = target.measuredWidth();
-        if (w > 0f) {
-            return w / ratio;
+        return w > 0f ? w / ratio : sanitizeFallback(target.measuredHeight());
+    }
+
+    private float sanitizeFallback(float value) {
+        if (!Float.isFinite(value) || value < 0f) {
+            return 0f;
         }
-        return target.measuredHeight();
+        return value;
+    }
+
+    private static float normalizeRatio(float raw) {
+        float sanitized = Float.isFinite(raw) ? Math.abs(raw) : 0f;
+        return sanitized > 1e-6f ? sanitized : 1f;
     }
 }

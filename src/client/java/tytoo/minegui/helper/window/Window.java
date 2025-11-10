@@ -25,6 +25,13 @@ public final class Window {
     private Window() {
     }
 
+    public static void dispose(String title) {
+        if (title == null) {
+            return;
+        }
+        STATE_BY_TITLE.remove(title);
+    }
+
     public static Builder of(String title) {
         if (title != null && !title.contains("##") && WARNED_TITLES.add(title)) {
             MineGuiCore.LOGGER.warn("MineGui window title '{}' is missing '##' scope; layout persistence may be disabled.", title);
@@ -181,6 +188,7 @@ public final class Window {
             if (!openNow) {
                 ImGui.end();
                 state.wasOpen = false;
+                Window.dispose(title);
                 return;
             }
             if (!beginResult) {
