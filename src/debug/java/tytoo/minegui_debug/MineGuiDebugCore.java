@@ -9,9 +9,7 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.runtime.MineGuiContext;
-import tytoo.minegui_debug.view.FeaturesView;
-import tytoo.minegui_debug.view.StyleDebugView;
-import tytoo.minegui_debug.view.TestView;
+import tytoo.minegui_debug.view.PlaygroundView;
 
 import java.util.Objects;
 
@@ -29,30 +27,14 @@ public final class MineGuiDebugCore {
     }
 
     private static void test(MineGuiContext context) {
-        TestView testView = new TestView();
-        FeaturesView featuresView = new FeaturesView();
-        StyleDebugView styleView = new StyleDebugView();
+        PlaygroundView playgroundView = new PlaygroundView();
         context.setDockspaceCustomizer(state -> state.removeDockspaceFlags(ImGuiDockNodeFlags.NoDockingInCentralNode));
-        context.ui().register(testView);
-        context.ui().register(featuresView);
-        context.ui().register(styleView);
-        KeyBinding openTestViewKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.minegui.open_gui",
+        context.ui().register(playgroundView);
+        KeyBinding playgroundKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.minegui.playground",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
-                "category.weave.test"
-        ));
-        KeyBinding featuresKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.minegui.feature_tour",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_J,
-                "category.weave.test"
-        ));
-        KeyBinding styleInspectorKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.minegui.style_inspector",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_H,
-                "category.weave.test"
+                "category.minegui.playground"
         ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean isValid = client != null && client.currentScreen == null;
@@ -60,14 +42,8 @@ public final class MineGuiDebugCore {
                 return;
             }
 
-            if (openTestViewKeybind != null && openTestViewKeybind.wasPressed()) {
-                testView.toggleVisibility();
-            }
-            if (featuresKeybind != null && featuresKeybind.wasPressed()) {
-                featuresView.toggleVisibility();
-            }
-            if (styleInspectorKeybind != null && styleInspectorKeybind.wasPressed()) {
-                styleView.toggleVisibility();
+            if (playgroundKeybind != null && playgroundKeybind.wasPressed()) {
+                playgroundView.toggleVisibility();
             }
         });
     }
