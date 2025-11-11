@@ -1,14 +1,11 @@
 package tytoo.minegui_debug.view.sections;
 
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.view.View;
+import tytoo.minegui.view.ViewSection;
 
-public interface PlaygroundSection {
+public interface PlaygroundSection extends ViewSection {
     String tabLabel();
 
     default String tabId() {
         return getClass().getName();
     }
-
-    void render(View parent, LayoutApi layoutApi);
 }

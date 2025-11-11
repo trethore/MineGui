@@ -155,11 +155,11 @@ public final class CraftingView extends View {
     private final ViewSection body = ViewSection.of(view -> renderInventory(view));
 
     @Override
-    protected void renderView() {
+    protected void renderView(LayoutApi layout) {
         ImGui.begin("Crafting Station");
-        renderSection(header);
+        renderSection(header, layout);
         ImGui.separator();
-        renderSection(body);
+        renderSection(body, layout);
         ImGui.end();
     }
 
@@ -174,9 +174,9 @@ public final class CraftingView extends View {
 }
 ```
 
-- Sections keep their own state and helpers, so `View` subclasses avoid 500-line `renderView()` methods.
-- Use `ViewSection.of(Runnable)` when the section does not need the parent, or `ViewSection.of(Consumer<View>)` when it does.
-- `View.renderSection(section)` is the preferred way to invoke a section; it handles null checks and keeps call sites tidy.
+- Sections keep their own state and helpers, so `View` subclasses avoid 500-line `renderView(LayoutApi)` methods.
+- Use `ViewSection.of(Runnable)` when the section does not need the parent, or `ViewSection.of(Consumer<View>)` when it does; `ViewSection.ofLayout(BiConsumer<View, LayoutApi>)` is available when the layout handle is required.
+- `View.renderSection(section, layout)` is the preferred way to invoke a section; it handles null checks and keeps call sites tidy.
 - Store sections as fields if they need to cache data, or create them inline when composition is simple.
 
 ## Additional Utilities

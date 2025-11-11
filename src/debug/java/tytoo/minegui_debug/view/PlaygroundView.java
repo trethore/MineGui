@@ -26,21 +26,20 @@ public final class PlaygroundView extends View {
     }
 
     @Override
-    protected void renderView() {
+    protected void renderView(LayoutApi layout) {
         Window.of(this, "MineGui Playground")
                 .flags(ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar)
-                .render(this::renderTabs);
+                .render(() -> renderTabs(layout));
     }
 
-    private void renderTabs() {
+    private void renderTabs(LayoutApi layout) {
         if (!ImGui.beginTabBar("minegui_playground_tabs")) {
             return;
         }
-        LayoutApi api = layoutApi();
         for (PlaygroundSection section : sections) {
             String label = scopedTabLabel(section);
             if (ImGui.beginTabItem(label)) {
-                section.render(this, api);
+                section.render(this, layout);
                 ImGui.endTabItem();
             }
         }

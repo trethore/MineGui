@@ -28,12 +28,9 @@ public final class StyleWorkflowSection implements PlaygroundSection {
         return "Styles";
     }
 
+
     @Override
     public void render(View parent, LayoutApi layoutApi) {
-        if (layoutApi == null) {
-            renderLayoutUnavailable();
-            return;
-        }
         ensureDescriptors();
         LayoutTemplate template = layoutApi.vertical()
                 .spacing(6f)
@@ -158,8 +155,4 @@ public final class StyleWorkflowSection implements PlaygroundSection {
         return builder.build();
     }
 
-    private void renderLayoutUnavailable() {
-        ImGui.text("Layout service unavailable");
-        ImGui.textWrapped("Attach MineGui Playground to a namespace to evaluate style workflows.");
-    }
 }

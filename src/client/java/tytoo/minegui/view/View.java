@@ -35,29 +35,26 @@ public abstract class View {
     private boolean cursorPolicyExplicit;
     private boolean layoutNamespaceWarningLogged;
     private boolean layoutContextWarningLogged;
+    private LayoutApi layoutHandle;
 
-    protected View() {
-        this.id = deriveDefaultId();
-        this.cursorPolicy = CursorPolicies.empty();
-        this.cursorPolicyExplicit = false;
-    }
-
-    protected View(String id) {
-        this();
-        setId(id);
-    }
-
-    protected View(String id, boolean persistent) {
-        this(id);
-        setPersistent(persistent);
+    protected View(String namespace, String path, boolean persistent) {
+        initializeView(namespacedId(namespace, path), persistent);
     }
 
     protected View(String namespace, String path) {
-        this(namespacedId(namespace, path));
+        this(namespace, path, true);
     }
 
-    protected View(String namespace, String path, boolean persistent) {
-        this(namespacedId(namespace, path), persistent);
+    protected View(String id, boolean persistent) {
+        initializeView(id, persistent);
+    }
+
+    protected View(String id) {
+        this(id, true);
+    }
+
+    protected View() {
+        this(null, true);
     }
 
     public static String namespacedId(String namespace, String path) {
@@ -68,10 +65,14 @@ public abstract class View {
         if (!visible) {
             return;
         }
-        renderView();
+        LayoutApi layout = layout();
+        if (layout == null) {
+            return;
+        }
+        renderView(layout);
     }
 
-    protected abstract void renderView();
+    protected abstract void renderView(LayoutApi layout);
 
     public StyleDelta configureStyleDelta() {
         return null;
@@ -118,15 +119,15 @@ public abstract class View {
     public void attach(String namespace, ViewSaveManager saveManager) {
         this.namespace = namespace;
         this.viewSaveManager = saveManager;
-        this.layoutNamespaceWarningLogged = false;
-        this.layoutContextWarningLogged = false;
+        this.layoutHandle = null;
+        resetLayoutWarnings();
     }
 
     public void detach() {
         this.namespace = null;
         this.viewSaveManager = null;
-        this.layoutNamespaceWarningLogged = false;
-        this.layoutContextWarningLogged = false;
+        this.layoutHandle = null;
+        resetLayoutWarnings();
     }
 
     public void setVisible(boolean visible) {
@@ -147,11 +148,7 @@ public abstract class View {
     }
 
     public void setId(String id) {
-        if (id == null || id.isBlank()) {
-            this.id = deriveDefaultId();
-            return;
-        }
-        this.id = id;
+        this.id = normalizeId(id);
     }
 
     public void setCursorPolicy(CursorPolicy cursorPolicy) {
@@ -207,10 +204,33 @@ public abstract class View {
         if (section == null) {
             return;
         }
-        section.render(this);
+        LayoutApi layout = layout();
+        if (layout == null) {
+            return;
+        }
+        section.render(this, layout);
     }
 
-    protected LayoutApi layoutApi() {
+    protected final void renderSection(ViewSection section, LayoutApi layout) {
+        if (section == null || layout == null) {
+            return;
+        }
+        section.render(this, layout);
+    }
+
+    public final LayoutApi layout() {
+        LayoutApi cached = layoutHandle;
+        if (cached != null) {
+            return cached;
+        }
+        LayoutApi resolved = resolveLayout();
+        if (resolved != null) {
+            layoutHandle = resolved;
+        }
+        return resolved;
+    }
+
+    private LayoutApi resolveLayout() {
         String currentNamespace = namespace;
         if (currentNamespace == null || currentNamespace.isBlank()) {
             if (!layoutNamespaceWarningLogged) {
@@ -230,5 +250,24 @@ public abstract class View {
         layoutNamespaceWarningLogged = false;
         layoutContextWarningLogged = false;
         return context.layout();
+    }
+
+    private void resetLayoutWarnings() {
+        layoutNamespaceWarningLogged = false;
+        layoutContextWarningLogged = false;
+    }
+
+    private void initializeView(String requestedId, boolean persistent) {
+        this.id = normalizeId(requestedId);
+        this.cursorPolicy = CursorPolicies.empty();
+        this.cursorPolicyExplicit = false;
+        this.persistent = persistent;
+    }
+
+    private String normalizeId(String candidate) {
+        if (candidate == null || candidate.isBlank()) {
+            return deriveDefaultId();
+        }
+        return candidate;
     }
 }

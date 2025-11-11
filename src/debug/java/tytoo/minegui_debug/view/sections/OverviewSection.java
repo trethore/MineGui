@@ -24,10 +24,6 @@ public final class OverviewSection implements PlaygroundSection {
 
     @Override
     public void render(View parent, LayoutApi layoutApi) {
-        if (layoutApi == null) {
-            renderLayoutUnavailable();
-            return;
-        }
         LayoutTemplate template = layoutApi.vertical()
                 .spacing(6f)
                 .child(slot -> slot.content(this::renderIntro))
@@ -102,8 +98,4 @@ public final class OverviewSection implements PlaygroundSection {
         ImGui.textWrapped(description);
     }
 
-    private void renderLayoutUnavailable() {
-        ImGui.text("Layout service unavailable");
-        ImGui.textWrapped("Attach MineGui Playground to a namespace to evaluate the overview tab.");
-    }
 }

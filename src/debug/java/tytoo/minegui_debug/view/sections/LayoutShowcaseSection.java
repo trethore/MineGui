@@ -28,11 +28,6 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
 
     @Override
     public void render(View parent, LayoutApi layoutApi) {
-        if (layoutApi == null) {
-            renderLayoutUnavailable();
-            return;
-        }
-
         LayoutTemplate toolbarTemplate = buildToolbarTemplate(layoutApi);
         LayoutTemplate template = layoutApi.vertical()
                 .spacing(8f)
@@ -201,8 +196,4 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
         }
     }
 
-    private void renderLayoutUnavailable() {
-        ImGui.text("Layout service unavailable");
-        ImGui.textWrapped("Attach MineGui Playground to a namespace (it does automatically in debug builds) to exercise the Layout DSL.");
-    }
 }
