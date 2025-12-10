@@ -6,8 +6,6 @@ import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.view.View;
 
 public final class OverviewSection implements PlaygroundSection {
@@ -23,15 +21,14 @@ public final class OverviewSection implements PlaygroundSection {
     }
 
     @Override
-    public void render(View parent, LayoutApi layoutApi) {
-        LayoutTemplate template = layoutApi.vertical()
-                .spacing(6f)
-                .child(slot -> slot.content(this::renderIntro))
-                .child(slot -> slot.content(this::renderRuntimeControls))
-                .child(slot -> slot.content(() -> renderChecklistSection(parent)))
-                .child(slot -> slot.content(this::renderScratchPad))
-                .build();
-        layoutApi.render(template);
+    public void render(View parent) {
+        renderIntro();
+        ImGui.dummy(0f, 6f);
+        renderRuntimeControls();
+        ImGui.dummy(0f, 6f);
+        renderChecklistSection(parent);
+        ImGui.dummy(0f, 6f);
+        renderScratchPad();
     }
 
     private void renderIntro() {
@@ -77,9 +74,6 @@ public final class OverviewSection implements PlaygroundSection {
                     ? "Cursor policy locked to view for predictable focus."
                     : "Views inherit cursor policies; call setCursorPolicy when you need explicit capture.");
             renderPracticeRow("Layout helpers", "Stacks and windows remain optional. Mix raw ImGui with MineGui helpers as needed.");
-            renderPracticeRow("Namespaces", parent.getNamespace() != null
-                    ? "Attached to namespace '%s' so layout templates can resolve resources.".formatted(parent.getNamespace())
-                    : "Attach the view to a namespace to access layout services.");
             renderPracticeRow("Input relays", "Reusing ImString buffers avoids allocations while dragging sliders or typing.");
             ImGui.endTable();
         }

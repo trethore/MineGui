@@ -2,8 +2,7 @@ package tytoo.minegui.runtime.viewport;
 
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.NamespaceConfig;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.MineGuiContext;
 
 public final class ViewportFrameLimiter {
     private ViewportFrameLimiter() {
@@ -13,7 +12,7 @@ public final class ViewportFrameLimiter {
         if (!MineGuiCore.isInitialized()) {
             return false;
         }
-        MineGuiNamespaceContext context = MineGuiNamespaces.get(MineGuiCore.getConfigNamespace());
+        MineGuiContext context = MineGuiCore.getContext();
         if (context == null) {
             return false;
         }
@@ -21,7 +20,7 @@ public final class ViewportFrameLimiter {
         if (config == null || !config.viewportEnabled()) {
             return false;
         }
-        if (MineGuiNamespaces.anyVisible()) {
+        if (context.ui().hasVisibleViews()) {
             return true;
         }
         return ViewportInteractionTracker.isActive();

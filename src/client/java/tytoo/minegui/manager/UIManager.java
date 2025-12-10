@@ -21,7 +21,6 @@ public final class UIManager {
     private static final Map<String, UIManager> INSTANCES = new ConcurrentHashMap<>();
 
     private final String namespace;
-    private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
     @Getter
     private final List<View> views = new CopyOnWriteArrayList<>();
@@ -30,7 +29,6 @@ public final class UIManager {
 
     private UIManager(String namespace) {
         this.namespace = namespace;
-        this.viewSaveManager = ViewSaveManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
         this.defaultCursorPolicy = CursorPolicies.empty();
     }
@@ -53,8 +51,7 @@ public final class UIManager {
         }
         if (!views.contains(view)) {
             views.add(view);
-            viewSaveManager.register(view);
-            view.attach(namespace, viewSaveManager);
+            view.attach();
             view.applyDefaultCursorPolicy(defaultCursorPolicy);
         }
     }
@@ -85,7 +82,6 @@ public final class UIManager {
             view.setVisible(false);
         }
         views.remove(view);
-        viewSaveManager.unregister(view);
         view.detach();
     }
 
@@ -123,7 +119,6 @@ public final class UIManager {
                 if (!view.isVisible()) {
                     continue;
                 }
-                viewSaveManager.prepareView(view);
                 ResourceId originalKey = styleManager.getGlobalStyleKey();
                 StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
                 applyViewBaseStyle(view, originalDescriptor);
@@ -131,7 +126,6 @@ public final class UIManager {
                 StyleDelta delta = view.configureStyleDelta();
                 try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
                     view.render();
-                    viewSaveManager.captureViewStyle(view);
                 } finally {
                     Profilers.get().pop();
                     restoreBaseStyle(originalKey, originalDescriptor);

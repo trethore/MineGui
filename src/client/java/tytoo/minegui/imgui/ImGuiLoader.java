@@ -13,17 +13,12 @@ import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
 import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceRenderState;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.InputHelper;
 import tytoo.minegui.util.ResourceId;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 public class ImGuiLoader {
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
@@ -78,7 +73,9 @@ public class ImGuiLoader {
         NamespaceConfig defaultConfig = resolveDefaultConfig();
         applyGlobalScale(defaultConfig);
         renderDockSpace(defaultConfig);
-        for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
+
+        MineGuiContext context = MineGuiCore.getContext();
+        if (context != null) {
             NamespaceConfig config = context.config().current();
             applyGlobalScale(config);
             context.style().apply();
@@ -156,11 +153,12 @@ public class ImGuiLoader {
             return;
         }
         DockspaceRenderState state = DockspaceRenderState.createDefault(mcWindowX, mcWindowY, mcWindowWidth, mcWindowHeight);
-        List<MineGuiNamespaceContext> contexts = new ArrayList<>(MineGuiNamespaces.all());
-        contexts.sort(Comparator.comparing(MineGuiNamespaceContext::namespace));
-        for (MineGuiNamespaceContext context : contexts) {
+
+        MineGuiContext context = MineGuiCore.getContext();
+        if (context != null) {
             context.dockspaceCustomizer().customize(state);
         }
+
         state.normalize();
         state.applyPlacement();
         int styleCount = state.applyStyleOverrides();
@@ -218,15 +216,14 @@ public class ImGuiLoader {
     }
 
     public static void reapplyNamespaceStyles() {
-        for (MineGuiNamespaceContext contextHandle : MineGuiNamespaces.all()) {
-            contextHandle.style().apply();
+        MineGuiContext context = MineGuiCore.getContext();
+        if (context != null) {
+            context.style().apply();
         }
     }
 
     private static void endFrame() {
-        for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
-            context.viewSaves().onFrameRendered();
-        }
+        // View saves flush removed or moved to core save
         imGuiGl3.renderDrawData(ImGui.getDrawData());
 
         if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
@@ -349,9 +346,10 @@ public class ImGuiLoader {
     }
 
     private static NamespaceConfig resolveDefaultConfig() {
-        MineGuiNamespaceContext context = MineGuiNamespaces.get(MineGuiCore.getConfigNamespace());
+        MineGuiContext context = MineGuiCore.getContext();
         if (context == null) {
-            return DEFAULT_CONFIG_STORE.load(MineGuiCore.getConfigNamespace());
+            // Fallback if not yet initialized, though Core init usually happens first
+            return DEFAULT_CONFIG_STORE.load("main");
         }
         return context.config().current();
     }

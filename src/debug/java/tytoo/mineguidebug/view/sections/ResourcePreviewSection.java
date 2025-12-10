@@ -4,8 +4,6 @@ import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
@@ -27,15 +25,14 @@ public final class ResourcePreviewSection implements PlaygroundSection {
     }
 
     @Override
-    public void render(View parent, LayoutApi layoutApi) {
-        LayoutTemplate template = layoutApi.vertical()
-                .spacing(6f)
-                .child(slot -> slot.content(this::renderIntro))
-                .child(slot -> slot.content(this::renderControls))
-                .child(slot -> slot.height(previewSize + 40f).fillWidth(true).content(this::renderPreview))
-                .child(slot -> slot.content(this::renderStatusLine))
-                .build();
-        layoutApi.render(template);
+    public void render(View parent) {
+        renderIntro();
+        ImGui.dummy(0f, 6f);
+        renderControls();
+        ImGui.dummy(0f, 6f);
+        renderPreview();
+        ImGui.dummy(0f, 6f);
+        renderStatusLine();
     }
 
     private void renderIntro() {

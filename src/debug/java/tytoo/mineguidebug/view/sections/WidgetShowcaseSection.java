@@ -6,8 +6,6 @@ import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.view.View;
 
 public final class WidgetShowcaseSection implements PlaygroundSection {
@@ -28,15 +26,14 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     }
 
     @Override
-    public void render(View parent, LayoutApi layoutApi) {
-        LayoutTemplate template = layoutApi.vertical()
-                .spacing(6f)
-                .child(slot -> slot.content(this::renderIntro))
-                .child(slot -> slot.content(this::renderControls))
-                .child(slot -> slot.height(90f).fillWidth(true).content(this::renderPlotSection))
-                .child(slot -> slot.content(this::renderTableSection))
-                .build();
-        layoutApi.render(template);
+    public void render(View parent) {
+        renderIntro();
+        ImGui.dummy(0f, 6f);
+        renderControls();
+        ImGui.dummy(0f, 6f);
+        renderPlotSection();
+        ImGui.dummy(0f, 6f);
+        renderTableSection();
     }
 
     private void renderIntro() {

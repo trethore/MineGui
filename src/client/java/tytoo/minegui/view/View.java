@@ -3,15 +3,9 @@ package tytoo.minegui.view;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
-import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.manager.ViewSaveManager;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.MinecraftIdentifiers;
-import tytoo.minegui.util.NamespaceIds;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
@@ -23,56 +17,27 @@ public abstract class View {
     private String id;
     @Getter
     @Setter
-    private boolean persistent = true;
-    @Getter
-    @Setter
     private ResourceId styleKey;
-    @Getter
-    private String namespace;
-    private ViewSaveManager viewSaveManager;
     @Getter
     private CursorPolicy cursorPolicy;
     private boolean cursorPolicyExplicit;
-    private boolean layoutNamespaceWarningLogged;
-    private boolean layoutContextWarningLogged;
-    private LayoutApi layoutHandle;
-
-    protected View(String namespace, String path, boolean persistent) {
-        initializeView(namespacedId(namespace, path), persistent);
-    }
-
-    protected View(String namespace, String path) {
-        this(namespace, path, true);
-    }
-
-    protected View(String id, boolean persistent) {
-        initializeView(id, persistent);
-    }
 
     protected View(String id) {
-        this(id, true);
+        initializeView(id);
     }
 
     protected View() {
-        this(null, true);
-    }
-
-    public static String namespacedId(String namespace, String path) {
-        return NamespaceIds.make(namespace, path);
+        this(null);
     }
 
     public final void render() {
         if (!visible) {
             return;
         }
-        LayoutApi layout = layout();
-        if (layout == null) {
-            return;
-        }
-        renderView(layout);
+        renderView();
     }
 
-    protected abstract void renderView(LayoutApi layout);
+    protected abstract void renderView();
 
     public StyleDelta configureStyleDelta() {
         return null;
@@ -109,25 +74,13 @@ public abstract class View {
         if (base.contains("##")) {
             return base;
         }
-        String scopeId = id;
-        if (namespace != null && !namespace.isBlank()) {
-            scopeId = namespace + "/" + id;
-        }
-        return base + "##" + scopeId;
+        return base + "##" + id;
     }
 
-    public void attach(String namespace, ViewSaveManager saveManager) {
-        this.namespace = namespace;
-        this.viewSaveManager = saveManager;
-        this.layoutHandle = null;
-        resetLayoutWarnings();
+    public void attach() {
     }
 
     public void detach() {
-        this.namespace = null;
-        this.viewSaveManager = null;
-        this.layoutHandle = null;
-        resetLayoutWarnings();
     }
 
     public void setVisible(boolean visible) {
@@ -141,9 +94,6 @@ public abstract class View {
         } else {
             cursorPolicy.onClose(this);
             onClose();
-            if (persistent && viewSaveManager != null) {
-                viewSaveManager.requestSave();
-            }
         }
     }
 
@@ -165,11 +115,6 @@ public abstract class View {
             return;
         }
         updateCursorPolicy(defaultPolicy, false);
-    }
-
-    public View persistent(boolean persistent) {
-        setPersistent(persistent);
-        return this;
     }
 
     public View useStyle(ResourceId key) {
@@ -204,64 +149,13 @@ public abstract class View {
         if (section == null) {
             return;
         }
-        LayoutApi layout = layout();
-        if (layout == null) {
-            return;
-        }
-        section.render(this, layout);
+        section.render(this);
     }
 
-    protected final void renderSection(ViewSection section, LayoutApi layout) {
-        if (section == null || layout == null) {
-            return;
-        }
-        section.render(this, layout);
-    }
-
-    public final LayoutApi layout() {
-        LayoutApi cached = layoutHandle;
-        if (cached != null) {
-            return cached;
-        }
-        LayoutApi resolved = resolveLayout();
-        if (resolved != null) {
-            layoutHandle = resolved;
-        }
-        return resolved;
-    }
-
-    private LayoutApi resolveLayout() {
-        String currentNamespace = namespace;
-        if (currentNamespace == null || currentNamespace.isBlank()) {
-            if (!layoutNamespaceWarningLogged) {
-                MineGuiCore.LOGGER.warn("View '{}' requested the layout API before attaching to a namespace; returning null.", getClass().getName());
-                layoutNamespaceWarningLogged = true;
-            }
-            return null;
-        }
-        MineGuiNamespaceContext context = MineGuiNamespaces.get(currentNamespace);
-        if (context == null) {
-            if (!layoutContextWarningLogged) {
-                MineGuiCore.LOGGER.warn("View '{}' could not resolve layout API because namespace '{}' is not registered.", getClass().getName(), currentNamespace);
-                layoutContextWarningLogged = true;
-            }
-            return null;
-        }
-        layoutNamespaceWarningLogged = false;
-        layoutContextWarningLogged = false;
-        return context.layout();
-    }
-
-    private void resetLayoutWarnings() {
-        layoutNamespaceWarningLogged = false;
-        layoutContextWarningLogged = false;
-    }
-
-    private void initializeView(String requestedId, boolean persistent) {
+    private void initializeView(String requestedId) {
         this.id = normalizeId(requestedId);
         this.cursorPolicy = CursorPolicies.empty();
         this.cursorPolicyExplicit = false;
-        this.persistent = persistent;
     }
 
     private String normalizeId(String candidate) {

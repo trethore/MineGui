@@ -1,6 +1,7 @@
 package tytoo.mineguidebug;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.runtime.MineGuiContext;
@@ -10,7 +11,10 @@ public final class MineGuiDebugClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        MineGuiContext context = MineGuiCore.init(MineGuiInitializationOptions.defaults(MineGuiDebugCore.ID));
+        MineGuiContext context = MineGuiCore.init(
+                FabricLoader.getInstance().getConfigDir().resolve(MineGuiDebugCore.ID),
+                MineGuiInitializationOptions.defaults()
+        );
         MineGuiDebugCore.init(context);
         MineGuiDebugCore.LOGGER.info("Hello developer! MineGui is initialized !");
     }

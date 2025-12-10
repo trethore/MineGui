@@ -1,22 +1,14 @@
 package tytoo.minegui.command;
 
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import tytoo.minegui.config.GlobalConfigManager;
-import tytoo.minegui.config.NamespaceConfig;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
-import tytoo.minegui.style.StyleDescriptor;
+import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.McClientBridge;
 import tytoo.minegui.util.MineGuiText;
 import tytoo.minegui.util.ResourceId;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public final class MineGuiReloadCommand {
     private MineGuiReloadCommand() {
@@ -24,55 +16,27 @@ public final class MineGuiReloadCommand {
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> builder() {
         return ClientCommandManager.literal("reload")
-                .executes(context -> execute(context.getSource(), null))
-                .then(ClientCommandManager.argument("namespace", StringArgumentType.string())
-                        .executes(context -> execute(
-                                context.getSource(),
-                                StringArgumentType.getString(context, "namespace")
-                        )));
+                .executes(context -> execute(context.getSource()));
     }
 
-    private static int execute(FabricClientCommandSource source, String namespace) {
-        List<MineGuiNamespaceContext> targets = collectTargets(namespace);
-        if (targets.isEmpty()) {
-            if (namespace == null) {
-                source.sendFeedback(MineGuiText.literal("MineGui has no registered namespaces to reload."));
-            } else {
-                source.sendError(MineGuiText.literal("MineGui namespace '" + namespace + "' is not registered."));
+    private static int execute(FabricClientCommandSource source) {
+        McClientBridge.execute(() -> {
+            MineGuiCore.loadConfig();
+            MineGuiContext context = MineGuiCore.getContext();
+            if (context != null) {
+                context.config().reload();
+                applyConfiguredStyle(context);
             }
-            return 0;
-        }
-        McClientBridge.execute(() -> targets.forEach(MineGuiReloadCommand::reloadNamespace));
-        String message = namespace == null
-                ? "MineGui reloaded namespaces: " + targets.stream().map(MineGuiNamespaceContext::namespace).collect(Collectors.joining(", "))
-                : "MineGui namespace '" + namespace + "' reloaded.";
-        source.sendFeedback(MineGuiText.literal(message));
-        return targets.size();
+            MineGuiCore.requestReload();
+        });
+        source.sendFeedback(MineGuiText.literal("MineGui reloaded."));
+        return 1;
     }
 
-    private static List<MineGuiNamespaceContext> collectTargets(String namespace) {
-        if (namespace == null) {
-            return new ArrayList<>(MineGuiNamespaces.all());
-        }
-        MineGuiNamespaceContext context = MineGuiNamespaces.get(namespace);
-        if (context == null) {
-            return List.of();
-        }
-        return List.of(context);
-    }
-
-    private static void reloadNamespace(MineGuiNamespaceContext context) {
-        String namespace = context.namespace();
-        if (!GlobalConfigManager.isConfigIgnored(namespace)) {
-            GlobalConfigManager.load(namespace);
-        } else {
-            GlobalConfigManager.ensureContext(namespace);
-        }
-        context.config().reload();
-        applyConfiguredStyle(context);
-    }
-
-    private static void applyConfiguredStyle(MineGuiNamespaceContext context) {
+    private static void applyConfiguredStyle(MineGuiContext context) {
+        // ... same logic but adapted ...
+        // Actually, logic was:
+        /*
         NamespaceConfig config = context.config().current();
         ResourceId styleKey = config.globalStyleKey();
         StyleManager styleManager = context.style();
@@ -84,6 +48,15 @@ public final class MineGuiReloadCommand {
         }
         styleManager.setGlobalStyleKey(styleKey);
         styleManager.apply();
-    }
+        */
+        // Now there is one context and one StyleManager.
+        // We just need to ensure global descriptor is set.
 
+        StyleManager styleManager = context.style();
+        tytoo.minegui.config.NamespaceConfig config = context.config().current();
+        ResourceId styleKey = config.globalStyleKey();
+
+        styleManager.setGlobalStyleKey(styleKey);
+        styleManager.apply();
+    }
 }

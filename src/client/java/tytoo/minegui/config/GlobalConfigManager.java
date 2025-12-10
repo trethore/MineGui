@@ -24,12 +24,20 @@ public final class GlobalConfigManager {
     private static final String DEFAULT_NAMESPACE = MineGuiCore.ID;
     private static final Pattern VALID_NAMESPACE = Pattern.compile("[A-Za-z0-9._-]+");
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
-    private static final Path CONFIG_ROOT = determineConfigRoot();
-    private static final Path NAMESPACE_ROOT = CONFIG_ROOT.resolve(MineGuiCore.ID).normalize();
     private static final ConfigPathStrategy DEFAULT_STRATEGY = ConfigPathStrategies.sandboxed();
+    private static Path configRoot = determineConfigRoot();
+    private static Path namespaceRoot = configRoot.resolve(MineGuiCore.ID).normalize();
     private static String defaultNamespace = DEFAULT_NAMESPACE;
 
     private GlobalConfigManager() {
+    }
+
+    public static synchronized void configure(Path rootPath) {
+        if (rootPath == null) {
+            return;
+        }
+        configRoot = rootPath.toAbsolutePath().normalize();
+        namespaceRoot = configRoot;
     }
 
     public static synchronized void configureDefaultNamespace(String namespace) {
@@ -363,8 +371,8 @@ public final class GlobalConfigManager {
             MineGuiCore.LOGGER.warn("Invalid namespace '{}'; using default '{}'", namespace, DEFAULT_NAMESPACE);
             return DEFAULT_NAMESPACE;
         }
-        Path resolved = NAMESPACE_ROOT.resolve(trimmed).normalize();
-        if (!resolved.startsWith(NAMESPACE_ROOT)) {
+        Path resolved = namespaceRoot.resolve(trimmed).normalize();
+        if (!resolved.startsWith(namespaceRoot)) {
             MineGuiCore.LOGGER.warn("Namespace '{}' resolves outside of MineGui config root; using default '{}'", namespace, DEFAULT_NAMESPACE);
             return DEFAULT_NAMESPACE;
         }
@@ -525,8 +533,8 @@ public final class GlobalConfigManager {
                 state.namespace,
                 configPath,
                 viewPath,
-                CONFIG_ROOT,
-                NAMESPACE_ROOT,
+                configRoot,
+                namespaceRoot,
                 state.baseDirectory,
                 state.defaultConfigFile,
                 state.defaultViewSavesDir
@@ -598,8 +606,8 @@ public final class GlobalConfigManager {
             return null;
         }
         Path normalized = path.normalize();
-        if (normalized.startsWith(CONFIG_ROOT)) {
-            return CONFIG_ROOT.relativize(normalized).toString().replace('\\', '/');
+        if (normalized.startsWith(configRoot)) {
+            return configRoot.relativize(normalized).toString().replace('\\', '/');
         }
         return normalized.toString().replace('\\', '/');
     }
@@ -653,7 +661,7 @@ public final class GlobalConfigManager {
 
         private ConfigState(String namespace) {
             this.namespace = namespace;
-            this.baseDirectory = NAMESPACE_ROOT.resolve(namespace).normalize();
+            this.baseDirectory = namespaceRoot.resolve(namespace).normalize();
             this.defaultConfigFile = baseDirectory.resolve("global_config.json");
             this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
             this.config = new GlobalConfig();

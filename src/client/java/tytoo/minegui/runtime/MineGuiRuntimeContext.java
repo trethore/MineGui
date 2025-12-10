@@ -4,10 +4,7 @@ import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.layout.LayoutService;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.manager.ViewSaveManager;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.StyleDescriptor;
@@ -18,27 +15,22 @@ import tytoo.minegui.view.cursor.CursorPolicy;
 
 import java.util.Objects;
 
-public final class MineGuiNamespaceContext implements MineGuiContext {
-    private final String namespace;
+public final class MineGuiRuntimeContext implements MineGuiContext {
     private final MineGuiInitializationOptions options;
     private final NamespaceConfigService config;
     private final UIManager uiManager;
-    private final ViewSaveManager viewSaveManager;
     private final StyleManager styleManager;
-    private final LayoutApi layout;
     private ResourceId defaultCursorPolicyId;
     private CursorPolicy defaultCursorPolicy;
     private volatile DockspaceCustomizer dockspaceCustomizer;
 
-    MineGuiNamespaceContext(String namespace, MineGuiInitializationOptions options) {
-        this.namespace = namespace;
+    public MineGuiRuntimeContext(MineGuiInitializationOptions options) {
         this.options = options;
         NamespaceConfigStore store = options.configStore();
-        this.config = new NamespaceConfigService(namespace, store);
-        this.uiManager = UIManager.get(namespace);
-        this.viewSaveManager = ViewSaveManager.get(namespace);
-        this.styleManager = StyleManager.get(namespace);
-        this.layout = new LayoutService();
+        // Using "main" as default namespace for now
+        this.config = new NamespaceConfigService("main", store);
+        this.uiManager = UIManager.get("main");
+        this.styleManager = StyleManager.get("main");
         StyleManager defaultStyleManager = StyleManager.get(GlobalConfigManager.getDefaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {
             defaultStyleManager.getGlobalDescriptor()
@@ -49,11 +41,6 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
         this.defaultCursorPolicy = CursorPolicyRegistry.resolvePolicyOrDefault(defaultCursorPolicyId, CursorPolicies.empty());
         this.uiManager.setDefaultCursorPolicy(defaultCursorPolicy);
         this.dockspaceCustomizer = options.dockspaceCustomizer();
-    }
-
-    @Override
-    public String namespace() {
-        return namespace;
     }
 
     @Override
@@ -72,18 +59,8 @@ public final class MineGuiNamespaceContext implements MineGuiContext {
     }
 
     @Override
-    public ViewSaveManager viewSaves() {
-        return viewSaveManager;
-    }
-
-    @Override
     public StyleManager style() {
         return styleManager;
-    }
-
-    @Override
-    public LayoutApi layout() {
-        return layout;
     }
 
     @Override

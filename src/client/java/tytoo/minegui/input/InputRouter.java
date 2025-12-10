@@ -5,7 +5,7 @@ import imgui.internal.ImGuiContext;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.lwjgl.glfw.GLFW;
-import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.runtime.viewport.ViewportInteractionTracker;
 import tytoo.minegui.util.CursorLockUtils;
@@ -114,14 +114,14 @@ public final class InputRouter {
         if (!CursorPolicyRegistry.wantsImGuiInput()) {
             return false;
         }
-        return MineGuiNamespaces.anyVisible() && imguiWantsMouse();
+        return UIManager.getInstance().hasVisibleViews() && imguiWantsMouse();
     }
 
     private boolean wantsKeyboardInput() {
         if (!CursorPolicyRegistry.wantsImGuiInput()) {
             return false;
         }
-        return MineGuiNamespaces.anyVisible() && imguiWantsKeyboard();
+        return UIManager.getInstance().hasVisibleViews() && imguiWantsKeyboard();
     }
 
     private boolean imguiWantsMouse() {

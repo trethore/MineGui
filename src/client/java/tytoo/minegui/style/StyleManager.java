@@ -8,8 +8,7 @@ import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfig;
 import tytoo.minegui.config.GlobalConfigManager;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.util.ResourceId;
 
@@ -243,8 +242,12 @@ public final class StyleManager {
     }
 
     private NamespaceConfigService configService() {
-        MineGuiNamespaceContext context = MineGuiNamespaces.get(namespace);
-        return context != null ? context.config() : null;
+        MineGuiContext context = MineGuiCore.getContext();
+        if (context == null) return null;
+        // In single context mode, we just return the config if namespace matches "main" or if we ignore namespace
+        // Since we force "main" everywhere, it should match.
+        // Or simpler:
+        return context.config();
     }
 
     private void persistGlobalStyle(ResourceId key) {

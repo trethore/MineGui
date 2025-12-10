@@ -15,7 +15,6 @@ public final class MineGuiClientCommands {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
                 ClientCommandManager.literal("minegui")
                         .then(MineGuiReloadCommand.builder())
-                        .then(MineGuiExportStyleCommand.builder())
         ));
     }
 }

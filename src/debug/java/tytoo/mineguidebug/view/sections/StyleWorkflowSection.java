@@ -6,12 +6,9 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
-import tytoo.minegui.layout.LayoutApi;
-import tytoo.minegui.layout.LayoutTemplate;
 import tytoo.minegui.style.ColorPalette;
 import tytoo.minegui.style.NamedStyleRegistry;
 import tytoo.minegui.style.StyleDescriptor;
-import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 import tytoo.mineguidebug.MineGuiDebugCore;
@@ -30,15 +27,13 @@ public final class StyleWorkflowSection implements PlaygroundSection {
 
 
     @Override
-    public void render(View parent, LayoutApi layoutApi) {
+    public void render(View parent) {
         ensureDescriptors();
-        LayoutTemplate template = layoutApi.vertical()
-                .spacing(6f)
-                .child(slot -> slot.content(this::renderIntro))
-                .child(slot -> slot.content(this::renderSelector))
-                .child(slot -> slot.content(() -> renderDescriptorSection(parent)))
-                .build();
-        layoutApi.render(template);
+        renderIntro();
+        ImGui.dummy(0f, 6f);
+        renderSelector();
+        ImGui.dummy(0f, 6f);
+        renderDescriptorSection(parent);
     }
 
     private void renderIntro() {
@@ -74,10 +69,6 @@ public final class StyleWorkflowSection implements PlaygroundSection {
         if (ImGui.button("Reset view style")) {
             parent.useStyle((ResourceId) null);
         }
-        ImGui.sameLine();
-        if (ImGui.button("Apply to namespace")) {
-            applyToNamespace(parent);
-        }
         int tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
         if (ImGui.beginTable("style_breakdown", 2, tableFlags)) {
             ImGui.tableSetupColumn("Metric", ImGuiTableColumnFlags.WidthFixed, 140f);
@@ -90,19 +81,6 @@ public final class StyleWorkflowSection implements PlaygroundSection {
             renderMetricRow("Palette entries", Integer.toString(descriptor.getColorPalette().getColors().size()));
             ImGui.endTable();
         }
-    }
-
-    private void applyToNamespace(View parent) {
-        String namespace = parent.getNamespace();
-        StyleManager manager = (namespace != null && !namespace.isBlank())
-                ? StyleManager.get(namespace)
-                : StyleManager.getInstance();
-        if (manager == null) {
-            return;
-        }
-        ResourceId key = applyNamespaceWide.get() ? selectedKey : null;
-        manager.setGlobalStyleKey(key);
-        manager.apply();
     }
 
     private void renderMetricRow(String label, String value) {

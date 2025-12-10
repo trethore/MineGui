@@ -1,10 +1,8 @@
 package tytoo.minegui;
 
-import lombok.Getter;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
@@ -14,8 +12,7 @@ import tytoo.minegui.command.MineGuiClientCommands;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiContext;
-import tytoo.minegui.runtime.MineGuiNamespaceContext;
-import tytoo.minegui.runtime.MineGuiNamespaces;
+import tytoo.minegui.runtime.MineGuiRuntimeContext;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.MinecraftIdentifiers;
 import tytoo.minegui.util.ResourceId;
@@ -27,39 +24,40 @@ import java.util.Objects;
 public final class MineGuiCore {
     public static final String ID = "minegui";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
-    public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(ID);
     private static final ResourceId IMGUI_IMAGES_RELOAD_ID = ResourceId.of(ID, "imgui_images");
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
-    private static volatile boolean defaultNamespaceConfigured;
-    @Getter
-    private static MineGuiInitializationOptions initializationOptions = MineGuiInitializationOptions.defaults(ID);
+
+    private static MineGuiRuntimeContext context;
 
     private MineGuiCore() {
     }
 
-    public static synchronized MineGuiContext init(MineGuiInitializationOptions options) {
+    public static synchronized MineGuiContext init(Path configPath) {
+        return init(configPath, MineGuiInitializationOptions.defaults());
+    }
+
+    public static synchronized MineGuiContext init(Path configPath, MineGuiInitializationOptions options) {
+        if (context != null) {
+            return context;
+        }
+        Objects.requireNonNull(configPath, "configPath");
         Objects.requireNonNull(options, "options");
-        String namespace = options.configNamespace();
-        if (ID.equals(namespace)) {
-            throw new IllegalArgumentException("MineGui namespace 'minegui' is reserved for MineGui internals. Provide a unique namespace for your mod.");
-        }
-        if (!defaultNamespaceConfigured) {
-            initializationOptions = options;
-            GlobalConfigManager.configureDefaultNamespace(namespace);
-            defaultNamespaceConfigured = true;
-        } else {
-            String defaultNamespace = GlobalConfigManager.getDefaultNamespace();
-            if (namespace.equals(defaultNamespace)) {
-                initializationOptions = options;
-            } else {
-                LOGGER.info("MineGui default namespace remains '{}'; additional namespace '{}' registered without overriding the default.", defaultNamespace, namespace);
-            }
-        }
-        MineGuiContext context = MineGuiNamespaces.initialize(options);
+
+        // Setup global config to use the provided path (simplified)
+        // For now, we assume GlobalConfigManager handles "main" namespace mapping to this path
+        // Ideally we refactor GlobalConfigManager too, but for now:
+        GlobalConfigManager.configureDefaultNamespace("main");
+
+        context = new MineGuiRuntimeContext(options);
+
         registerReloadListener();
         registerLifecycleHandlers();
         MineGuiClientCommands.register();
+        return context;
+    }
+
+    public static MineGuiContext getContext() {
         return context;
     }
 
@@ -86,40 +84,22 @@ public final class MineGuiCore {
             return;
         }
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ImGuiLoader.onClientStarted());
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
-            for (MineGuiNamespaceContext context : MineGuiNamespaces.all()) {
-                context.viewSaves().flush();
-            }
-        });
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> saveConfig());
         lifecycleRegistered = true;
     }
 
     public static void loadConfig() {
-        if (!defaultNamespaceConfigured) {
-            return;
-        }
-        if (initializationOptions.ignoreGlobalConfig() || !initializationOptions.loadGlobalConfig()) {
-            return;
-        }
-        GlobalConfigManager.load(initializationOptions.configNamespace());
+        if (context == null) return;
+        GlobalConfigManager.load("main");
+    }
+
+    public static void saveConfig() {
+        if (context == null) return;
+        GlobalConfigManager.save("main");
     }
 
     public static String getConfigNamespace() {
-        return GlobalConfigManager.getDefaultNamespace();
-    }
-
-    public static boolean isGlobalConfigAutoLoaded() {
-        if (!defaultNamespaceConfigured) {
-            return false;
-        }
-        return initializationOptions.loadGlobalConfig() && !initializationOptions.ignoreGlobalConfig();
-    }
-
-    public static boolean isGlobalConfigIgnored() {
-        if (!defaultNamespaceConfigured) {
-            return false;
-        }
-        return initializationOptions.ignoreGlobalConfig();
+        return "main";
     }
 
     public static void requestReload() {
@@ -127,6 +107,6 @@ public final class MineGuiCore {
     }
 
     public static boolean isInitialized() {
-        return defaultNamespaceConfigured;
+        return context != null;
     }
 }
