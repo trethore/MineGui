@@ -22,6 +22,9 @@ import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.InputHelper;
 import tytoo.minegui.util.ResourceId;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -199,7 +202,7 @@ public class ImGuiLoader {
         final ImGuiIO io = ImGui.getIO();
         final NamespaceConfig config = resolveDefaultConfig();
 
-        io.setIniFilename(null);
+        io.setIniFilename(resolveIniFile(config));
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
         if (config.dockspaceEnabled()) {
             io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
@@ -221,6 +224,18 @@ public class ImGuiLoader {
             style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
         }
         finalizeInitialStyle(defaultFont);
+    }
+
+    private static String resolveIniFile(NamespaceConfig config) {
+        String namespace = config.namespace();
+        Path viewDir = GlobalConfigManager.getViewSavesDirectory(namespace);
+        try {
+            Files.createDirectories(viewDir);
+        } catch (IOException e) {
+            MineGuiCore.LOGGER.warn("Failed to create view saves directory '{}'; ImGui layouts will not persist", viewDir, e);
+            return null;
+        }
+        return viewDir.resolve("imgui.ini").toAbsolutePath().toString();
     }
 
     public static void reapplyNamespaceStyles() {

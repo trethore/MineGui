@@ -23,35 +23,39 @@ public final class ConfigPathStrategies {
     }
 
     private record FixedRootConfigPathStrategy(Path root) implements ConfigPathStrategy {
-            private FixedRootConfigPathStrategy(Path root) {
-                this.root = root.toAbsolutePath().normalize();
-            }
+        private FixedRootConfigPathStrategy(Path root) {
+            this.root = root.toAbsolutePath().normalize();
+        }
 
-            @Override
-            public Path resolveConfigFile(ConfigPathRequest request) {
-                return resolve(request.requestedConfigPath(), "global_config.json");
-            }
+        @Override
+        public Path resolveConfigFile(ConfigPathRequest request) {
+            return resolve(request.requestedConfigPath(), "global_config.json");
+        }
 
-            @Override
-            public Path resolveViewSavesDirectory(ConfigPathRequest request) {
-                return resolve(request.requestedViewSavesPath(), "views");
-            }
+        @Override
+        public Path resolveViewSavesDirectory(ConfigPathRequest request) {
+            return resolve(request.requestedViewSavesPath(), "views");
+        }
 
-            private Path resolve(String configured, String defaultValue) {
-                if (configured == null || configured.isBlank()) {
-                    return root.resolve(defaultValue);
+        private Path resolve(String configured, String defaultValue) {
+            if (configured == null || configured.isBlank()) {
+                return root.resolve(defaultValue).normalize();
+            }
+            try {
+                Path candidate = Path.of(configured).normalize();
+                if (candidate.isAbsolute()) {
+                    return candidate;
                 }
-                try {
-                    Path candidate = Path.of(configured);
-                    if (candidate.isAbsolute()) {
-                        return candidate.normalize();
-                    }
-                    return root.resolve(candidate).normalize();
-                } catch (InvalidPathException e) {
-                    return root.resolve(defaultValue);
+                String rootName = root.getFileName() != null ? root.getFileName().toString() : null;
+                if (rootName != null && candidate.getNameCount() > 0 && rootName.equals(candidate.getName(0).toString())) {
+                    candidate = candidate.getNameCount() == 1 ? Path.of("") : candidate.subpath(1, candidate.getNameCount());
                 }
+                return root.resolve(candidate).normalize();
+            } catch (InvalidPathException e) {
+                return root.resolve(defaultValue).normalize();
             }
         }
+    }
 
     private static final class SandboxedConfigPathStrategy implements ConfigPathStrategy {
         @Override

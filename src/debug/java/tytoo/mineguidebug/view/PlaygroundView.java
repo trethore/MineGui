@@ -27,6 +27,8 @@ public final class PlaygroundView extends View {
     protected void renderView() {
         Window.of(this, "MineGui Playground")
                 .flags(ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar)
+                .initPos(200,200)
+                .initDimensions(300,400)
                 .render(this::renderTabs);
     }
 

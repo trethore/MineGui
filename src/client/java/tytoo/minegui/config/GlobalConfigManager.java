@@ -26,7 +26,7 @@ public final class GlobalConfigManager {
     private static final Map<String, ConfigState> CONTEXTS = new HashMap<>();
     private static final ConfigPathStrategy DEFAULT_STRATEGY = ConfigPathStrategies.sandboxed();
     private static Path configRoot = determineConfigRoot();
-    private static Path namespaceRoot = configRoot.resolve(MineGuiCore.ID).normalize();
+    private static Path namespaceRoot = configRoot;
     private static String defaultNamespace = DEFAULT_NAMESPACE;
 
     private GlobalConfigManager() {
@@ -661,7 +661,13 @@ public final class GlobalConfigManager {
 
         private ConfigState(String namespace) {
             this.namespace = namespace;
-            this.baseDirectory = namespaceRoot.resolve(namespace).normalize();
+            Path base = configRoot;
+            Path fileName = base.getFileName();
+            if (fileName != null && fileName.toString().equals(namespace)) {
+                this.baseDirectory = base.normalize();
+            } else {
+                this.baseDirectory = base.resolve(namespace).normalize();
+            }
             this.defaultConfigFile = baseDirectory.resolve("global_config.json");
             this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
             this.config = new GlobalConfig();
