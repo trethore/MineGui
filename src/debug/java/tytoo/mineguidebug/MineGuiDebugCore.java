@@ -1,4 +1,4 @@
-package tytoo.minegui_debug;
+package tytoo.mineguidebug;
 
 import imgui.flag.ImGuiDockNodeFlags;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -9,13 +9,13 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.runtime.MineGuiContext;
-import tytoo.minegui_debug.view.PlaygroundView;
+import tytoo.mineguidebug.view.PlaygroundView;
 
 import java.util.Objects;
 
 @SuppressWarnings("unused")
 public final class MineGuiDebugCore {
-    public static final String ID = "minegui_debug";
+    public static final String ID = "mineguidebug";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiDebugCore.class);
 
     private MineGuiDebugCore() {

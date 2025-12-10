@@ -1,28 +1,36 @@
+import tytoo.minegui.UnpackSourcesTask
+
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+    id 'fabric-loom' version "${loom_version}"
     id 'com.github.johnrengelman.shadow' version '8.1.1'
-	id 'maven-publish'
+    id 'maven-publish'
 }
 
 version = project.mod_version
 group = project.maven_group
 
 // version
-def mcVersion = project.property('minecraft_version')
-def fabricVer = project.property('fabric_version')
-def yarnMappings = project.property('yarn_mappings')
-def yarnSuffix = yarnMappings.startsWith("${mcVersion}+")
-        ? yarnMappings.substring(("${mcVersion}+").length())
-        : yarnMappings
-def compatSuffix = "${fabricVer}+${yarnSuffix}"
+def computeCompatSuffix() {
+    def mcVersion = project.property('minecraft_version')
+    def fabricVer = project.property('fabric_version')
+    def yarnMappings = project.property('yarn_mappings')
 
-version = "${project.mod_version}-${compatSuffix}"
+    def yarnSuffix = yarnMappings.startsWith("${mcVersion}+") ?
+            yarnMappings.substring(("${mcVersion}+").length()) :
+            yarnMappings
+
+    return "${fabricVer}+${yarnSuffix}"
+}
+
+
+version = "${project.mod_version}-${computeCompatSuffix()}"
 
 base {
-	archivesName = project.archives_base_name
+    archivesName = project.archives_base_name
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -45,7 +53,7 @@ loom {
         "mcwebui" {
             sourceSet sourceSets.named('client').get()
         }
-        "mcwebui-debug" {
+        "mcwebuidebug" {
             sourceSet sourceSets.named('debug').get()
         }
     }
@@ -64,64 +72,78 @@ loom {
     }
 }
 
-dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+configurations {
+    sourceDeps
+    cfr
+}
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+dependencies {
+    // To change the versions see the gradle.properties file
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Fabric API. This is technically optional, but you probably want it anyway.
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    //cfr
+    cfr "org.benf:cfr:0.152"
 
     //lombok
-    compileOnly 'org.projectlombok:lombok:1.18.42'
-    annotationProcessor 'org.projectlombok:lombok:1.18.42'
-    clientCompileOnly 'org.projectlombok:lombok:1.18.42'
-    clientAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
-    debugCompileOnly 'org.projectlombok:lombok:1.18.42'
-    debugAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+    compileOnly "org.projectlombok:lombok:${project.lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${project.lombokVersion}"
+    clientCompileOnly "org.projectlombok:lombok:${project.lombokVersion}"
+    clientAnnotationProcessor "org.projectlombok:lombok:${project.lombokVersion}"
 
     // imgui
-    shadow(implementation fileTree('libs') {include '*.jar'})
-	
+    shadow(implementation fileTree('libs') { include '*.jar' })
+    sourceDeps fileTree('libs-dev') { include '*-sources.jar' }
+
 }
 
 tasks.named("processClientResources").configure {
-    inputs.property("version", project.version)
-    filesMatching("fabric.mod.json") { expand(version: project.version) }
+    def version = project.version
+    inputs.property("version", version)
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
 }
 
 tasks.named("processDebugResources").configure {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    inputs.property("version", project.version)
-    filesMatching("fabric.mod.json") { expand(version: project.version) }
+    def version = project.version
+    inputs.property("version", version)
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
 }
 
 processResources {
-    inputs.property "version", project.version
+    def version = project.version
+    inputs.property "version", version
 
     filesMatching("fabric.mod.json") {
-        expand "version": inputs.properties.version
+        expand "version": version
     }
 }
 
 // java
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+    it.options.release = 21
 }
 
 java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {
-	inputs.property "archivesName", project.base.archivesName
+    inputs.property "archivesName", project.base.archivesName
 
-	from("LICENSE") {
-		rename { "${it}_${inputs.properties.archivesName}"}
-	}
+    from("LICENSE") {
+        rename { "${it}_${inputs.properties.archivesName}" }
+    }
     exclude 'tytoo/minegui_debug/**'
 }
 
@@ -181,39 +203,27 @@ remapJar {
     inputFile = tasks.shadowJar.archiveFile
 }
 
-configurations {
-    decompiler
+// --- Source browsing helpers ---
+
+def unpackedSourcesDir = layout.projectDirectory.dir("libs-src")
+def sourceDepsConfig = configurations.named('sourceDeps')
+def cfrConfig = configurations.named('cfr')
+def minecraftCacheDirProvider = layout.projectDirectory.dir(".gradle/loom-cache/minecraftMaven")
+def fabricCacheDirProvider = layout.projectDirectory.dir(".gradle/loom-cache/remapped_mods/remapped/net/fabricmc/fabric-api")
+
+tasks.register('cleanSources', Delete) {
+    group = "help"
+    description = "Deletes unpacked sources in libs-src/"
+    delete unpackedSourcesDir
 }
 
-dependencies {
-    decompiler 'org.benf:cfr:0.152'
-}
-
-tasks.register('generateProjectSources') {
-    group = 'documentation'
-    description = 'Decompiles JAR files from libs/ and places sources in project-sources/'
-    doLast {
-        def libsDir = file('libs')
-        def outputDir = file('project-sources')
-        def jarFiles = libsDir.listFiles({ it.name.endsWith('.jar') } as FileFilter)
-        if (jarFiles == null || jarFiles.length == 0) {
-            throw new GradleException("No JAR files found in libs/")
-        }
-        jarFiles.each { jar ->
-            def jarName = jar.name.replaceAll('\\.jar$', '')
-            def targetDir = file("${outputDir}/${jarName}")
-            targetDir.mkdirs()
-            javaexec {
-                classpath = configurations.decompiler
-                mainClass = 'org.benf.cfr.reader.Main'
-                args jar.absolutePath, '--outputdir', targetDir.absolutePath
-            }
-        }
-    }
-}
-
-tasks.register('cleanProjectSources', Delete) {
-    group = 'documentation'
-    description = 'Deletes the project-sources folder'
-    delete 'project-sources'
+tasks.register('unpackSources', UnpackSourcesTask) {
+    group = "help"
+    description = "Unpacks library, Minecraft, and Fabric sources into libs-src/"
+    dependsOn tasks.named('cleanSources')
+    sourceDeps.from(sourceDepsConfig)
+    cfrClasspath.from(cfrConfig)
+    outputDir.set(unpackedSourcesDir)
+    minecraftCacheDir.set(minecraftCacheDirProvider)
+    fabricCacheDir.set(fabricCacheDirProvider)
 }

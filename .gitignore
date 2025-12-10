@@ -39,12 +39,8 @@ replay_*.log
 *.hprof
 *.jfr
 
-# AGENTS
-
-CLAUDE.md
-
 # Other
 
-project-sources/
+libs-src/
 notes.md
 plan.txt

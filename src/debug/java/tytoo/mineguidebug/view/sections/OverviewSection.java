@@ -1,4 +1,4 @@
-package tytoo.minegui_debug.view.sections;
+package tytoo.mineguidebug.view.sections;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;

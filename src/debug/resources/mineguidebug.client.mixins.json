@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "tytoo.minegui_debug.mixin.client",
+  "package": "tytoo.mineguidebug.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [],
   "injectors": {

@@ -1,4 +1,4 @@
-package tytoo.minegui_debug.view.sections;
+package tytoo.mineguidebug.view.sections;
 
 import tytoo.minegui.view.ViewSection;
 

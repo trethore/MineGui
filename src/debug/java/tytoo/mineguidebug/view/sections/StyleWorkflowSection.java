@@ -1,4 +1,4 @@
-package tytoo.minegui_debug.view.sections;
+package tytoo.mineguidebug.view.sections;
 
 import imgui.ImGui;
 import imgui.ImGuiStyle;
@@ -14,7 +14,7 @@ import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
-import tytoo.minegui_debug.MineGuiDebugCore;
+import tytoo.mineguidebug.MineGuiDebugCore;
 
 public final class StyleWorkflowSection implements PlaygroundSection {
     private static final ResourceId MINIMAL_STYLE = ResourceId.of(MineGuiDebugCore.ID, "playground_minimal_style");
