@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ImGuiImageUtils {
     private static final Map<ResourceId, TextureEntry> CACHE = new ConcurrentHashMap<>();
     private static final ThreadLocal<float[]> COLOR_BUFFER = ThreadLocal.withInitial(() -> new float[4]);
+    private static final ThreadLocal<float[]> UV_BUFFER = ThreadLocal.withInitial(() -> new float[8]);
     private static final Runnable NO_OP = () -> {
     };
 
@@ -51,7 +52,8 @@ public final class ImGuiImageUtils {
     public static void drawImage(ResourceId identifier, float x1, float y1, float x2, float y2,
                                  int rotation, boolean parity, float u0, float v0, float u1, float v1, float[] color) {
         TextureEntry entry = ensureTexture(identifier);
-        float[][] uvs = computeUvs(rotation, parity, u0, v0, u1, v1);
+        float[] uvs = UV_BUFFER.get();
+        computeUvs(uvs, rotation, parity, u0, v0, u1, v1);
         float[] rgba = COLOR_BUFFER.get();
         Arrays.fill(rgba, 0.0f);
         int components = color != null ? color.length : 0;
@@ -64,10 +66,10 @@ public final class ImGuiImageUtils {
                 x2, y1,
                 x2, y2,
                 x1, y2,
-                uvs[0][0], uvs[0][1],
-                uvs[1][0], uvs[1][1],
-                uvs[2][0], uvs[2][1],
-                uvs[3][0], uvs[3][1],
+                uvs[0], uvs[1],
+                uvs[2], uvs[3],
+                uvs[4], uvs[5],
+                uvs[6], uvs[7],
                 tint
         );
     }
@@ -80,7 +82,8 @@ public final class ImGuiImageUtils {
     public static void drawImage(ResourceId identifier, float x1, float y1, float x2, float y2,
                                  int rotation, boolean parity, float u0, float v0, float u1, float v1, int tint) {
         TextureEntry entry = ensureTexture(identifier);
-        float[][] uvs = computeUvs(rotation, parity, u0, v0, u1, v1);
+        float[] uvs = UV_BUFFER.get();
+        computeUvs(uvs, rotation, parity, u0, v0, u1, v1);
         ImDrawList drawList = ImGui.getWindowDrawList();
         drawList.addImageQuad(
                 entry.textureId(),
@@ -88,10 +91,10 @@ public final class ImGuiImageUtils {
                 x2, y1,
                 x2, y2,
                 x1, y2,
-                uvs[0][0], uvs[0][1],
-                uvs[1][0], uvs[1][1],
-                uvs[2][0], uvs[2][1],
-                uvs[3][0], uvs[3][1],
+                uvs[0], uvs[1],
+                uvs[2], uvs[3],
+                uvs[4], uvs[5],
+                uvs[6], uvs[7],
                 tint
         );
     }
@@ -184,30 +187,44 @@ public final class ImGuiImageUtils {
         }
     }
 
-    private static float[][] computeUvs(int rotation, boolean parity, float u0, float v0, float u1, float v1) {
-        float[][] coords = new float[][]{
-                {u0, v0},
-                {u1, v0},
-                {u1, v1},
-                {u0, v1}
-        };
+    private static void computeUvs(float[] out, int rotation, boolean parity, float u0, float v0, float u1, float v1) {
+        out[0] = u0;
+        out[1] = v0;
+        out[2] = u1;
+        out[3] = v0;
+        out[4] = u1;
+        out[5] = v1;
+        out[6] = u0;
+        out[7] = v1;
+
         int steps = Math.floorMod(rotation, 4);
         for (int i = 0; i < steps; i++) {
-            float[] last = coords[3];
-            coords[3] = coords[2];
-            coords[2] = coords[1];
-            coords[1] = coords[0];
-            coords[0] = last;
+            float lastU = out[6];
+            float lastV = out[7];
+            out[6] = out[4];
+            out[7] = out[5];
+            out[4] = out[2];
+            out[5] = out[3];
+            out[2] = out[0];
+            out[3] = out[1];
+            out[0] = lastU;
+            out[1] = lastV;
         }
         if (parity) {
-            float[] tmp = coords[1];
-            coords[1] = coords[0];
-            coords[0] = tmp;
-            tmp = coords[3];
-            coords[3] = coords[2];
-            coords[2] = tmp;
+            float tmpU = out[2];
+            float tmpV = out[3];
+            out[2] = out[0];
+            out[3] = out[1];
+            out[0] = tmpU;
+            out[1] = tmpV;
+
+            tmpU = out[6];
+            tmpV = out[7];
+            out[6] = out[4];
+            out[7] = out[5];
+            out[4] = tmpU;
+            out[5] = tmpV;
         }
-        return coords;
     }
 
     private static void flush() {

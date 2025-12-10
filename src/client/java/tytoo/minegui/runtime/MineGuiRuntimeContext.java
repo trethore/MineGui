@@ -27,10 +27,10 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
     public MineGuiRuntimeContext(MineGuiInitializationOptions options) {
         this.options = options;
         NamespaceConfigStore store = options.configStore();
-        // Using "main" as default namespace for now
-        this.config = new NamespaceConfigService("main", store);
-        this.uiManager = UIManager.get("main");
-        this.styleManager = StyleManager.get("main");
+        String namespace = options.namespace();
+        this.config = new NamespaceConfigService(namespace, store);
+        this.uiManager = UIManager.get(namespace);
+        this.styleManager = StyleManager.get(namespace);
         StyleManager defaultStyleManager = StyleManager.get(GlobalConfigManager.getDefaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {
             defaultStyleManager.getGlobalDescriptor()

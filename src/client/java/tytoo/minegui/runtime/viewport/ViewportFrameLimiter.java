@@ -13,6 +13,9 @@ public final class ViewportFrameLimiter {
             return false;
         }
         MineGuiContext context = MineGuiCore.getContext();
+        if (context == null && !MineGuiCore.getAllContexts().isEmpty()) {
+            context = MineGuiCore.getAllContexts().iterator().next();
+        }
         if (context == null) {
             return false;
         }
@@ -20,7 +23,7 @@ public final class ViewportFrameLimiter {
         if (config == null || !config.viewportEnabled()) {
             return false;
         }
-        if (context.ui().hasVisibleViews()) {
+        if (MineGuiCore.hasAnyVisibleViews()) {
             return true;
         }
         return ViewportInteractionTracker.isActive();

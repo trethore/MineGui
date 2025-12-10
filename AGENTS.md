@@ -5,7 +5,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 
 ## General Coding Conventions
 
-- Target Java 21 with 4-space indentation and packages under `net.me.*`.
+- Target Java 21 with 4-space indentation and packages under `tytoo.minegui*`.
 - Use PascalCase for classes, camelCase for methods and fields, and UPPER_SNAKE_CASE for constants.
 - Declare explicit types and avoid `var`; prefer descriptive names over one-letter identifiers.
 - Import types rather than using fully qualified names inside method bodies.

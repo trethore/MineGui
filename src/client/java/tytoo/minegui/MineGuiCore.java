@@ -9,6 +9,7 @@ import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
+import tytoo.minegui.config.ConfigPathStrategies;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiContext;
@@ -17,39 +18,38 @@ import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.MinecraftIdentifiers;
 import tytoo.minegui.util.ResourceId;
 
-import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unused")
 public final class MineGuiCore {
     public static final String ID = "minegui";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
     private static final ResourceId IMGUI_IMAGES_RELOAD_ID = ResourceId.of(ID, "imgui_images");
+    private static final Map<String, MineGuiRuntimeContext> CONTEXTS = new ConcurrentHashMap<>();
     private static boolean reloadListenerRegistered;
     private static boolean lifecycleRegistered;
-
-    private static MineGuiRuntimeContext context;
 
     private MineGuiCore() {
     }
 
-    public static synchronized MineGuiContext init(Path configPath) {
-        return init(configPath, MineGuiInitializationOptions.defaults());
-    }
-
-    public static synchronized MineGuiContext init(Path configPath, MineGuiInitializationOptions options) {
-        if (context != null) {
-            return context;
+    public static synchronized MineGuiContext init(MineGuiInitializationOptions options) {
+        String namespace = options.namespace();
+        if (CONTEXTS.containsKey(namespace)) {
+            return CONTEXTS.get(namespace);
         }
-        Objects.requireNonNull(configPath, "configPath");
         Objects.requireNonNull(options, "options");
 
-        // Setup global config to use the provided path (simplified)
-        // For now, we assume GlobalConfigManager handles "main" namespace mapping to this path
-        // Ideally we refactor GlobalConfigManager too, but for now:
-        GlobalConfigManager.configureDefaultNamespace("main");
+        GlobalConfigManager.configureDefaultNamespace(ID);
+        if (options.configRoot() != null) {
+            GlobalConfigManager.setConfigPathStrategy(namespace, ConfigPathStrategies.root(options.configRoot()));
+        }
 
-        context = new MineGuiRuntimeContext(options);
+        MineGuiRuntimeContext context = new MineGuiRuntimeContext(options);
+        CONTEXTS.put(namespace, context);
 
         registerReloadListener();
         registerLifecycleHandlers();
@@ -58,7 +58,22 @@ public final class MineGuiCore {
     }
 
     public static MineGuiContext getContext() {
-        return context;
+        MineGuiContext context = getContext(GlobalConfigManager.getDefaultNamespace());
+        if (context != null) {
+            return context;
+        }
+        if (!CONTEXTS.isEmpty()) {
+            return CONTEXTS.values().iterator().next();
+        }
+        return null;
+    }
+
+    public static MineGuiContext getContext(String namespace) {
+        return CONTEXTS.get(namespace);
+    }
+
+    public static Collection<MineGuiRuntimeContext> getAllContexts() {
+        return Collections.unmodifiableCollection(CONTEXTS.values());
     }
 
     private static synchronized void registerReloadListener() {
@@ -89,17 +104,21 @@ public final class MineGuiCore {
     }
 
     public static void loadConfig() {
-        if (context == null) return;
-        GlobalConfigManager.load("main");
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.config().reload();
+        }
+        GlobalConfigManager.load(GlobalConfigManager.getDefaultNamespace());
     }
 
     public static void saveConfig() {
-        if (context == null) return;
-        GlobalConfigManager.save("main");
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.config().save();
+        }
+        GlobalConfigManager.save(GlobalConfigManager.getDefaultNamespace());
     }
 
     public static String getConfigNamespace() {
-        return "main";
+        return GlobalConfigManager.getDefaultNamespace();
     }
 
     public static void requestReload() {
@@ -107,6 +126,15 @@ public final class MineGuiCore {
     }
 
     public static boolean isInitialized() {
-        return context != null;
+        return !CONTEXTS.isEmpty();
+    }
+
+    public static boolean hasAnyVisibleViews() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            if (context.ui().hasVisibleViews()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

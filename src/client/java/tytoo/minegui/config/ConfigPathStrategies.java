@@ -15,6 +15,44 @@ public final class ConfigPathStrategies {
         return SANDBOXED;
     }
 
+    public static ConfigPathStrategy root(Path root) {
+        if (root == null) {
+            return SANDBOXED;
+        }
+        return new FixedRootConfigPathStrategy(root);
+    }
+
+    private record FixedRootConfigPathStrategy(Path root) implements ConfigPathStrategy {
+            private FixedRootConfigPathStrategy(Path root) {
+                this.root = root.toAbsolutePath().normalize();
+            }
+
+            @Override
+            public Path resolveConfigFile(ConfigPathRequest request) {
+                return resolve(request.requestedConfigPath(), "global_config.json");
+            }
+
+            @Override
+            public Path resolveViewSavesDirectory(ConfigPathRequest request) {
+                return resolve(request.requestedViewSavesPath(), "views");
+            }
+
+            private Path resolve(String configured, String defaultValue) {
+                if (configured == null || configured.isBlank()) {
+                    return root.resolve(defaultValue);
+                }
+                try {
+                    Path candidate = Path.of(configured);
+                    if (candidate.isAbsolute()) {
+                        return candidate.normalize();
+                    }
+                    return root.resolve(candidate).normalize();
+                } catch (InvalidPathException e) {
+                    return root.resolve(defaultValue);
+                }
+            }
+        }
+
     private static final class SandboxedConfigPathStrategy implements ConfigPathStrategy {
         @Override
         public Path resolveConfigFile(ConfigPathRequest request) {

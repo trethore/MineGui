@@ -244,9 +244,6 @@ public final class StyleManager {
     private NamespaceConfigService configService() {
         MineGuiContext context = MineGuiCore.getContext();
         if (context == null) return null;
-        // In single context mode, we just return the config if namespace matches "main" or if we ignore namespace
-        // Since we force "main" everywhere, it should match.
-        // Or simpler:
         return context.config();
     }
 
