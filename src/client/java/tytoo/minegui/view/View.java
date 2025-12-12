@@ -20,6 +20,12 @@ public abstract class View {
     private ResourceId styleKey;
     @Getter
     private CursorPolicy cursorPolicy;
+    @Getter
+    @Setter
+    private boolean persistentLayout = true;
+    @Getter
+    @Setter
+    private boolean persistentStyle = true;
     private boolean cursorPolicyExplicit;
 
     protected View(String id) {

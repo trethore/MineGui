@@ -21,11 +21,11 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     private final float[] throughputSamples = new float[SAMPLE_CAPACITY];
     private final float[] accentColor = new float[]{0.24f, 0.62f, 1f, 1f};
     private final float[] uvClamp = new float[]{0.15f, 0.85f};
+    private final ImInt themeIndex = new ImInt(0);
     private float progress = 0.35f;
     private float sliderValue = 48f;
     private float commandDelay = 0.18f;
     private int sampleIndex;
-    private final ImInt themeIndex = new ImInt(0);
     private String widgetStatus = "Idle";
 
     @Override

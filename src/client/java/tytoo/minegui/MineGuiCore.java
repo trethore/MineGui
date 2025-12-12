@@ -112,6 +112,7 @@ public final class MineGuiCore {
 
     public static void saveConfig() {
         for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.persistence().flushLayouts();
             context.config().save();
         }
         GlobalConfigManager.save(GlobalConfigManager.getDefaultNamespace());

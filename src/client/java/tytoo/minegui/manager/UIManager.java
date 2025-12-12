@@ -1,8 +1,10 @@
 package tytoo.minegui.manager;
 
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.util.profiler.Profilers;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
@@ -11,9 +13,11 @@ import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
+import tytoo.minegui.view.persistence.ViewPersistenceManager;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -24,6 +28,8 @@ public final class UIManager {
     private final StyleManager styleManager;
     @Getter
     private final List<View> views = new CopyOnWriteArrayList<>();
+    @Setter
+    private ViewPersistenceManager persistenceManager;
     @Getter
     private volatile CursorPolicy defaultCursorPolicy;
 
@@ -41,6 +47,16 @@ public final class UIManager {
         return get(MineGuiCore.getConfigNamespace());
     }
 
+    private ViewPersistenceManager persistence() {
+        if (persistenceManager == null) {
+            MineGuiContext context = MineGuiCore.getContext(namespace);
+            if (context != null) {
+                persistenceManager = context.persistence();
+            }
+        }
+        return persistenceManager;
+    }
+
     public String namespace() {
         return namespace;
     }
@@ -53,6 +69,10 @@ public final class UIManager {
             views.add(view);
             view.attach();
             view.applyDefaultCursorPolicy(defaultCursorPolicy);
+            ViewPersistenceManager manager = persistence();
+            if (manager != null) {
+                manager.register(view);
+            }
         }
     }
 
@@ -83,6 +103,10 @@ public final class UIManager {
         }
         views.remove(view);
         view.detach();
+        ViewPersistenceManager manager = persistence();
+        if (manager != null) {
+            manager.unregister(view);
+        }
     }
 
     public void setDefaultCursorPolicy(CursorPolicy policy) {
@@ -106,6 +130,35 @@ public final class UIManager {
         return !views.isEmpty();
     }
 
+    public void saveLayoutNow(View view) {
+        ViewPersistenceManager manager = persistence();
+        if (manager != null) {
+            manager.saveLayoutNow(view);
+        }
+    }
+
+    public void saveStyleSnapshot(View view) {
+        StyleDescriptor descriptor = styleManager.getEffectiveDescriptor().orElse(null);
+        saveStyleSnapshot(view, descriptor);
+    }
+
+    public void saveStyleSnapshot(View view, StyleDescriptor descriptor) {
+        if (descriptor == null) {
+            return;
+        }
+        ViewPersistenceManager manager = persistence();
+        if (manager != null) {
+            manager.saveStyleSnapshot(view, descriptor, true);
+        }
+    }
+
+    public void deleteStyleSnapshot(View view) {
+        ViewPersistenceManager manager = persistence();
+        if (manager != null) {
+            manager.deleteStyleSnapshot(view);
+        }
+    }
+
     public void render() {
         if (views.isEmpty()) {
             return;
@@ -119,36 +172,58 @@ public final class UIManager {
                 if (!view.isVisible()) {
                     continue;
                 }
+                ViewPersistenceManager manager = persistence();
+                if (manager != null) {
+                    manager.ensureLoaded(view);
+                }
                 ResourceId originalKey = styleManager.getGlobalStyleKey();
                 StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
-                applyViewBaseStyle(view, originalDescriptor);
+                StyleDescriptor appliedBase = applyViewBaseStyle(view, originalDescriptor);
                 Profilers.get().push(view.getClass().getSimpleName());
                 StyleDelta delta = view.configureStyleDelta();
                 try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
                     view.render();
+                    if (manager != null && view.isPersistentStyle()) {
+                        styleManager.getEffectiveDescriptor().ifPresent(effective -> manager.saveStyleSnapshot(view, effective, false));
+                    }
                 } finally {
                     Profilers.get().pop();
                     restoreBaseStyle(originalKey, originalDescriptor);
+                    if (manager != null) {
+                        if (view.isPersistentLayout()) {
+                            manager.markLayoutDirty(view, false);
+                        }
+                    }
                 }
+            }
+            ViewPersistenceManager manager = persistence();
+            if (manager != null) {
+                manager.flushLayouts();
             }
         } finally {
             StyleManager.popActive(styleManager);
         }
     }
 
-    private void applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
+    private StyleDescriptor applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
         ResourceId styleKey = view.getStyleKey();
         if (styleKey != null) {
             styleManager.setGlobalStyleKeyTransient(styleKey);
         }
         StyleDescriptor descriptor = styleManager.getEffectiveDescriptor().orElse(fallbackDescriptor);
-        if (descriptor != null) {
-            StyleDescriptor updated = view.configureBaseStyle(descriptor);
-            if (updated != null && updated != descriptor) {
-                styleManager.setGlobalDescriptor(updated);
+        StyleDescriptor persisted = Optional.ofNullable(persistence())
+                .flatMap(manager -> manager.styleSnapshot(view))
+                .orElse(null);
+        StyleDescriptor resolved = persisted != null ? persisted : descriptor;
+        if (resolved != null) {
+            StyleDescriptor updated = view.configureBaseStyle(resolved);
+            if (updated != null) {
+                resolved = updated;
             }
+            styleManager.setGlobalDescriptor(resolved);
         }
         styleManager.apply();
+        return styleManager.getEffectiveDescriptor().orElse(resolved);
     }
 
     private void restoreBaseStyle(ResourceId originalKey, StyleDescriptor originalDescriptor) {

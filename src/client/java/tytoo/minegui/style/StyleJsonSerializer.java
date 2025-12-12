@@ -2,10 +2,12 @@ package tytoo.minegui.style;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import tytoo.minegui.util.ResourceId;
 
 import java.util.Map;
+import java.util.Optional;
 
 public final class StyleJsonSerializer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -86,11 +88,94 @@ public final class StyleJsonSerializer {
         return GSON.toJson(root);
     }
 
+    public static Optional<StyleDescriptor> fromJson(String json) {
+        if (json == null || json.isBlank()) {
+            return Optional.empty();
+        }
+        JsonObject root = GSON.fromJson(json, JsonObject.class);
+        if (root == null) {
+            return Optional.empty();
+        }
+        StyleDescriptor.Builder builder = StyleDescriptor.builder();
+        builder.alpha(floatVal(root, "alpha", 1.0f));
+        builder.disabledAlpha(floatVal(root, "disabledAlpha", 1.0f));
+        builder.windowPadding(vec(root, "windowPadding", Vec2.of(0.0f, 0.0f)));
+        builder.windowRounding(floatVal(root, "windowRounding", 0.0f));
+        builder.windowBorderSize(floatVal(root, "windowBorderSize", 0.0f));
+        builder.windowMinSize(vec(root, "windowMinSize", Vec2.of(0.0f, 0.0f)));
+        builder.windowTitleAlign(vec(root, "windowTitleAlign", Vec2.of(0.5f, 0.5f)));
+        builder.windowMenuButtonPosition(intVal(root, "windowMenuButtonPosition", 0));
+        builder.childRounding(floatVal(root, "childRounding", 0.0f));
+        builder.childBorderSize(floatVal(root, "childBorderSize", 0.0f));
+        builder.popupRounding(floatVal(root, "popupRounding", 0.0f));
+        builder.popupBorderSize(floatVal(root, "popupBorderSize", 0.0f));
+        builder.framePadding(vec(root, "framePadding", Vec2.of(0.0f, 0.0f)));
+        builder.frameRounding(floatVal(root, "frameRounding", 0.0f));
+        builder.frameBorderSize(floatVal(root, "frameBorderSize", 0.0f));
+        builder.itemSpacing(vec(root, "itemSpacing", Vec2.of(0.0f, 0.0f)));
+        builder.itemInnerSpacing(vec(root, "itemInnerSpacing", Vec2.of(0.0f, 0.0f)));
+        builder.cellPadding(vec(root, "cellPadding", Vec2.of(0.0f, 0.0f)));
+        builder.touchExtraPadding(vec(root, "touchExtraPadding", Vec2.of(0.0f, 0.0f)));
+        builder.indentSpacing(floatVal(root, "indentSpacing", 0.0f));
+        builder.columnsMinSpacing(floatVal(root, "columnsMinSpacing", 0.0f));
+        builder.scrollbarSize(floatVal(root, "scrollbarSize", 0.0f));
+        builder.scrollbarRounding(floatVal(root, "scrollbarRounding", 0.0f));
+        builder.grabMinSize(floatVal(root, "grabMinSize", 0.0f));
+        builder.grabRounding(floatVal(root, "grabRounding", 0.0f));
+        builder.logSliderDeadzone(floatVal(root, "logSliderDeadzone", 0.0f));
+        builder.tabRounding(floatVal(root, "tabRounding", 0.0f));
+        builder.tabBorderSize(floatVal(root, "tabBorderSize", 0.0f));
+        builder.tabMinWidthForCloseButton(floatVal(root, "tabMinWidthForCloseButton", 0.0f));
+        builder.colorButtonPosition(intVal(root, "colorButtonPosition", 0));
+        builder.buttonTextAlign(vec(root, "buttonTextAlign", Vec2.of(0.5f, 0.5f)));
+        builder.selectableTextAlign(vec(root, "selectableTextAlign", Vec2.of(0.0f, 0.0f)));
+        builder.displayWindowPadding(vec(root, "displayWindowPadding", Vec2.of(0.0f, 0.0f)));
+        builder.displaySafeAreaPadding(vec(root, "displaySafeAreaPadding", Vec2.of(0.0f, 0.0f)));
+        builder.mouseCursorScale(floatVal(root, "mouseCursorScale", 1.0f));
+        builder.antiAliasedLines(boolVal(root, "antiAliasedLines", true));
+        builder.antiAliasedLinesUseTex(boolVal(root, "antiAliasedLinesUseTex", true));
+        builder.antiAliasedFill(boolVal(root, "antiAliasedFill", true));
+        builder.curveTessellationTol(floatVal(root, "curveTessellationTol", 1.25f));
+        builder.circleTessellationMaxError(floatVal(root, "circleTessellationMaxError", 0.3f));
+
+        ResourceId fontKey = resourceId(root, "fontKey");
+        if (fontKey != null) {
+            builder.fontKey(fontKey);
+        }
+        if (root.has("fontSize")) {
+            builder.fontSize(floatValNullable(root, "fontSize", null));
+        }
+
+        JsonObject colors = root.has("colors") && root.get("colors").isJsonObject() ? root.getAsJsonObject("colors") : null;
+        if (colors != null) {
+            ColorPalette.Builder paletteBuilder = ColorPalette.builder();
+            for (Map.Entry<String, JsonElement> entry : colors.entrySet()) {
+                int key = parseInt(entry.getKey(), -1);
+                if (key < 0) continue;
+                int color = parseColor(entry.getValue().getAsString());
+                paletteBuilder.set(key, color);
+            }
+            builder.colorPalette(paletteBuilder.build());
+        }
+
+        return Optional.of(builder.build());
+    }
+
     private static JsonObject vec(Vec2 value) {
         JsonObject vec = new JsonObject();
         vec.addProperty("x", value.x());
         vec.addProperty("y", value.y());
         return vec;
+    }
+
+    private static Vec2 vec(JsonObject root, String key, Vec2 fallback) {
+        if (root == null || key == null || !root.has(key) || !root.get(key).isJsonObject()) {
+            return fallback;
+        }
+        JsonObject obj = root.getAsJsonObject(key);
+        float x = floatVal(obj, "x", fallback.x());
+        float y = floatVal(obj, "y", fallback.y());
+        return Vec2.of(x, y);
     }
 
     private static JsonObject colors(ColorPalette palette) {
@@ -106,5 +191,87 @@ public final class StyleJsonSerializer {
 
     private static String toHex(int color) {
         return String.format("#%08X", color);
+    }
+
+    private static float floatVal(JsonObject root, String key, Float fallback) {
+        if (root == null || key == null || !root.has(key)) {
+            return fallback != null ? fallback : 0.0f;
+        }
+        try {
+            return root.get(key).getAsFloat();
+        } catch (RuntimeException ignored) {
+            return fallback != null ? fallback : 0.0f;
+        }
+    }
+
+    private static Float floatValNullable(JsonObject root, String key, Float fallback) {
+        if (root == null || key == null || !root.has(key)) {
+            return fallback;
+        }
+        try {
+            return root.get(key).getAsFloat();
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static int intVal(JsonObject root, String key, int fallback) {
+        if (root == null || key == null || !root.has(key)) {
+            return fallback;
+        }
+        try {
+            return root.get(key).getAsInt();
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static boolean boolVal(JsonObject root, String key, boolean fallback) {
+        if (root == null || key == null || !root.has(key)) {
+            return fallback;
+        }
+        try {
+            return root.get(key).getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static ResourceId resourceId(JsonObject root, String key) {
+        if (root == null || key == null || !root.has(key)) {
+            return null;
+        }
+        String value = root.get(key).getAsString();
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return ResourceId.tryParse(value);
+    }
+
+    private static int parseColor(String raw) {
+        if (raw == null) {
+            return 0;
+        }
+        String normalized = raw.trim();
+        try {
+            if (normalized.startsWith("#")) {
+                normalized = normalized.substring(1);
+            }
+            long parsed = Long.parseUnsignedLong(normalized, 16);
+            return (int) parsed;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static int parseInt(String raw, int fallback) {
+        if (raw == null) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 }

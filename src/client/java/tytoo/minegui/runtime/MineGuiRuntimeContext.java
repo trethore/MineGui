@@ -12,6 +12,9 @@ import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
+import tytoo.minegui.view.persistence.DefaultViewPersistenceAdapter;
+import tytoo.minegui.view.persistence.ViewPersistenceAdapter;
+import tytoo.minegui.view.persistence.ViewPersistenceManager;
 
 import java.util.Objects;
 
@@ -20,6 +23,7 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
     private final NamespaceConfigService config;
     private final UIManager uiManager;
     private final StyleManager styleManager;
+    private final ViewPersistenceManager persistenceManager;
     private ResourceId defaultCursorPolicyId;
     private CursorPolicy defaultCursorPolicy;
     private volatile DockspaceCustomizer dockspaceCustomizer;
@@ -31,6 +35,12 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
         this.config = new NamespaceConfigService(namespace, store);
         this.uiManager = UIManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
+        ViewPersistenceAdapter persistenceAdapter = options.viewPersistenceAdapter();
+        if (persistenceAdapter == null) {
+            persistenceAdapter = new DefaultViewPersistenceAdapter(GlobalConfigManager.getViewSavesDirectory(namespace));
+        }
+        this.persistenceManager = new ViewPersistenceManager(namespace, this.config, persistenceAdapter);
+        this.uiManager.setPersistenceManager(this.persistenceManager);
         StyleManager defaultStyleManager = StyleManager.get(GlobalConfigManager.getDefaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {
             defaultStyleManager.getGlobalDescriptor()
@@ -61,6 +71,11 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
     @Override
     public StyleManager style() {
         return styleManager;
+    }
+
+    @Override
+    public ViewPersistenceManager persistence() {
+        return persistenceManager;
     }
 
     @Override

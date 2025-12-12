@@ -4,6 +4,8 @@ import tytoo.minegui.config.*;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
+import tytoo.minegui.view.persistence.DefaultViewPersistenceAdapter;
+import tytoo.minegui.view.persistence.ViewPersistenceAdapter;
 
 import java.nio.file.Path;
 import java.util.Set;
@@ -18,7 +20,8 @@ public record MineGuiInitializationOptions(
         ConfigPathStrategy configPathStrategy,
         ResourceId defaultCursorPolicyId,
         DockspaceCustomizer dockspaceCustomizer,
-        NamespaceConfigStore configStore
+        NamespaceConfigStore configStore,
+        ViewPersistenceAdapter viewPersistenceAdapter
 ) {
     public MineGuiInitializationOptions {
         if (namespace == null || namespace.isBlank()) {
@@ -32,6 +35,9 @@ public record MineGuiInitializationOptions(
         defaultCursorPolicyId = defaultCursorPolicyId != null ? defaultCursorPolicyId : CursorPolicies.clickToLockId();
         dockspaceCustomizer = dockspaceCustomizer != null ? dockspaceCustomizer : DockspaceCustomizer.noop();
         configStore = configStore != null ? configStore : new GlobalConfigNamespaceConfigStore();
+        if (viewPersistenceAdapter == null) {
+            viewPersistenceAdapter = new DefaultViewPersistenceAdapter(GlobalConfigManager.getViewSavesDirectory(namespace));
+        }
     }
 
     public static Builder builder() {
@@ -51,23 +57,23 @@ public record MineGuiInitializationOptions(
     }
 
     public MineGuiInitializationOptions withNamespace(String namespace) {
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withConfigRoot(Path configRoot) {
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withLoadGlobalConfig(boolean loadGlobalConfig) {
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withIgnoreGlobalConfig(boolean ignoreGlobalConfig) {
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withFeatureProfile(ConfigFeatureProfile profile) {
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, profile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, profile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withLoadFeatures(Set<ConfigFeature> features) {
@@ -88,22 +94,27 @@ public record MineGuiInitializationOptions(
 
     public MineGuiInitializationOptions withDefaultCursorPolicy(ResourceId policyId) {
         ResourceId normalized = policyId != null ? policyId : CursorPolicies.clickToLockId();
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, normalized, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, normalized, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withDockspaceCustomizer(DockspaceCustomizer customizer) {
         DockspaceCustomizer normalized = customizer != null ? customizer : DockspaceCustomizer.noop();
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, normalized, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, normalized, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withConfigPathStrategy(ConfigPathStrategy strategy) {
         ConfigPathStrategy normalized = strategy != null ? strategy : ConfigPathStrategies.sandboxed();
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, normalized, defaultCursorPolicyId, dockspaceCustomizer, configStore);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, normalized, defaultCursorPolicyId, dockspaceCustomizer, configStore, viewPersistenceAdapter);
     }
 
     public MineGuiInitializationOptions withConfigStore(NamespaceConfigStore store) {
         NamespaceConfigStore normalized = store != null ? store : new GlobalConfigNamespaceConfigStore();
-        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, normalized);
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, normalized, viewPersistenceAdapter);
+    }
+
+    public MineGuiInitializationOptions withViewPersistenceAdapter(ViewPersistenceAdapter adapter) {
+        ViewPersistenceAdapter normalized = adapter != null ? adapter : new DefaultViewPersistenceAdapter(GlobalConfigManager.getViewSavesDirectory(namespace));
+        return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, normalized);
     }
 
     public static final class Builder {
@@ -116,6 +127,7 @@ public record MineGuiInitializationOptions(
         private ResourceId defaultCursorPolicyId = CursorPolicies.clickToLockId();
         private DockspaceCustomizer dockspaceCustomizer = DockspaceCustomizer.noop();
         private NamespaceConfigStore configStore = new GlobalConfigNamespaceConfigStore();
+        private ViewPersistenceAdapter viewPersistenceAdapter;
 
         private Builder() {
         }
@@ -189,6 +201,11 @@ public record MineGuiInitializationOptions(
             return this;
         }
 
+        public Builder viewPersistenceAdapter(ViewPersistenceAdapter adapter) {
+            this.viewPersistenceAdapter = adapter;
+            return this;
+        }
+
         public MineGuiInitializationOptions build() {
             return new MineGuiInitializationOptions(
                     namespace,
@@ -199,7 +216,8 @@ public record MineGuiInitializationOptions(
                     configPathStrategy,
                     defaultCursorPolicyId,
                     dockspaceCustomizer,
-                    configStore
+                    configStore,
+                    viewPersistenceAdapter
             );
         }
     }
