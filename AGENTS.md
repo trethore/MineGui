@@ -5,7 +5,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 
 ## General Coding Conventions
 
-- Target Java 21 with 4-space indentation and packages under `tytoo.minegui*`.
+- Target Java 21 with 4-space indentation, and packages under `tytoo.minegui*`.
 - Use PascalCase for classes, camelCase for methods and fields, and UPPER_SNAKE_CASE for constants.
 - Declare explicit types and avoid `var`; prefer descriptive names over one-letter identifiers.
 - Import types rather than using fully qualified names inside method bodies.
@@ -17,7 +17,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
   formatting tools.
 - If requirements are unclear or infeasible, request clarification before proceeding.
 - Order members in Java classes consistently: static constants, static fields, instance fields, constructors, overridden
-  methods, public methods, protected/private helpers, then getters and setters at the bottom.
+  methods, public methods, protected/private helpers, and finally getters and setters.
 
 ## Java 21 Expectations
 
@@ -52,7 +52,7 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 
 ## Testing & Verification
 
-- **NEVER** execute any Gradle commands (such as `./gradlew ...`) yourself; instead,  **ALWAYS** provide the exact
+- **NEVER** execute any Gradle commands (such as `./gradlew ...`) yourself; instead, **ALWAYS** provide the exact
   command for the user to run manually.
 - Encourage running `./gradlew compileJava` after changes, `./gradlew build` for full validation, and
   `./gradlew runClient` to test UI flows.

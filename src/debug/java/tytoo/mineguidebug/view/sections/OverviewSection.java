@@ -33,7 +33,10 @@ public final class OverviewSection implements PlaygroundSection {
 
     private void renderIntro() {
         ImGui.text("MineGui Playground");
-        ImGui.textWrapped("A single view keeps all debug samples together. Each tab highlights ImGui primitives alongside MineGui helpers so you can inspect best practices without juggling multiple overlays.");
+        ImGui.textWrapped("""
+                Tabs pack ImGui primitives and MineGui helpers in one place: try widgets, inspect styles, and preview resources without touching the stock ImGui demo window.
+                Press G in-game (with no screen open) to toggle this view.
+                """);
         ImGui.separator();
     }
 
@@ -69,12 +72,13 @@ public final class OverviewSection implements PlaygroundSection {
         if (ImGui.beginTable("playground_overview_practices", 2, flags)) {
             ImGui.tableSetupColumn("Topic", ImGuiTableColumnFlags.WidthFixed, 140f);
             ImGui.tableSetupColumn("Guidance");
-            renderPracticeRow("Immediate mode", "Keep state in fields (ImBoolean, ImString) and mutate it inline each frame.");
-            renderPracticeRow("View lifecycle", parent.hasExplicitCursorPolicy()
-                    ? "Cursor policy locked to view for predictable focus."
-                    : "Views inherit cursor policies; call setCursorPolicy when you need explicit capture.");
-            renderPracticeRow("Layout helpers", "Stacks and windows remain optional. Mix raw ImGui with MineGui helpers as needed.");
-            renderPracticeRow("Input relays", "Reusing ImString buffers avoids allocations while dragging sliders or typing.");
+            renderPracticeRow("Immediate mode", "Hold ImBoolean/ImString fields in the section; ImGui pulls by reference each frame.");
+            renderPracticeRow("Window helper", "Window.of(...) drives titles, flags, and docking in one call.");
+            renderPracticeRow("Cursor policy", parent.hasExplicitCursorPolicy()
+                    ? "Click-to-lock enabled for consistent focus."
+                    : "Set an explicit policy when a view needs locked cursor behavior.");
+            renderPracticeRow("Style registry", "NamedStyleRegistry keeps palettes reusable per view or namespace.");
+            renderPracticeRow("Resource bridge", "ImGuiImageUtils pulls Minecraft textures straight into draw lists.");
             ImGui.endTable();
         }
     }
