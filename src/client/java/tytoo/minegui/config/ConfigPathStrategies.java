@@ -35,7 +35,7 @@ public final class ConfigPathStrategies {
 
         @Override
         public Path resolveViewSavesDirectory(ConfigPathRequest request) {
-            return resolve(request.requestedViewSavesPath(), "views");
+            return resolve(request.requestedViewSavesPath(), ".");
         }
 
         private Path resolve(String configured, String defaultValue) {

@@ -3,12 +3,9 @@ package tytoo.minegui.config;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public final class GlobalConfig {
     private static final String DEFAULT_CONFIG_PATH = "global_config.json";
-    private static final String DEFAULT_VIEW_SAVES_PATH = "views";
+    private static final String DEFAULT_VIEW_SAVES_PATH = "";
 
     @Setter
     private boolean viewport = true;
@@ -24,26 +21,12 @@ public final class GlobalConfig {
     private String viewSavesPath = DEFAULT_VIEW_SAVES_PATH;
     @Getter
     private String globalStyleKey;
-    private Map<String, String> viewStyles = new HashMap<>();
 
     public GlobalConfig() {
     }
 
     public static String getDefaultViewSavesPath() {
         return DEFAULT_VIEW_SAVES_PATH;
-    }
-
-    private static Map<String, String> sanitizeViewStyles(Map<String, String> source) {
-        Map<String, String> cleaned = new HashMap<>();
-        for (Map.Entry<String, String> entry : source.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            if (key == null || value == null) {
-                continue;
-            }
-            cleaned.put(key, value);
-        }
-        return cleaned;
     }
 
     public boolean isViewportEnabled() {
@@ -64,22 +47,5 @@ public final class GlobalConfig {
 
     public void setGlobalStyleKey(String globalStyleKey) {
         this.globalStyleKey = (globalStyleKey == null || globalStyleKey.isBlank()) ? null : globalStyleKey;
-    }
-
-    public Map<String, String> getViewStyles() {
-        if (viewStyles == null) {
-            viewStyles = new HashMap<>();
-        } else {
-            viewStyles.entrySet().removeIf(entry -> entry.getKey() == null || entry.getValue() == null);
-        }
-        return new HashMap<>(viewStyles);
-    }
-
-    public void setViewStyles(Map<String, String> viewStyles) {
-        if (viewStyles == null || viewStyles.isEmpty()) {
-            this.viewStyles = new HashMap<>();
-            return;
-        }
-        this.viewStyles = sanitizeViewStyles(viewStyles);
     }
 }

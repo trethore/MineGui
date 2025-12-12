@@ -160,7 +160,7 @@ public final class GlobalConfigManager {
         GlobalConfig snapshot = cloneConfig(baseDocument != null ? baseDocument : new GlobalConfig());
         ensureViewPath(snapshot);
         ConfigPathResolution snapshotPaths = resolvePaths(state, snapshot);
-        applyResolvedPaths(snapshot, snapshotPaths);
+        applyResolvedPaths(state, snapshot, snapshotPaths);
         Path snapshotConfigPath = snapshotPaths.configFile();
 
         if (state.featureProfile.shouldLoad(ConfigFeature.CORE)) {
@@ -169,7 +169,7 @@ public final class GlobalConfigManager {
                 snapshot = cloneConfig(overrideConfig);
                 ensureViewPath(snapshot);
                 snapshotPaths = resolvePaths(state, snapshot);
-                applyResolvedPaths(snapshot, snapshotPaths);
+                applyResolvedPaths(state, snapshot, snapshotPaths);
                 snapshotConfigPath = snapshotPaths.configFile();
             }
         }
@@ -181,7 +181,7 @@ public final class GlobalConfigManager {
         GlobalConfig runtime = applyLoadProfile(snapshot, state.featureProfile);
         ensureViewPath(runtime);
         ConfigPathResolution runtimePaths = resolvePaths(state, runtime);
-        applyResolvedPaths(runtime, runtimePaths);
+        applyResolvedPaths(state, runtime, runtimePaths);
         Path runtimeConfigPath = runtimePaths.configFile();
         Path runtimeViewPath = runtimePaths.viewSavesDirectory();
         ensureDirectory(runtimeConfigPath.getParent());
@@ -220,7 +220,7 @@ public final class GlobalConfigManager {
 
         ensureViewPath(state.config);
         ConfigPathResolution runtimePaths = resolvePaths(state, state.config);
-        applyResolvedPaths(state.config, runtimePaths);
+        applyResolvedPaths(state, state.config, runtimePaths);
         Path runtimeConfigPath = runtimePaths.configFile();
         Path runtimeViewPath = runtimePaths.viewSavesDirectory();
         ensureDirectory(runtimeConfigPath.getParent());
@@ -417,7 +417,6 @@ public final class GlobalConfigManager {
             }
             String storedViewPath = sanitizeStoredPath(parsed.getViewSavesPath());
             parsed.setViewSavesPath(Objects.requireNonNullElseGet(storedViewPath, GlobalConfig::getDefaultViewSavesPath));
-            parsed.getViewStyles();
             parsed.setGlobalScale(parsed.getGlobalScale());
             return parsed;
         } catch (IOException | JsonParseException e) {
@@ -437,10 +436,8 @@ public final class GlobalConfigManager {
         }
         if (profile.shouldLoad(ConfigFeature.STYLE_REFERENCES)) {
             runtime.setGlobalStyleKey(source.getGlobalStyleKey());
-            runtime.setViewStyles(source.getViewStyles());
         } else {
             runtime.setGlobalStyleKey(null);
-            runtime.setViewStyles(new HashMap<>());
         }
         return runtime;
     }
@@ -456,17 +453,20 @@ public final class GlobalConfigManager {
         }
         if (profile.shouldSave(ConfigFeature.STYLE_REFERENCES)) {
             target.setGlobalStyleKey(runtime.getGlobalStyleKey());
-            target.setViewStyles(runtime.getViewStyles());
         }
         return target;
     }
 
     private static void writeConfig(Path path, GlobalConfig value, ConfigState state) {
         GlobalConfig payload = cloneConfig(value);
-        payload.setConfigPath(relativizeToConfigRoot(path));
+        payload.setConfigPath(relativizeConfigPath(state, path));
         Path resolvedViewDir = resolveViewSavesPath(state, payload);
         ensureDirectory(resolvedViewDir);
-        payload.setViewSavesPath(relativizeToConfigRoot(resolvedViewDir));
+        if (resolvedViewDir != null && resolvedViewDir.equals(state.defaultViewSavesDir)) {
+            payload.setViewSavesPath("");
+        } else {
+            payload.setViewSavesPath(relativizeToConfigRoot(resolvedViewDir));
+        }
         payload.setGlobalScale(payload.getGlobalScale());
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
             GSON.toJson(payload, writer);
@@ -490,7 +490,7 @@ public final class GlobalConfigManager {
         ConfigPathResolution resolution = resolvePaths(state, target);
         Path resolved = resolution.configFile();
         if (target != null) {
-            target.setConfigPath(relativizeToConfigRoot(resolved));
+            target.setConfigPath(relativizeConfigPath(state, resolved));
         }
         return resolved;
     }
@@ -499,7 +499,11 @@ public final class GlobalConfigManager {
         ConfigPathResolution resolution = resolvePaths(state, target);
         Path resolved = resolution.viewSavesDirectory();
         if (target != null) {
-            target.setViewSavesPath(relativizeToConfigRoot(resolved));
+            if (resolved != null && resolved.equals(state.defaultViewSavesDir)) {
+                target.setViewSavesPath("");
+            } else {
+                target.setViewSavesPath(relativizeToConfigRoot(resolved));
+            }
         }
         return resolved;
     }
@@ -520,12 +524,17 @@ public final class GlobalConfigManager {
         return new ConfigPathResolution(configPath, viewPath);
     }
 
-    private static void applyResolvedPaths(GlobalConfig target, ConfigPathResolution resolution) {
-        if (target == null || resolution == null) {
+    private static void applyResolvedPaths(ConfigState state, GlobalConfig target, ConfigPathResolution resolution) {
+        if (state == null || target == null || resolution == null) {
             return;
         }
-        target.setConfigPath(relativizeToConfigRoot(resolution.configFile()));
-        target.setViewSavesPath(relativizeToConfigRoot(resolution.viewSavesDirectory()));
+        target.setConfigPath(relativizeConfigPath(state, resolution.configFile()));
+        Path resolvedViewDir = resolution.viewSavesDirectory();
+        if (resolvedViewDir != null && resolvedViewDir.equals(state.defaultViewSavesDir)) {
+            target.setViewSavesPath("");
+        } else {
+            target.setViewSavesPath(relativizeToConfigRoot(resolvedViewDir));
+        }
     }
 
     private static ConfigPathRequest buildRequest(ConfigState state, String configPath, String viewPath) {
@@ -612,6 +621,20 @@ public final class GlobalConfigManager {
         return normalized.toString().replace('\\', '/');
     }
 
+    private static String relativizeConfigPath(ConfigState state, Path path) {
+        if (state == null) {
+            return relativizeToConfigRoot(path);
+        }
+        if (path == null) {
+            return null;
+        }
+        Path normalized = path.normalize();
+        if (normalized.equals(state.defaultConfigFile)) {
+            return "global_config.json";
+        }
+        return relativizeToConfigRoot(normalized);
+    }
+
     private static String sanitizeStoredPath(String value) {
         if (value == null) {
             return null;
@@ -662,7 +685,6 @@ public final class GlobalConfigManager {
         clone.setConfigPath(config.getConfigPath());
         clone.setViewSavesPath(config.getViewSavesPath());
         clone.setGlobalStyleKey(config.getGlobalStyleKey());
-        clone.setViewStyles(config.getViewStyles());
         return clone;
     }
 
