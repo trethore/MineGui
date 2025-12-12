@@ -47,10 +47,8 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
                     .map(descriptor -> StyleDescriptor.builder().fromDescriptor(descriptor).build())
                     .ifPresent(this.styleManager::setGlobalDescriptor);
         }
-        this.defaultCursorPolicyId = options.defaultCursorPolicyId();
-        this.defaultCursorPolicy = CursorPolicyRegistry.resolvePolicyOrDefault(defaultCursorPolicyId, CursorPolicies.empty());
-        this.uiManager.setDefaultCursorPolicy(defaultCursorPolicy);
-        this.dockspaceCustomizer = options.dockspaceCustomizer();
+        setDefaultCursorPolicy(options.defaultCursorPolicyId());
+        setDockspaceCustomizer(options.dockspaceCustomizer());
     }
 
     @Override

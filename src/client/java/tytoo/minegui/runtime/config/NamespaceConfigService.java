@@ -13,7 +13,7 @@ public final class NamespaceConfigService {
     public NamespaceConfigService(String namespace, NamespaceConfigStore store) {
         this.namespace = Objects.requireNonNull(namespace, "namespace");
         this.store = Objects.requireNonNull(store, "store");
-        this.current = store.load(namespace);
+        this.current = Objects.requireNonNull(store.load(namespace), "store returned null config");
     }
 
     public String namespace() {
@@ -40,7 +40,7 @@ public final class NamespaceConfigService {
         return current;
     }
 
-    public void save() {
+    public synchronized void save() {
         store.save(current);
     }
 

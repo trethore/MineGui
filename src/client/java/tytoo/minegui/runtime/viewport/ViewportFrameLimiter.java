@@ -12,19 +12,19 @@ public final class ViewportFrameLimiter {
         if (!MineGuiCore.isInitialized()) {
             return false;
         }
-        MineGuiContext context = MineGuiCore.getContext();
-        if (context == null && !MineGuiCore.getAllContexts().isEmpty()) {
-            context = MineGuiCore.getAllContexts().iterator().next();
+        boolean viewportEnabledFound = false;
+        for (MineGuiContext context : MineGuiCore.getAllContexts()) {
+            NamespaceConfig config = context.config().current();
+            if (config == null || !config.viewportEnabled()) {
+                continue;
+            }
+            viewportEnabledFound = true;
+            if (context.ui().hasVisibleViews()) {
+                return true;
+            }
         }
-        if (context == null) {
+        if (!viewportEnabledFound) {
             return false;
-        }
-        NamespaceConfig config = context.config().current();
-        if (config == null || !config.viewportEnabled()) {
-            return false;
-        }
-        if (MineGuiCore.hasAnyVisibleViews()) {
-            return true;
         }
         return ViewportInteractionTracker.isActive();
     }
