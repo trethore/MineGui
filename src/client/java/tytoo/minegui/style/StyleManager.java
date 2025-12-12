@@ -169,6 +169,7 @@ public final class StyleManager {
         }
         StyleDelta popped = stack.pop();
         if (popped != expected) {
+            MineGuiCore.LOGGER.warn("Style scope mismatch detected; clearing style stack to recover.");
             stack.clear();
         }
         apply();
@@ -230,7 +231,15 @@ public final class StyleManager {
         FontLibrary fontLibrary = FontLibrary.getInstance();
         ImFont targetFont = fontLibrary.ensureFont(fontKey, fontSize);
         ImFont currentFont = activeFont.get();
-        if (targetFont == null || targetFont == currentFont) {
+        if (targetFont == null) {
+            if (currentFont != null) {
+                ImGui.getIO().setFontDefault(null);
+                activeFont.remove();
+                MineGuiCore.LOGGER.warn("Font could not be resolved for key {}; reverted to ImGui default font.", fontKey);
+            }
+            return;
+        }
+        if (targetFont == currentFont) {
             return;
         }
         ImGui.getIO().setFontDefault(targetFont);
@@ -279,6 +288,7 @@ public final class StyleManager {
         if (persist) {
             persistGlobalStyle(key);
         }
+        apply();
     }
 
     public final class StyleScope implements AutoCloseable {

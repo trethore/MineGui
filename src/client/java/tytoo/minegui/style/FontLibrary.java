@@ -27,7 +27,7 @@ public final class FontLibrary {
     private final ConcurrentHashMap<ResourceId, FontDescriptor> fontDescriptors = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceId, Boolean> warnedPostBuild = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<ResourceId, ResourceId> mergeParents = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<FontVariant, byte[]> fontData = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ResourceId, byte[]> fontData = new ConcurrentHashMap<>();
     private final ThreadLocal<Set<ResourceId>> loadingKeys = ThreadLocal.withInitial(HashSet::new);
     private final CopyOnWriteArrayList<Consumer<ImGuiIO>> registrationPhaseCallbacks = new CopyOnWriteArrayList<>();
     @Getter
@@ -297,14 +297,14 @@ public final class FontLibrary {
 
         ImFont load(FontLibrary library, FontVariant variant, float targetSize) {
             ImGuiIO io = ImGui.getIO();
-            byte[] fontBytes = library.fontData.get(variant);
+            byte[] fontBytes = library.fontData.get(variant.key());
             if (fontBytes == null) {
                 fontBytes = source.resolve();
                 if (fontBytes == null || fontBytes.length == 0) {
-                    MineGuiCore.LOGGER.warn("Font source returned no data");
+                    MineGuiCore.LOGGER.warn("Font source returned no data for {}", variant.key());
                     return null;
                 }
-                library.fontData.put(variant, fontBytes);
+                library.fontData.putIfAbsent(variant.key(), fontBytes);
             }
             ImFontConfig config = new ImFontConfig();
             try {

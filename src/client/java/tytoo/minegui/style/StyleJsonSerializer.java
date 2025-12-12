@@ -20,12 +20,7 @@ public final class StyleJsonSerializer {
             return null;
         }
         JsonObject root = new JsonObject();
-        if (namespace != null && !namespace.isBlank()) {
-            root.addProperty("namespace", namespace);
-        }
-        if (viewId != null && !viewId.isBlank()) {
-            root.addProperty("viewId", viewId);
-        }
+        // namespace and viewId were previously emitted as metadata-only; omitting them avoids implying enforcement on load.
         if (styleKey != null) {
             root.addProperty("styleKey", styleKey.toString());
         }
@@ -152,8 +147,10 @@ public final class StyleJsonSerializer {
             for (Map.Entry<String, JsonElement> entry : colors.entrySet()) {
                 int key = parseInt(entry.getKey(), -1);
                 if (key < 0) continue;
-                int color = parseColor(entry.getValue().getAsString());
-                paletteBuilder.set(key, color);
+                Integer color = parseColor(entry.getValue().getAsString());
+                if (color != null) {
+                    paletteBuilder.set(key, color);
+                }
             }
             builder.colorPalette(paletteBuilder.build());
         }
@@ -248,9 +245,9 @@ public final class StyleJsonSerializer {
         return ResourceId.tryParse(value);
     }
 
-    private static int parseColor(String raw) {
+    private static Integer parseColor(String raw) {
         if (raw == null) {
-            return 0;
+            return null;
         }
         String normalized = raw.trim();
         try {
@@ -258,9 +255,15 @@ public final class StyleJsonSerializer {
                 normalized = normalized.substring(1);
             }
             long parsed = Long.parseUnsignedLong(normalized, 16);
+            if (normalized.length() == 6) {
+                // Assume opaque when alpha omitted.
+                parsed |= 0xFF000000L;
+            } else if (normalized.length() != 8) {
+                return null;
+            }
             return (int) parsed;
         } catch (NumberFormatException e) {
-            return 0;
+            return null;
         }
     }
 
