@@ -1,5 +1,6 @@
 package tytoo.minegui.config;
 
+import org.jetbrains.annotations.NotNull;
 import tytoo.minegui.MineGuiCore;
 
 import java.nio.file.InvalidPathException;
@@ -38,22 +39,31 @@ public final class ConfigPathStrategies {
         }
 
         private Path resolve(String configured, String defaultValue) {
+            Path fallback = root.resolve(defaultValue).normalize();
             if (configured == null || configured.isBlank()) {
-                return root.resolve(defaultValue).normalize();
+                return fallback;
             }
             try {
-                Path candidate = Path.of(configured).normalize();
-                if (candidate.isAbsolute()) {
-                    return candidate;
+                Path candidate = getCandidatePath(configured);
+                if (!candidate.startsWith(root)) {
+                    return fallback;
                 }
+                return candidate;
+            } catch (InvalidPathException e) {
+                return fallback;
+            }
+        }
+
+        private @NotNull Path getCandidatePath(String configured) {
+            Path candidate = Path.of(configured).normalize();
+            if (!candidate.isAbsolute()) {
                 String rootName = root.getFileName() != null ? root.getFileName().toString() : null;
                 if (rootName != null && candidate.getNameCount() > 0 && rootName.equals(candidate.getName(0).toString())) {
                     candidate = candidate.getNameCount() == 1 ? Path.of("") : candidate.subpath(1, candidate.getNameCount());
                 }
-                return root.resolve(candidate).normalize();
-            } catch (InvalidPathException e) {
-                return root.resolve(defaultValue).normalize();
+                candidate = root.resolve(candidate).normalize();
             }
+            return candidate;
         }
     }
 
@@ -103,8 +113,8 @@ public final class ConfigPathStrategies {
                 return ConfigPathValidationResult.rejected("Missing " + label + " for namespace '" + request.namespace() + "', using default");
             }
             Path normalized = resolved.normalize();
-            if (!normalized.startsWith(request.namespaceRoot())) {
-                return ConfigPathValidationResult.rejected(label + " '" + normalized + "' resolves outside of the MineGui config directory; using default");
+            if (!normalized.startsWith(request.baseDirectory())) {
+                return ConfigPathValidationResult.rejected(label + " '" + normalized + "' resolves outside of the namespace directory; using default");
             }
             return ConfigPathValidationResult.allowed(normalized);
         }

@@ -43,12 +43,14 @@ It uses imgui-java (Dear ImGui) for rendering and runs on the Fabric mod loader.
 - Fabric Loader, Fabric API, and Yarn mappings are versioned in `gradle.properties`; Fabric Loom integrates them into
   the client source set and remaps game classes during packaging. Keep these aligned with Minecraft `1.21.4` before
   updating APIs.
+- When you need to inspect third-party library code (Fabric, Minecraft, or imgui-java), first look in
+  `libs-src/<library>/` (produced by `./gradlew unpackSources`) instead of decompiling jars or browsing online.
+- Library sources are fetched through the `sourceDeps` configuration (see `build.gradle`) and unpacked per-library with
+  `./gradlew unpackSources` into `libs-src/<library>`; if `libs-src/` is missing or stale, ask the user to run that
+  task.
 - imgui-java (Dear ImGui bindings) is bundled as JAR files in the `libs/` directory and included via shadow dependency
   configuration in `build.gradle`.
 - Lombok ships as a dependency; prefer its annotations to reduce boilerplate.
-- Library sources are fetched through the `sourceDeps` configuration (see `build.gradle`) and unpacked per-library with
-  `./gradlew unpackSources` into `libs-src/<library>`. The task `./gradlew cleanSources` prune those directories if you
-  need a fresh extraction.
 
 ## Testing & Verification
 

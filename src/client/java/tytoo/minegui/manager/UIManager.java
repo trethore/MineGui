@@ -178,7 +178,7 @@ public final class UIManager {
                 }
                 ResourceId originalKey = styleManager.getGlobalStyleKey();
                 StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
-                StyleDescriptor appliedBase = applyViewBaseStyle(view, originalDescriptor);
+                applyViewBaseStyle(view, originalDescriptor);
                 Profilers.get().push(view.getClass().getSimpleName());
                 StyleDelta delta = view.configureStyleDelta();
                 try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {

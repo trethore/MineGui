@@ -72,7 +72,7 @@ public final class GlobalConfig {
         } else {
             viewStyles.entrySet().removeIf(entry -> entry.getKey() == null || entry.getValue() == null);
         }
-        return viewStyles;
+        return new HashMap<>(viewStyles);
     }
 
     public void setViewStyles(Map<String, String> viewStyles) {

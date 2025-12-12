@@ -38,6 +38,7 @@ public final class GlobalConfigManager {
         }
         configRoot = rootPath.toAbsolutePath().normalize();
         namespaceRoot = configRoot;
+        rebindContexts();
     }
 
     public static synchronized void configureDefaultNamespace(String namespace) {
@@ -92,6 +93,7 @@ public final class GlobalConfigManager {
         state.configIgnored = ignored;
         if (ignored) {
             state.autoLoadEnabled = false;
+            resetInMemory(state);
         } else {
             state.autoLoadEnabled = state.autoLoadPreference;
         }
@@ -415,9 +417,7 @@ public final class GlobalConfigManager {
             }
             String storedViewPath = sanitizeStoredPath(parsed.getViewSavesPath());
             parsed.setViewSavesPath(Objects.requireNonNullElseGet(storedViewPath, GlobalConfig::getDefaultViewSavesPath));
-            if (parsed.getViewStyles() == null) {
-                parsed.setViewStyles(new HashMap<>());
-            }
+            parsed.getViewStyles();
             parsed.setGlobalScale(parsed.getGlobalScale());
             return parsed;
         } catch (IOException | JsonParseException e) {
@@ -621,6 +621,34 @@ public final class GlobalConfigManager {
             return null;
         }
         return trimmed.replace('\\', '/');
+    }
+
+    private static void resetInMemory(ConfigState state) {
+        state.config = new GlobalConfig();
+        state.snapshot = cloneConfig(state.config);
+        state.activeConfigPath = state.defaultConfigFile;
+        state.activeViewSavesPath = state.defaultViewSavesDir;
+    }
+
+    private static void rebindContexts() {
+        if (CONTEXTS.isEmpty()) {
+            return;
+        }
+        Map<String, ConfigState> previous = new HashMap<>(CONTEXTS);
+        CONTEXTS.clear();
+        for (Map.Entry<String, ConfigState> entry : previous.entrySet()) {
+            ConfigState oldState = entry.getValue();
+            ConfigState refreshed = new ConfigState(entry.getKey());
+            refreshed.featureProfile = oldState.featureProfile;
+            refreshed.strategy = oldState.strategy;
+            refreshed.autoLoadPreference = oldState.autoLoadPreference;
+            refreshed.autoLoadEnabled = !oldState.configIgnored && oldState.autoLoadEnabled;
+            refreshed.configIgnored = oldState.configIgnored;
+            refreshed.loaded = false;
+            refreshed.config = cloneConfig(oldState.config);
+            refreshed.snapshot = cloneConfig(oldState.snapshot);
+            CONTEXTS.put(entry.getKey(), refreshed);
+        }
     }
 
     private static GlobalConfig cloneConfig(GlobalConfig config) {

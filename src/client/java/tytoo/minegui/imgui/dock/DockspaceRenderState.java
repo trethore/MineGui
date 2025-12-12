@@ -5,6 +5,8 @@ import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiDockNodeFlags;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.*;
 
@@ -20,7 +22,9 @@ public final class DockspaceRenderState {
     private final List<Runnable> afterDockspaceTasks = new ArrayList<>();
     private String windowTitle = DEFAULT_WINDOW_TITLE;
     private String dockspaceId = DEFAULT_DOCKSPACE_ID;
+    @Setter
     private int windowFlags = DEFAULT_WINDOW_FLAGS;
+    @Setter
     private int dockspaceFlags = DEFAULT_DOCKSPACE_FLAGS;
     private boolean overrideWindowPadding = true;
     private float windowPaddingX = 0.0f;
@@ -41,6 +45,8 @@ public final class DockspaceRenderState {
     private float defaultWindowHeight;
     private float dockspaceWidth = 0.0f;
     private float dockspaceHeight = 0.0f;
+    @Setter
+    @Getter
     private boolean dockspaceEnabled = true;
 
     private DockspaceRenderState() {
@@ -113,10 +119,6 @@ public final class DockspaceRenderState {
         return windowFlags;
     }
 
-    public void setWindowFlags(int flags) {
-        windowFlags = flags;
-    }
-
     public void addWindowFlags(int flags) {
         windowFlags |= flags;
     }
@@ -127,10 +129,6 @@ public final class DockspaceRenderState {
 
     public int dockspaceFlags() {
         return dockspaceFlags;
-    }
-
-    public void setDockspaceFlags(int flags) {
-        dockspaceFlags = flags;
     }
 
     public void addDockspaceFlags(int flags) {
@@ -298,14 +296,6 @@ public final class DockspaceRenderState {
         if (Float.isFinite(height) && height >= 0.0f) {
             dockspaceHeight = height;
         }
-    }
-
-    public boolean isDockspaceEnabled() {
-        return dockspaceEnabled;
-    }
-
-    public void setDockspaceEnabled(boolean enabled) {
-        dockspaceEnabled = enabled;
     }
 
     public void disableDockspace() {
