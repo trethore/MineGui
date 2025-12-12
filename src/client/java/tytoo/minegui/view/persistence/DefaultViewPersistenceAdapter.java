@@ -13,7 +13,7 @@ import java.util.Optional;
 public final class DefaultViewPersistenceAdapter implements ViewPersistenceAdapter {
     private final Path viewsDirectory;
     private final Path stylesDirectory;
-    private final Path sharedLayoutFile;
+    private final Path sharedLayoutDirectory;
 
     public DefaultViewPersistenceAdapter(Path rootDirectory) {
         Objects.requireNonNull(rootDirectory, "rootDirectory");
@@ -26,42 +26,44 @@ public final class DefaultViewPersistenceAdapter implements ViewPersistenceAdapt
         }
         this.viewsDirectory = base.resolve("views");
         this.stylesDirectory = base.resolve("styles");
-        this.sharedLayoutFile = viewsDirectory.resolve("_shared.ini");
         ensureDirectory(viewsDirectory);
         ensureDirectory(stylesDirectory);
+        this.sharedLayoutDirectory = viewsDirectory;
     }
 
     @Override
     public Optional<String> loadSharedLayout(String namespace) {
-        return readString(sharedLayoutFile);
+        Path path = sharedLayoutPath(namespace);
+        return readString(path);
     }
 
     @Override
     public void saveSharedLayout(String namespace, String payload) {
-        write(sharedLayoutFile, payload);
+        Path path = sharedLayoutPath(namespace);
+        write(path, payload);
     }
 
     @Override
     public Optional<String> loadLayout(ViewPersistenceRequest request) {
-        Path path = viewsDirectory.resolve(request.slug() + ".ini");
+        Path path = viewLayoutPath(request);
         return readString(path);
     }
 
     @Override
     public void saveLayout(ViewPersistenceRequest request, String payload) {
-        Path path = viewsDirectory.resolve(request.slug() + ".ini");
+        Path path = viewLayoutPath(request);
         write(path, payload);
     }
 
     @Override
     public Optional<String> loadStyle(ViewPersistenceRequest request) {
-        Path path = stylesDirectory.resolve(request.slug() + ".json");
+        Path path = viewStylePath(request);
         return readString(path);
     }
 
     @Override
     public void saveStyle(ViewPersistenceRequest request, ViewStyleSnapshot snapshot) {
-        Path path = stylesDirectory.resolve(request.slug() + ".json");
+        Path path = viewStylePath(request);
         if (snapshot.deleted()) {
             delete(path);
             return;
@@ -75,6 +77,29 @@ public final class DefaultViewPersistenceAdapter implements ViewPersistenceAdapt
         } catch (IOException e) {
             MineGuiCore.LOGGER.error("Failed to create directory {}", directory, e);
         }
+    }
+
+    private Path sharedLayoutPath(String namespace) {
+        return sharedLayoutDirectory.resolve(sanitizeNamespace(namespace)).resolve("_shared.ini");
+    }
+
+    private Path viewLayoutPath(ViewPersistenceRequest request) {
+        return viewsDirectory
+                .resolve(sanitizeNamespace(request.namespace()))
+                .resolve(request.slug() + ".ini");
+    }
+
+    private Path viewStylePath(ViewPersistenceRequest request) {
+        return stylesDirectory
+                .resolve(sanitizeNamespace(request.namespace()))
+                .resolve(request.slug() + ".json");
+    }
+
+    private String sanitizeNamespace(String namespace) {
+        if (namespace == null || namespace.isBlank()) {
+            return "default";
+        }
+        return namespace.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     private Optional<String> readString(Path path) {

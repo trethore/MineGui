@@ -1,6 +1,7 @@
 package tytoo.minegui.view.persistence;
 
 import imgui.ImGui;
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
@@ -36,7 +37,7 @@ public final class ViewPersistenceManager {
         if (view == null) {
             return;
         }
-        entries.computeIfAbsent(view, this::createEntry);
+        ensureEntry(view);
     }
 
     public void unregister(View view) {
@@ -45,10 +46,7 @@ public final class ViewPersistenceManager {
         }
         Entry entry = entries.remove(view);
         if (entry != null) {
-            AtomicInteger counter = slugUsage.get(entry.baseSlug);
-            if (counter != null && counter.decrementAndGet() <= 0) {
-                slugUsage.remove(entry.baseSlug, counter);
-            }
+            releaseSlug(entry);
         }
         dirtyLayouts.remove(view);
     }
@@ -57,10 +55,9 @@ public final class ViewPersistenceManager {
         if (view == null || isConfigIgnored()) {
             return;
         }
-        Entry entry = entries.get(view);
+        Entry entry = ensureEntry(view);
         if (entry == null) {
-            entry = createEntry(view);
-            entries.put(view, entry);
+            return;
         }
         if (!sharedLayoutLoaded && canLoadLayouts()) {
             adapter.loadSharedLayout(namespace).ifPresent(ImGui::loadIniSettingsFromMemory);
@@ -71,11 +68,10 @@ public final class ViewPersistenceManager {
             entry.layoutLoaded = true;
         }
         if (!entry.styleLoaded && canLoadStyleSnapshots() && view.isPersistentStyle()) {
-            Entry target = entry;
             adapter.loadStyle(entry.request)
                     .ifPresent(json -> {
-                        target.styleDescriptor = StyleJsonSerializer.fromJson(json).orElse(null);
-                        target.lastStyleJson = json;
+                        entry.styleDescriptor = StyleJsonSerializer.fromJson(json).orElse(null);
+                        entry.lastStyleJson = json;
                     });
             entry.styleLoaded = true;
         }
@@ -106,13 +102,16 @@ public final class ViewPersistenceManager {
                 return;
             }
         }
-        Entry entry = entries.get(view);
+        Entry entry = ensureEntry(view);
         if (entry == null) {
-            entry = createEntry(view);
-            entries.put(view, entry);
+            return;
         }
         String json = StyleJsonSerializer.toJson(namespace, view.getId(), null, descriptor);
         if (!force && json != null && json.equals(entry.lastStyleJson)) {
+            return;
+        }
+        if (json == null) {
+            MineGuiCore.LOGGER.warn("Failed to serialize style snapshot for view {}", view.getId());
             return;
         }
         adapter.saveStyle(entry.request, new ViewStyleSnapshot(entry.request, json, false));
@@ -124,12 +123,13 @@ public final class ViewPersistenceManager {
         if (view == null || !canSaveStyleSnapshots()) {
             return;
         }
-        Entry entry = entries.get(view);
+        Entry entry = ensureEntry(view);
         if (entry == null) {
             return;
         }
         adapter.saveStyle(entry.request, ViewStyleSnapshot.deleted(entry.request));
         entry.styleDescriptor = null;
+        entry.lastStyleJson = null;
     }
 
     public void markLayoutDirty(View view, boolean force) {
@@ -144,10 +144,9 @@ public final class ViewPersistenceManager {
                 return;
             }
         }
-        Entry entry = entries.get(view);
+        Entry entry = ensureEntry(view);
         if (entry == null) {
-            entry = createEntry(view);
-            entries.put(view, entry);
+            return;
         }
         dirtyLayouts.add(view);
     }
@@ -166,8 +165,13 @@ public final class ViewPersistenceManager {
         }
         lastLayoutFlushNanos = now;
         String payload = ImGui.saveIniSettingsToMemory();
-        LayoutSplit split = splitLayouts(payload, dirtyLayouts);
+        Set<View> dirtySnapshot = new HashSet<>(dirtyLayouts);
+        Set<View> registeredViews = new HashSet<>(entries.keySet());
+        LayoutSplit split = splitLayouts(payload, registeredViews);
         for (Map.Entry<View, StringBuilder> entry : split.perView.entrySet()) {
+            if (!dirtySnapshot.contains(entry.getKey())) {
+                continue;
+            }
             if (entry.getValue().isEmpty()) {
                 continue;
             }
@@ -181,13 +185,13 @@ public final class ViewPersistenceManager {
         if (!split.shared().isEmpty()) {
             adapter.saveSharedLayout(namespace, split.shared().toString());
         }
-        dirtyLayouts.clear();
+        dirtyLayouts.removeAll(dirtySnapshot);
     }
 
-    private LayoutSplit splitLayouts(String payload, Collection<View> targetViews) {
+    private LayoutSplit splitLayouts(String payload, Collection<View> knownViews) {
         Map<View, StringBuilder> perView = new ConcurrentHashMap<>();
         StringBuilder shared = new StringBuilder();
-        List<View> viewList = new ArrayList<>(targetViews);
+        List<View> viewList = new ArrayList<>(knownViews);
         StringBuilder currentBuffer = shared;
         String[] lines = payload.split("\\R");
         for (String line : lines) {
@@ -213,11 +217,34 @@ public final class ViewPersistenceManager {
         }
         String windowName = header.substring(start + 2, end);
         for (View view : views) {
-            if (windowName.contains("##" + view.getId())) {
+            if (windowName.endsWith("##" + view.getId())) {
                 return view;
             }
         }
         return null;
+    }
+
+    private Entry ensureEntry(View view) {
+        if (view == null) {
+            return null;
+        }
+        Entry existing = entries.get(view);
+        if (existing != null && existing.request.viewId().equals(view.getId())) {
+            return existing;
+        }
+        if (existing != null) {
+            releaseSlug(existing);
+        }
+        Entry created = createEntry(view);
+        entries.put(view, created);
+        return created;
+    }
+
+    private void releaseSlug(Entry entry) {
+        AtomicInteger counter = slugUsage.get(entry.baseSlug);
+        if (counter != null && counter.decrementAndGet() <= 0) {
+            slugUsage.remove(entry.baseSlug, counter);
+        }
     }
 
     private Entry createEntry(View view) {
