@@ -2,8 +2,16 @@ package tytoo.minegui.util;
 
 import org.lwjgl.glfw.GLFW;
 
+import java.util.Arrays;
+
 @SuppressWarnings("unused")
 public final class InputHelper {
+    private static final int NO_CACHE = Integer.MIN_VALUE;
+    private static final int[] KEY_REMAP_CACHE = new int[GLFW.GLFW_KEY_LAST + 1];
+
+    static {
+        Arrays.fill(KEY_REMAP_CACHE, NO_CACHE);
+    }
 
     private InputHelper() {
     }
@@ -25,6 +33,19 @@ public final class InputHelper {
         if (localKeyCode == GLFW.GLFW_KEY_UNKNOWN) {
             return GLFW.GLFW_KEY_UNKNOWN;
         }
+        if (localKeyCode >= 0 && localKeyCode < KEY_REMAP_CACHE.length) {
+            int cached = KEY_REMAP_CACHE[localKeyCode];
+            if (cached != NO_CACHE) {
+                return cached;
+            }
+            int mapped = computeQwertyMapping(localKeyCode);
+            KEY_REMAP_CACHE[localKeyCode] = mapped;
+            return mapped;
+        }
+        return computeQwertyMapping(localKeyCode);
+    }
+
+    private static int computeQwertyMapping(int localKeyCode) {
         String keyName = GLFW.glfwGetKeyName(localKeyCode, 0);
         if (keyName == null || keyName.isEmpty()) {
             return localKeyCode;
@@ -75,7 +96,13 @@ public final class InputHelper {
     }
 
     public static boolean isRedo() {
-        return isKeyPressed(GLFW.GLFW_KEY_Y) && isControlDown() && !isShiftDown() && !isAltDown();
+        boolean standardRedo = isKeyPressed(GLFW.GLFW_KEY_Y) && isControlDown() && !isShiftDown() && !isAltDown();
+        boolean macRedo = McClientBridge.isOnMac()
+                && isKeyPressed(GLFW.GLFW_KEY_Z)
+                && isControlDown()
+                && isShiftDown()
+                && !isAltDown();
+        return standardRedo || macRedo;
     }
 
     public static boolean isSelectAll() {

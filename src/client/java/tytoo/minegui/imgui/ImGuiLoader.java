@@ -15,8 +15,6 @@ import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceRenderState;
 import tytoo.minegui.runtime.MineGuiContext;
-import tytoo.minegui.style.FontLibrary;
-import tytoo.minegui.style.Fonts;
 import tytoo.minegui.runtime.MineGuiRuntimeContext;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.*;

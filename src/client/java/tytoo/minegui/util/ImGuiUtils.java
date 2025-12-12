@@ -1,7 +1,6 @@
 package tytoo.minegui.util;
 
 import imgui.ImGui;
-import imgui.ImGuiIO;
 import net.minecraft.client.util.Window;
 
 import java.util.ArrayDeque;
@@ -29,13 +28,13 @@ public final class ImGuiUtils {
     }
 
     public static double toImGuiX(Window window, double mcX) {
-        ImGuiIO io = ImGui.getIO();
-        return mcX / Math.max(1e-6f, io.getDisplayFramebufferScaleX());
+        double scale = window != null ? window.getScaleFactor() : ImGui.getIO().getDisplayFramebufferScaleX();
+        return mcX / Math.max(1e-6f, scale);
     }
 
     public static double toImGuiY(Window window, double mcY) {
-        ImGuiIO io = ImGui.getIO();
-        return mcY / Math.max(1e-6f, io.getDisplayFramebufferScaleY());
+        double scale = window != null ? window.getScaleFactor() : ImGui.getIO().getDisplayFramebufferScaleY();
+        return mcY / Math.max(1e-6f, scale);
     }
 
     public static void pushWindowFontScale(float scaleMultiplier) {

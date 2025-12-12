@@ -127,15 +127,20 @@ public final class ImGuiImageUtils {
         ResourceManager resourceManager = client.getResourceManager();
         TextureManager textureManager = client.getTextureManager();
         Identifier mcIdentifier = MinecraftIdentifiers.toMinecraft(identifier);
-        Optional<Resource> resource = resourceManager.getResource(mcIdentifier);
-        TextureEntry reused = tryReuseTextureManager(textureManager, mcIdentifier, resource.orElse(null));
-        if (reused != null) {
-            return reused;
+        Optional<Resource> optionalResource = resourceManager.getResource(mcIdentifier);
+        Resource resource = optionalResource.orElse(null);
+        try {
+            TextureEntry reused = tryReuseTextureManager(textureManager, mcIdentifier, resource);
+            if (reused != null) {
+                return reused;
+            }
+            if (resource == null) {
+                throw new IllegalArgumentException("Texture not found: " + identifier);
+            }
+            return createOwnedTexture(identifier, resource);
+        } finally {
+            closeQuietly(resource);
         }
-        if (resource.isEmpty()) {
-            throw new IllegalArgumentException("Texture not found: " + identifier);
-        }
-        return createOwnedTexture(identifier, resource.get());
     }
 
     private static TextureEntry tryReuseTextureManager(TextureManager textureManager, Identifier mcIdentifier, Resource resource) {
@@ -170,6 +175,15 @@ public final class ImGuiImageUtils {
             return new int[]{image.getWidth(), image.getHeight()};
         } catch (IOException | RuntimeException e) {
             return new int[]{-1, -1};
+        }
+    }
+
+    private static void closeQuietly(Resource resource) {
+        if (resource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 
