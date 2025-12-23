@@ -28,6 +28,7 @@ public final class UIManager {
     private final StyleManager styleManager;
     @Getter
     private final List<View> views = new CopyOnWriteArrayList<>();
+    private final List<Runnable> renderCallbacks = new CopyOnWriteArrayList<>();
     @Setter
     private ViewPersistenceManager persistenceManager;
     @Getter
@@ -59,6 +60,18 @@ public final class UIManager {
 
     public String namespace() {
         return namespace;
+    }
+
+    public void registerRenderCallback(Runnable callback) {
+        if (callback != null && !renderCallbacks.contains(callback)) {
+            renderCallbacks.add(callback);
+        }
+    }
+
+    public void unregisterRenderCallback(Runnable callback) {
+        if (callback != null) {
+            renderCallbacks.remove(callback);
+        }
     }
 
     public void register(View view) {
@@ -123,11 +136,14 @@ public final class UIManager {
     }
 
     public boolean hasVisibleViews() {
+        if (!renderCallbacks.isEmpty()) {
+            return true;
+        }
         return views.stream().anyMatch(View::isVisible);
     }
 
     public boolean hasViews() {
-        return !views.isEmpty();
+        return !views.isEmpty() || !renderCallbacks.isEmpty();
     }
 
     public void saveLayoutNow(View view) {
@@ -160,48 +176,63 @@ public final class UIManager {
     }
 
     public void render() {
-        if (views.isEmpty()) {
+        if (views.isEmpty() && renderCallbacks.isEmpty()) {
             return;
         }
         StyleManager.pushActive(styleManager);
         try {
-            for (View view : views) {
-                if (view == null) {
-                    continue;
-                }
-                if (!view.isVisible()) {
-                    continue;
-                }
-                ViewPersistenceManager manager = persistence();
-                if (manager != null) {
-                    manager.ensureLoaded(view);
-                }
-                ResourceId originalKey = styleManager.getGlobalStyleKey();
-                StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
-                applyViewBaseStyle(view, originalDescriptor);
-                Profilers.get().push(view.getClass().getSimpleName());
-                StyleDelta delta = view.configureStyleDelta();
-                try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
-                    view.render();
-                    if (manager != null && view.isPersistentStyle()) {
-                        styleManager.getEffectiveDescriptor().ifPresent(effective -> manager.saveStyleSnapshot(view, effective, false));
-                    }
-                } finally {
-                    Profilers.get().pop();
-                    restoreBaseStyle(originalKey, originalDescriptor);
-                    if (manager != null) {
-                        if (view.isPersistentLayout()) {
-                            manager.markLayoutDirty(view, false);
-                        }
-                    }
-                }
-            }
+            renderViews();
+            renderCallbacks();
             ViewPersistenceManager manager = persistence();
             if (manager != null) {
                 manager.flushLayouts();
             }
         } finally {
             StyleManager.popActive(styleManager);
+        }
+    }
+
+    private void renderCallbacks() {
+        for (Runnable callback : renderCallbacks) {
+            try {
+                callback.run();
+            } catch (Exception e) {
+                MineGuiCore.LOGGER.error("Error executing MineGui render callback for namespace '{}'", namespace, e);
+            }
+        }
+    }
+
+    private void renderViews() {
+        for (View view : views) {
+            if (view == null) {
+                continue;
+            }
+            if (!view.isVisible()) {
+                continue;
+            }
+            ViewPersistenceManager manager = persistence();
+            if (manager != null) {
+                manager.ensureLoaded(view);
+            }
+            ResourceId originalKey = styleManager.getGlobalStyleKey();
+            StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
+            applyViewBaseStyle(view, originalDescriptor);
+            Profilers.get().push(view.getClass().getSimpleName());
+            StyleDelta delta = view.configureStyleDelta();
+            try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
+                view.render();
+                if (manager != null && view.isPersistentStyle()) {
+                    styleManager.getEffectiveDescriptor().ifPresent(effective -> manager.saveStyleSnapshot(view, effective, false));
+                }
+            } finally {
+                Profilers.get().pop();
+                restoreBaseStyle(originalKey, originalDescriptor);
+                if (manager != null) {
+                    if (view.isPersistentLayout()) {
+                        manager.markLayoutDirty(view, false);
+                    }
+                }
+            }
         }
     }
 
