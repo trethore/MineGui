@@ -1,11 +1,11 @@
 package tytoo.minegui.input;
 
 import imgui.ImGui;
-import imgui.internal.ImGuiContext;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.imgui.ContextGuard;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.runtime.viewport.ViewportInteractionTracker;
 import tytoo.minegui.util.CursorLockUtils;
@@ -125,16 +125,14 @@ public final class InputRouter {
     }
 
     private boolean imguiWantsMouse() {
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.hasValidContext()) {
             return false;
         }
         return ImGui.getIO().getWantCaptureMouse();
     }
 
     private boolean imguiWantsKeyboard() {
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.hasValidContext()) {
             return false;
         }
         if (ImGui.getIO().getWantTextInput()) {

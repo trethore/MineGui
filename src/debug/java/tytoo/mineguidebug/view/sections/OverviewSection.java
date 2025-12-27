@@ -7,6 +7,7 @@ import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import tytoo.minegui.view.View;
+import tytoo.mineguidebug.view.DebugLayout;
 
 public final class OverviewSection implements PlaygroundSection {
     private final ImBoolean showRuntime = new ImBoolean(true);
@@ -23,11 +24,11 @@ public final class OverviewSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderRuntimeControls();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderChecklistSection(parent);
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderScratchPad();
     }
 
@@ -70,7 +71,7 @@ public final class OverviewSection implements PlaygroundSection {
             return;
         }
         if (ImGui.beginTable("playground_overview_practices", 2, flags)) {
-            ImGui.tableSetupColumn("Topic", ImGuiTableColumnFlags.WidthFixed, 140f);
+            ImGui.tableSetupColumn("Topic", ImGuiTableColumnFlags.WidthFixed, DebugLayout.TABLE_LABEL_WIDTH);
             ImGui.tableSetupColumn("Guidance");
             renderPracticeRow("Immediate mode", "Hold ImBoolean/ImString fields in the section; ImGui pulls by reference each frame.");
             renderPracticeRow("Window helper", "Window.of(...) drives titles, flags, and docking in one call.");

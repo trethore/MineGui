@@ -12,6 +12,7 @@ import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
 import tytoo.mineguidebug.MineGuiDebugCore;
+import tytoo.mineguidebug.view.DebugLayout;
 
 public final class StyleWorkflowSection implements PlaygroundSection {
     private static final ResourceId MINIMAL_STYLE = ResourceId.of(MineGuiDebugCore.ID, "playground_minimal_style");
@@ -30,9 +31,9 @@ public final class StyleWorkflowSection implements PlaygroundSection {
     public void render(View parent) {
         ensureDescriptors();
         renderIntro();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderSelector();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderDescriptorSection(parent);
     }
 
@@ -71,7 +72,7 @@ public final class StyleWorkflowSection implements PlaygroundSection {
         }
         int tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
         if (ImGui.beginTable("style_breakdown", 2, tableFlags)) {
-            ImGui.tableSetupColumn("Metric", ImGuiTableColumnFlags.WidthFixed, 140f);
+            ImGui.tableSetupColumn("Metric", ImGuiTableColumnFlags.WidthFixed, DebugLayout.TABLE_LABEL_WIDTH);
             ImGui.tableSetupColumn("Value");
             renderMetricRow("Window rounding", "%.1f".formatted(descriptor.getWindowRounding()));
             renderMetricRow("Scrollbar size", "%.1f".formatted(descriptor.getScrollbarSize()));

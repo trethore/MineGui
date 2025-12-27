@@ -333,8 +333,7 @@ public class ImGuiLoader {
         if (config == null) {
             return;
         }
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.hasValidContext()) {
             return;
         }
         float configuredScale = config.globalScale();
@@ -349,8 +348,7 @@ public class ImGuiLoader {
     }
 
     public static boolean rebuildFontAtlasTexture() {
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.hasValidContext()) {
             MineGuiCore.LOGGER.warn("ImGui context unavailable while rebuilding MineGui font atlas");
             return false;
         }

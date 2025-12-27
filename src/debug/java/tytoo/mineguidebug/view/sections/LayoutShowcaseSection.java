@@ -5,7 +5,9 @@ import imgui.ImVec2;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
+import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.view.View;
+import tytoo.mineguidebug.view.DebugLayout;
 
 public final class LayoutShowcaseSection implements PlaygroundSection {
     private static final String[] NAV_ITEMS = new String[]{
@@ -13,8 +15,8 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     };
     private final ImBoolean showGuides = new ImBoolean(true);
     private final ImBoolean showTable = new ImBoolean(true);
-    private float leftPaneWidth = 180f;
-    private float gutterSize = 10f;
+    private final FloatRef leftPaneWidth = new FloatRef(180f);
+    private final FloatRef gutterSize = new FloatRef(10f);
     private int selectedNavIndex;
 
     @Override
@@ -25,11 +27,11 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderControls();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderTwoPaneLayout();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderMicroLayouts();
     }
 
@@ -39,13 +41,9 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     }
 
     private void renderControls() {
-        float[] leftWidthHolder = {leftPaneWidth};
-        float[] gutterHolder = {gutterSize};
-        ImGui.sliderFloat("Left pane width", leftWidthHolder, 140f, 260f, "%.0f px");
+        leftPaneWidth.sliderFloat("Left pane width", 140f, 260f, "%.0f px");
         ImGui.sameLine();
-        ImGui.sliderFloat("Gutter", gutterHolder, 6f, 18f, "%.0f px");
-        leftPaneWidth = leftWidthHolder[0];
-        gutterSize = gutterHolder[0];
+        gutterSize.sliderFloat("Gutter", 6f, 18f, "%.0f px");
         ImGui.checkbox("Show guides", showGuides);
         ImGui.sameLine();
         ImGui.checkbox("Show layout table", showTable);
@@ -55,7 +53,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
         ImVec2 startPos = ImGui.getCursorScreenPos();
         float contentHeight = 260f;
         ImGui.beginGroup();
-        if (ImGui.beginChild("layout_nav", leftPaneWidth, contentHeight, true)) {
+        if (ImGui.beginChild("layout_nav", leftPaneWidth.get(), contentHeight, true)) {
             ImGui.textColored(0.72f, 0.84f, 1f, 1f, "Navigation");
             ImGui.separator();
             for (int i = 0; i < NAV_ITEMS.length; i++) {
@@ -66,14 +64,14 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             }
         }
         ImGui.endChild();
-        ImGui.sameLine(0f, gutterSize);
+        ImGui.sameLine(0f, gutterSize.get());
         if (ImGui.beginChild("layout_body", 0f, contentHeight, true)) {
             ImGui.textColored(0.74f, 0.92f, 0.86f, 1f, "Detail Panel");
             ImGui.separator();
             ImGui.textWrapped("""
                     Child windows let you pin scrolling regions, status bars, and forms. Combine them with sameLine() to create split views that dock nicely inside MineGui windows.
                     """);
-            ImGui.dummy(0f, 4f);
+            DebugLayout.smallGap();
             ImGui.text("Selected: %s".formatted(NAV_ITEMS[selectedNavIndex]));
             ImGui.bulletText("Scroll independent of the navigation rail.");
             ImGui.bulletText("Tab bar above comes from MineGui Window helper.");
@@ -88,7 +86,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             float right = endPos.x;
             float top = startPos.y;
             float bottom = startPos.y + contentHeight;
-            float splitX = startPos.x + leftPaneWidth + gutterSize * 0.5f;
+            float splitX = startPos.x + leftPaneWidth.get() + gutterSize.get() * 0.5f;
             int guideColor = ImGui.getColorU32(0.32f, 0.62f, 1f, 0.35f);
             ImGui.getWindowDrawList().addRect(left - 4f, top - 6f, right + 4f, bottom + 6f, guideColor, 6f, 0, 1.5f);
             ImGui.getWindowDrawList().addLine(splitX, top - 4f, splitX, bottom + 4f, guideColor, 1.5f);
@@ -98,7 +96,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     private void renderMicroLayouts() {
         ImGui.text("Inline layouts");
         ImGui.textWrapped("Use groups and sameLine() spacing to build denser UI without helpers.");
-        ImGui.dummy(0f, 4f);
+        DebugLayout.smallGap();
         ImGui.beginGroup();
         renderCard("Toolbar row", "Buttons stitched with sameLine()", () -> {
             ImGui.button("Play");
@@ -133,7 +131,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             ImGui.endChild();
         });
         ImGui.endGroup();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         if (showTable.get()) {
             renderLayoutTable();
         }
@@ -143,7 +141,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
         ImGui.beginChild(title, 150f, 110f, true);
         ImGui.text(title);
         ImGui.textDisabled(subtitle);
-        ImGui.dummy(0f, 4f);
+        DebugLayout.smallGap();
         content.run();
         ImGui.endChild();
     }
@@ -151,7 +149,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     private void renderLayoutTable() {
         int flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
         if (ImGui.beginTable("layout_tips", 3, flags)) {
-            ImGui.tableSetupColumn("Primitive", ImGuiTableColumnFlags.WidthFixed, 120f);
+            ImGui.tableSetupColumn("Primitive", ImGuiTableColumnFlags.WidthFixed, DebugLayout.TABLE_LABEL_WIDTH_SMALL);
             ImGui.tableSetupColumn("Use case", ImGuiTableColumnFlags.WidthStretch);
             ImGui.tableSetupColumn("Tip", ImGuiTableColumnFlags.WidthStretch);
             renderLayoutRow("beginChild()", "Scrollable regions", "Pair with style rounding for cards.");

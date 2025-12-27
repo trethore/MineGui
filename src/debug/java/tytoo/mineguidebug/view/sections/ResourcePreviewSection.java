@@ -4,9 +4,11 @@ import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
+import tytoo.mineguidebug.view.DebugLayout;
 
 public final class ResourcePreviewSection implements PlaygroundSection {
     private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
@@ -15,8 +17,8 @@ public final class ResourcePreviewSection implements PlaygroundSection {
     private final ImBoolean showOutline = new ImBoolean(true);
     private final ImBoolean enableTint = new ImBoolean(false);
     private final float[] tint = new float[]{0.2f, 0.7f, 1f, 1f};
-    private float previewSize = 128f;
-    private float rotationSteps;
+    private final FloatRef previewSize = new FloatRef(128f);
+    private final FloatRef rotationSteps = new FloatRef(0f);
     private String resourceStatus = "Texture metadata populates after the first draw call.";
 
     @Override
@@ -27,11 +29,11 @@ public final class ResourcePreviewSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderControls();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderPreview();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderStatusLine();
     }
 
@@ -47,14 +49,8 @@ public final class ResourcePreviewSection implements PlaygroundSection {
         if (enableTint.get()) {
             ImGui.colorEdit4("Tint rgba", tint);
         }
-        float[] sizeHolder = {previewSize};
-        if (ImGui.sliderFloat("Preview size", sizeHolder, 64f, 196f, "%.0f px")) {
-            previewSize = sizeHolder[0];
-        }
-        float[] rotationHolder = {rotationSteps};
-        if (ImGui.sliderFloat("Rotation", rotationHolder, 0f, 3f, "%.0f quarter turns")) {
-            rotationSteps = rotationHolder[0];
-        }
+        previewSize.sliderFloat("Preview size", 64f, 196f, "%.0f px");
+        rotationSteps.sliderFloat("Rotation", 0f, 3f, "%.0f quarter turns");
     }
 
     private void renderPreview() {
@@ -68,9 +64,10 @@ public final class ResourcePreviewSection implements PlaygroundSection {
     private void renderImageQuad() {
         float startX = ImGui.getCursorScreenPosX();
         float startY = ImGui.getCursorScreenPosY();
-        float endX = startX + previewSize;
-        float endY = startY + previewSize;
-        int rotation = Math.round(rotationSteps) % 4;
+        float size = previewSize.get();
+        float endX = startX + size;
+        float endY = startY + size;
+        int rotation = Math.round(rotationSteps.get()) % 4;
         float[] appliedTint = enableTint.get() ? tint : WHITE_TINT;
         ImGuiImageUtils.drawImage(IMGUI_ICON, startX, startY, endX, endY, rotation, false, appliedTint);
         if (showOutline.get()) {
@@ -78,7 +75,7 @@ public final class ResourcePreviewSection implements PlaygroundSection {
             drawList.addRect(startX - 2f, startY - 2f, endX + 2f, endY + 2f, ImGui.getColorU32(0.2f, 0.7f, 1f, 1f), 6f, 0, 2f);
             drawList.addText(startX, endY + 6f, ImGui.getColorU32(0.8f, 0.8f, 0.8f, 1f), "Custom draw commands stay in sync with ImGui.");
         }
-        ImGui.dummy(previewSize, previewSize + 24f);
+        ImGui.dummy(size, size + 24f);
         ImGuiImageUtils.TextureInfo info = ImGuiImageUtils.getTextureInfo(IMGUI_ICON);
         resourceStatus = "GL id %d - %dx%d px".formatted(info.textureId(), info.width(), info.height());
     }

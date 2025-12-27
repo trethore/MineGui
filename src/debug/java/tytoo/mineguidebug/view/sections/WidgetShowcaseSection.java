@@ -7,7 +7,11 @@ import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
+import tytoo.minegui.imgui.ref.FloatRef;
+import tytoo.minegui.imgui.scope.DisabledScope;
+import tytoo.minegui.imgui.scope.IdScope;
 import tytoo.minegui.view.View;
+import tytoo.mineguidebug.view.DebugLayout;
 
 public final class WidgetShowcaseSection implements PlaygroundSection {
     private static final int SAMPLE_CAPACITY = 90;
@@ -22,9 +26,9 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     private final float[] accentColor = new float[]{0.24f, 0.62f, 1f, 1f};
     private final float[] uvClamp = new float[]{0.15f, 0.85f};
     private final ImInt themeIndex = new ImInt(0);
-    private float progress = 0.35f;
-    private float sliderValue = 48f;
-    private float commandDelay = 0.18f;
+    private final FloatRef progress = new FloatRef(0.35f);
+    private final FloatRef sliderValue = new FloatRef(48f);
+    private final FloatRef commandDelay = new FloatRef(0.18f);
     private int sampleIndex;
     private String widgetStatus = "Idle";
 
@@ -36,13 +40,13 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderControls();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderWidgetGrid();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderPlotSection();
-        ImGui.dummy(0f, 6f);
+        DebugLayout.sectionGap();
         renderTableSection();
     }
 
@@ -60,16 +64,12 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
         ImGui.checkbox("Show widget table", showTable);
         ImGui.sameLine();
         ImGui.checkbox("Show palette", showPalette);
-        ImGui.progressBar(progress, -1f, 0f, "Streaming preview");
-        float[] sliderHolder = {sliderValue};
-        if (ImGui.sliderFloat("Chunk radius", sliderHolder, 16f, 96f, "%.0f blocks")) {
-            sliderValue = sliderHolder[0];
-            widgetStatus = "Chunk radius set to %.0f".formatted(sliderValue);
+        ImGui.progressBar(progress.get(), -1f, 0f, "Streaming preview");
+        if (sliderValue.sliderFloat("Chunk radius", 16f, 96f, "%.0f blocks")) {
+            widgetStatus = "Chunk radius set to %.0f".formatted(sliderValue.get());
         }
-        float[] delayHolder = {commandDelay};
-        if (ImGui.dragFloat("Sync delay", delayHolder, 0.01f, 0f, 0.4f, "%.2f s")) {
-            commandDelay = delayHolder[0];
-            widgetStatus = "Sync delay %.2fs".formatted(commandDelay);
+        if (commandDelay.dragFloat("Sync delay", 0.01f, 0f, 0.4f, "%.2f s")) {
+            widgetStatus = "Sync delay %.2fs".formatted(commandDelay.get());
         }
         if (ImGui.combo("Preset", themeIndex, THEME_PRESETS)) {
             widgetStatus = "%s preset staged".formatted(THEME_PRESETS[themeIndex.get()]);
@@ -97,10 +97,7 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     private void renderInputColumn() {
         ImGui.text("Selectors");
         ImGui.separator();
-        float[] dragHolder = {progress};
-        if (ImGui.dragFloat("Progress trim", dragHolder, 0.01f, 0f, 1f, "%.2f")) {
-            progress = dragHolder[0];
-        }
+        progress.dragFloat("Progress trim", 0.01f, 0f, 1f, "%.2f");
         float[] uvHolder = {uvClamp[0], uvClamp[1]};
         if (ImGui.dragFloat2("UV clamp", uvHolder, 0.01f, 0f, 1f, "%.2f")) {
             uvClamp[0] = uvHolder[0];
@@ -119,7 +116,7 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
         ImGui.separator();
         ImGui.textColored(accentColor[0], accentColor[1], accentColor[2], 1f, "Preset: %s".formatted(THEME_PRESETS[themeIndex.get()]));
         ImGui.bulletText("UV clamp: %.2f -> %.2f".formatted(uvClamp[0], uvClamp[1]));
-        ImGui.bulletText("Delay: %.2fs".formatted(commandDelay));
+        ImGui.bulletText("Delay: %.2fs".formatted(commandDelay.get()));
         ImGui.separator();
         if (ImGui.treeNode("Action stack")) {
             ImGui.text("- Apply preset");
@@ -127,13 +124,12 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
             ImGui.text("- Stream to MineGui overlay");
             ImGui.treePop();
         }
-        ImGui.dummy(0f, 2f);
+        DebugLayout.tinyGap();
         ImGui.text("Command buffer");
-        ImGui.pushID("command_preview");
-        ImGui.beginDisabled();
-        ImGui.inputText("##command", commandBuffer);
-        ImGui.endDisabled();
-        ImGui.popID();
+        try (IdScope ignored = IdScope.of("command_preview");
+             DisabledScope ignored2 = DisabledScope.of()) {
+            ImGui.inputText("##command", commandBuffer);
+        }
     }
 
     private void renderPlotSection() {
@@ -155,7 +151,7 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     private void renderWidgetTable() {
         int flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchSame;
         if (ImGui.beginTable("widget_best_practices", 3, flags)) {
-            ImGui.tableSetupColumn("Widget", ImGuiTableColumnFlags.WidthFixed, 120f);
+            ImGui.tableSetupColumn("Widget", ImGuiTableColumnFlags.WidthFixed, DebugLayout.TABLE_LABEL_WIDTH_SMALL);
             ImGui.tableSetupColumn("Purpose");
             ImGui.tableSetupColumn("MineGui tip");
             renderRow("ImBoolean", "Wrap toggles and checkboxes.", "Keep them as fields; ImGui pulls values by reference.");
@@ -182,11 +178,13 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
         ImGuiIO io = ImGui.getIO();
         if (animate.get()) {
             float delta = io.getDeltaTime();
-            progress += delta * 0.25f;
-            if (progress > 1f) {
-                progress -= 1f;
+            float currentProgress = progress.get();
+            currentProgress += delta * 0.25f;
+            if (currentProgress > 1f) {
+                currentProgress -= 1f;
             }
-            float sample = 0.25f + (float) (Math.sin(ImGui.getTime()) * 0.25f) + progress * 0.5f;
+            progress.set(currentProgress);
+            float sample = 0.25f + (float) (Math.sin(ImGui.getTime()) * 0.25f) + currentProgress * 0.5f;
             throughputSamples[sampleIndex] = Math.min(1f, Math.max(0f, sample));
             sampleIndex = (sampleIndex + 1) % throughputSamples.length;
         }

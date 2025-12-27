@@ -3,8 +3,8 @@ package tytoo.minegui.runtime.cursor;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiFocusedFlags;
-import imgui.internal.ImGuiContext;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.imgui.ContextGuard;
 import tytoo.minegui.util.CursorLockUtils;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
@@ -99,8 +99,7 @@ public final class CursorPolicyRegistry {
         if (!CursorLockUtils.clientWantsLockCursor()) {
             return;
         }
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (!MineGuiCore.isInitialized() || context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.isReady()) {
             CLICK_RELEASE_UNLOCKS.clear();
             suppressImGuiInput();
             relockIfNecessary();
@@ -179,8 +178,7 @@ public final class CursorPolicyRegistry {
     }
 
     private static void suppressImGuiInput() {
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (!MineGuiCore.isInitialized() || context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.isReady()) {
             return;
         }
         ImGuiIO io = ImGui.getIO();
@@ -192,8 +190,7 @@ public final class CursorPolicyRegistry {
     }
 
     private static void clearImGuiFocus() {
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (!MineGuiCore.isInitialized() || context == null || context.isNotValidPtr()) {
+        if (!ContextGuard.isReady()) {
             return;
         }
         ImGui.setWindowFocus(null);
