@@ -48,12 +48,12 @@ public record MineGuiInitializationOptions(
         return builder().namespace(namespace).build();
     }
 
-    public static MineGuiInitializationOptions skipGlobalConfig() {
-        return builder().loadGlobalConfig(false).build();
+    public static MineGuiInitializationOptions skipGlobalConfig(String namespace) {
+        return builder().namespace(namespace).loadGlobalConfig(false).build();
     }
 
-    public static MineGuiInitializationOptions ignoringGlobalConfig() {
-        return builder().loadGlobalConfig(false).ignoreGlobalConfig(true).build();
+    public static MineGuiInitializationOptions ignoringGlobalConfig(String namespace) {
+        return builder().namespace(namespace).loadGlobalConfig(false).ignoreGlobalConfig(true).build();
     }
 
     public MineGuiInitializationOptions withNamespace(String namespace) {

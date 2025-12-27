@@ -25,7 +25,6 @@ public final class PlaygroundView extends View {
     public PlaygroundView() {
         super("playground_view");
         setCursorPolicy(CursorPolicies.clickToLock());
-
     }
 
     @Override

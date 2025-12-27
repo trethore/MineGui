@@ -1,101 +1,16 @@
 package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
-import lombok.Getter;
 import tytoo.minegui.util.ResourceId;
 
 import java.util.Objects;
 
-@Getter
+@SuppressWarnings("unused")
 public final class StyleDelta {
-    private final Float alpha;
-    private final Float disabledAlpha;
-    private final Vec2 windowPadding;
-    private final Float windowRounding;
-    private final Float windowBorderSize;
-    private final Vec2 windowMinSize;
-    private final Vec2 windowTitleAlign;
-    private final Integer windowMenuButtonPosition;
-    private final Float childRounding;
-    private final Float childBorderSize;
-    private final Float popupRounding;
-    private final Float popupBorderSize;
-    private final Vec2 framePadding;
-    private final Float frameRounding;
-    private final Float frameBorderSize;
-    private final Vec2 itemSpacing;
-    private final Vec2 itemInnerSpacing;
-    private final Vec2 cellPadding;
-    private final Vec2 touchExtraPadding;
-    private final Float indentSpacing;
-    private final Float columnsMinSpacing;
-    private final Float scrollbarSize;
-    private final Float scrollbarRounding;
-    private final Float grabMinSize;
-    private final Float grabRounding;
-    private final Float logSliderDeadzone;
-    private final Float tabRounding;
-    private final Float tabBorderSize;
-    private final Float tabMinWidthForCloseButton;
-    private final Integer colorButtonPosition;
-    private final Vec2 buttonTextAlign;
-    private final Vec2 selectableTextAlign;
-    private final Vec2 displayWindowPadding;
-    private final Vec2 displaySafeAreaPadding;
-    private final Float mouseCursorScale;
-    private final Boolean antiAliasedLines;
-    private final Boolean antiAliasedLinesUseTex;
-    private final Boolean antiAliasedFill;
-    private final Float curveTessellationTol;
-    private final Float circleTessellationMaxError;
-    private final ColorPalette colorPalette;
-    private final ResourceId fontKey;
-    private final Float fontSize;
+    private final StylePropertyValues values;
 
-    private StyleDelta(Builder builder) {
-        this.alpha = builder.alpha;
-        this.disabledAlpha = builder.disabledAlpha;
-        this.windowPadding = builder.windowPadding;
-        this.windowRounding = builder.windowRounding;
-        this.windowBorderSize = builder.windowBorderSize;
-        this.windowMinSize = builder.windowMinSize;
-        this.windowTitleAlign = builder.windowTitleAlign;
-        this.windowMenuButtonPosition = builder.windowMenuButtonPosition;
-        this.childRounding = builder.childRounding;
-        this.childBorderSize = builder.childBorderSize;
-        this.popupRounding = builder.popupRounding;
-        this.popupBorderSize = builder.popupBorderSize;
-        this.framePadding = builder.framePadding;
-        this.frameRounding = builder.frameRounding;
-        this.frameBorderSize = builder.frameBorderSize;
-        this.itemSpacing = builder.itemSpacing;
-        this.itemInnerSpacing = builder.itemInnerSpacing;
-        this.cellPadding = builder.cellPadding;
-        this.touchExtraPadding = builder.touchExtraPadding;
-        this.indentSpacing = builder.indentSpacing;
-        this.columnsMinSpacing = builder.columnsMinSpacing;
-        this.scrollbarSize = builder.scrollbarSize;
-        this.scrollbarRounding = builder.scrollbarRounding;
-        this.grabMinSize = builder.grabMinSize;
-        this.grabRounding = builder.grabRounding;
-        this.logSliderDeadzone = builder.logSliderDeadzone;
-        this.tabRounding = builder.tabRounding;
-        this.tabBorderSize = builder.tabBorderSize;
-        this.tabMinWidthForCloseButton = builder.tabMinWidthForCloseButton;
-        this.colorButtonPosition = builder.colorButtonPosition;
-        this.buttonTextAlign = builder.buttonTextAlign;
-        this.selectableTextAlign = builder.selectableTextAlign;
-        this.displayWindowPadding = builder.displayWindowPadding;
-        this.displaySafeAreaPadding = builder.displaySafeAreaPadding;
-        this.mouseCursorScale = builder.mouseCursorScale;
-        this.antiAliasedLines = builder.antiAliasedLines;
-        this.antiAliasedLinesUseTex = builder.antiAliasedLinesUseTex;
-        this.antiAliasedFill = builder.antiAliasedFill;
-        this.curveTessellationTol = builder.curveTessellationTol;
-        this.circleTessellationMaxError = builder.circleTessellationMaxError;
-        this.colorPalette = builder.colorPalette;
-        this.fontKey = builder.fontKey;
-        this.fontSize = builder.fontSize;
+    private StyleDelta(StylePropertyValues values) {
+        this.values = values;
     }
 
     public static Builder builder() {
@@ -103,596 +18,480 @@ public final class StyleDelta {
     }
 
     public void applyTo(ImGuiStyle style) {
-        if (style == null) {
-            return;
-        }
-        if (alpha != null) {
-            style.setAlpha(alpha);
-        }
-        if (disabledAlpha != null) {
-            style.setDisabledAlpha(disabledAlpha);
-        }
-        if (windowPadding != null) {
-            style.setWindowPadding(windowPadding.x(), windowPadding.y());
-        }
-        if (windowRounding != null) {
-            style.setWindowRounding(windowRounding);
-        }
-        if (windowBorderSize != null) {
-            style.setWindowBorderSize(windowBorderSize);
-        }
-        if (windowMinSize != null) {
-            style.setWindowMinSize(windowMinSize.x(), windowMinSize.y());
-        }
-        if (windowTitleAlign != null) {
-            style.setWindowTitleAlign(windowTitleAlign.x(), windowTitleAlign.y());
-        }
-        if (windowMenuButtonPosition != null) {
-            style.setWindowMenuButtonPosition(windowMenuButtonPosition);
-        }
-        if (childRounding != null) {
-            style.setChildRounding(childRounding);
-        }
-        if (childBorderSize != null) {
-            style.setChildBorderSize(childBorderSize);
-        }
-        if (popupRounding != null) {
-            style.setPopupRounding(popupRounding);
-        }
-        if (popupBorderSize != null) {
-            style.setPopupBorderSize(popupBorderSize);
-        }
-        if (framePadding != null) {
-            style.setFramePadding(framePadding.x(), framePadding.y());
-        }
-        if (frameRounding != null) {
-            style.setFrameRounding(frameRounding);
-        }
-        if (frameBorderSize != null) {
-            style.setFrameBorderSize(frameBorderSize);
-        }
-        if (itemSpacing != null) {
-            style.setItemSpacing(itemSpacing.x(), itemSpacing.y());
-        }
-        if (itemInnerSpacing != null) {
-            style.setItemInnerSpacing(itemInnerSpacing.x(), itemInnerSpacing.y());
-        }
-        if (cellPadding != null) {
-            style.setCellPadding(cellPadding.x(), cellPadding.y());
-        }
-        if (touchExtraPadding != null) {
-            style.setTouchExtraPadding(touchExtraPadding.x(), touchExtraPadding.y());
-        }
-        if (indentSpacing != null) {
-            style.setIndentSpacing(indentSpacing);
-        }
-        if (columnsMinSpacing != null) {
-            style.setColumnsMinSpacing(columnsMinSpacing);
-        }
-        if (scrollbarSize != null) {
-            style.setScrollbarSize(scrollbarSize);
-        }
-        if (scrollbarRounding != null) {
-            style.setScrollbarRounding(scrollbarRounding);
-        }
-        if (grabMinSize != null) {
-            style.setGrabMinSize(grabMinSize);
-        }
-        if (grabRounding != null) {
-            style.setGrabRounding(grabRounding);
-        }
-        if (logSliderDeadzone != null) {
-            style.setLogSliderDeadzone(logSliderDeadzone);
-        }
-        if (tabRounding != null) {
-            style.setTabRounding(tabRounding);
-        }
-        if (tabBorderSize != null) {
-            style.setTabBorderSize(tabBorderSize);
-        }
-        if (tabMinWidthForCloseButton != null) {
-            style.setTabMinWidthForCloseButton(tabMinWidthForCloseButton);
-        }
-        if (colorButtonPosition != null) {
-            style.setColorButtonPosition(colorButtonPosition);
-        }
-        if (buttonTextAlign != null) {
-            style.setButtonTextAlign(buttonTextAlign.x(), buttonTextAlign.y());
-        }
-        if (selectableTextAlign != null) {
-            style.setSelectableTextAlign(selectableTextAlign.x(), selectableTextAlign.y());
-        }
-        if (displayWindowPadding != null) {
-            style.setDisplayWindowPadding(displayWindowPadding.x(), displayWindowPadding.y());
-        }
-        if (displaySafeAreaPadding != null) {
-            style.setDisplaySafeAreaPadding(displaySafeAreaPadding.x(), displaySafeAreaPadding.y());
-        }
-        if (mouseCursorScale != null) {
-            style.setMouseCursorScale(mouseCursorScale);
-        }
-        if (antiAliasedLines != null) {
-            style.setAntiAliasedLines(antiAliasedLines);
-        }
-        if (antiAliasedLinesUseTex != null) {
-            style.setAntiAliasedLinesUseTex(antiAliasedLinesUseTex);
-        }
-        if (antiAliasedFill != null) {
-            style.setAntiAliasedFill(antiAliasedFill);
-        }
-        if (curveTessellationTol != null) {
-            style.setCurveTessellationTol(curveTessellationTol);
-        }
-        if (circleTessellationMaxError != null) {
-            style.setCircleTessellationMaxError(circleTessellationMaxError);
-        }
-        if (colorPalette != null) {
-            colorPalette.applyTo(style);
-        }
+        values.applyTo(style);
     }
 
     public StyleDescriptor resolve(StyleDescriptor base) {
         Objects.requireNonNull(base, "base");
-        StyleDescriptor.Builder builder = StyleDescriptor.builder().fromDescriptor(base);
-        if (alpha != null) {
-            builder.alpha(alpha);
-        }
-        if (disabledAlpha != null) {
-            builder.disabledAlpha(disabledAlpha);
-        }
-        if (windowPadding != null) {
-            builder.windowPadding(windowPadding);
-        }
-        if (windowRounding != null) {
-            builder.windowRounding(windowRounding);
-        }
-        if (windowBorderSize != null) {
-            builder.windowBorderSize(windowBorderSize);
-        }
-        if (windowMinSize != null) {
-            builder.windowMinSize(windowMinSize);
-        }
-        if (windowTitleAlign != null) {
-            builder.windowTitleAlign(windowTitleAlign);
-        }
-        if (windowMenuButtonPosition != null) {
-            builder.windowMenuButtonPosition(windowMenuButtonPosition);
-        }
-        if (childRounding != null) {
-            builder.childRounding(childRounding);
-        }
-        if (childBorderSize != null) {
-            builder.childBorderSize(childBorderSize);
-        }
-        if (popupRounding != null) {
-            builder.popupRounding(popupRounding);
-        }
-        if (popupBorderSize != null) {
-            builder.popupBorderSize(popupBorderSize);
-        }
-        if (framePadding != null) {
-            builder.framePadding(framePadding);
-        }
-        if (frameRounding != null) {
-            builder.frameRounding(frameRounding);
-        }
-        if (frameBorderSize != null) {
-            builder.frameBorderSize(frameBorderSize);
-        }
-        if (itemSpacing != null) {
-            builder.itemSpacing(itemSpacing);
-        }
-        if (itemInnerSpacing != null) {
-            builder.itemInnerSpacing(itemInnerSpacing);
-        }
-        if (cellPadding != null) {
-            builder.cellPadding(cellPadding);
-        }
-        if (touchExtraPadding != null) {
-            builder.touchExtraPadding(touchExtraPadding);
-        }
-        if (indentSpacing != null) {
-            builder.indentSpacing(indentSpacing);
-        }
-        if (columnsMinSpacing != null) {
-            builder.columnsMinSpacing(columnsMinSpacing);
-        }
-        if (scrollbarSize != null) {
-            builder.scrollbarSize(scrollbarSize);
-        }
-        if (scrollbarRounding != null) {
-            builder.scrollbarRounding(scrollbarRounding);
-        }
-        if (grabMinSize != null) {
-            builder.grabMinSize(grabMinSize);
-        }
-        if (grabRounding != null) {
-            builder.grabRounding(grabRounding);
-        }
-        if (logSliderDeadzone != null) {
-            builder.logSliderDeadzone(logSliderDeadzone);
-        }
-        if (tabRounding != null) {
-            builder.tabRounding(tabRounding);
-        }
-        if (tabBorderSize != null) {
-            builder.tabBorderSize(tabBorderSize);
-        }
-        if (tabMinWidthForCloseButton != null) {
-            builder.tabMinWidthForCloseButton(tabMinWidthForCloseButton);
-        }
-        if (colorButtonPosition != null) {
-            builder.colorButtonPosition(colorButtonPosition);
-        }
-        if (buttonTextAlign != null) {
-            builder.buttonTextAlign(buttonTextAlign);
-        }
-        if (selectableTextAlign != null) {
-            builder.selectableTextAlign(selectableTextAlign);
-        }
-        if (displayWindowPadding != null) {
-            builder.displayWindowPadding(displayWindowPadding);
-        }
-        if (displaySafeAreaPadding != null) {
-            builder.displaySafeAreaPadding(displaySafeAreaPadding);
-        }
-        if (mouseCursorScale != null) {
-            builder.mouseCursorScale(mouseCursorScale);
-        }
-        if (antiAliasedLines != null) {
-            builder.antiAliasedLines(antiAliasedLines);
-        }
-        if (antiAliasedLinesUseTex != null) {
-            builder.antiAliasedLinesUseTex(antiAliasedLinesUseTex);
-        }
-        if (antiAliasedFill != null) {
-            builder.antiAliasedFill(antiAliasedFill);
-        }
-        if (curveTessellationTol != null) {
-            builder.curveTessellationTol(curveTessellationTol);
-        }
-        if (circleTessellationMaxError != null) {
-            builder.circleTessellationMaxError(circleTessellationMaxError);
-        }
-        ColorPalette palette = colorPalette != null ? base.getColorPalette().mergedWith(colorPalette) : base.getColorPalette();
-        builder.colorPalette(palette);
-        if (fontKey != null) {
-            builder.fontKey(fontKey);
-        } else {
-            builder.fontKey(base.getFontKey());
-        }
-        if (fontSize != null) {
-            builder.fontSize(fontSize);
-        } else {
-            builder.fontSize(base.getFontSize());
-        }
-        return builder.build();
+        StylePropertyValues merged = base.values().mergeWith(values);
+        return new StyleDescriptor(merged);
+    }
+
+    public <T> T get(StyleProperty property) {
+        return values.get(property);
+    }
+
+    public Float getAlpha() {
+        return values.get(StyleProperty.ALPHA);
+    }
+
+    public Float getDisabledAlpha() {
+        return values.get(StyleProperty.DISABLED_ALPHA);
+    }
+
+    public Vec2 getWindowPadding() {
+        return values.get(StyleProperty.WINDOW_PADDING);
+    }
+
+    public Float getWindowRounding() {
+        return values.get(StyleProperty.WINDOW_ROUNDING);
+    }
+
+    public Float getWindowBorderSize() {
+        return values.get(StyleProperty.WINDOW_BORDER_SIZE);
+    }
+
+    public Vec2 getWindowMinSize() {
+        return values.get(StyleProperty.WINDOW_MIN_SIZE);
+    }
+
+    public Vec2 getWindowTitleAlign() {
+        return values.get(StyleProperty.WINDOW_TITLE_ALIGN);
+    }
+
+    public Integer getWindowMenuButtonPosition() {
+        return values.get(StyleProperty.WINDOW_MENU_BUTTON_POSITION);
+    }
+
+    public Float getChildRounding() {
+        return values.get(StyleProperty.CHILD_ROUNDING);
+    }
+
+    public Float getChildBorderSize() {
+        return values.get(StyleProperty.CHILD_BORDER_SIZE);
+    }
+
+    public Float getPopupRounding() {
+        return values.get(StyleProperty.POPUP_ROUNDING);
+    }
+
+    public Float getPopupBorderSize() {
+        return values.get(StyleProperty.POPUP_BORDER_SIZE);
+    }
+
+    public Vec2 getFramePadding() {
+        return values.get(StyleProperty.FRAME_PADDING);
+    }
+
+    public Float getFrameRounding() {
+        return values.get(StyleProperty.FRAME_ROUNDING);
+    }
+
+    public Float getFrameBorderSize() {
+        return values.get(StyleProperty.FRAME_BORDER_SIZE);
+    }
+
+    public Vec2 getItemSpacing() {
+        return values.get(StyleProperty.ITEM_SPACING);
+    }
+
+    public Vec2 getItemInnerSpacing() {
+        return values.get(StyleProperty.ITEM_INNER_SPACING);
+    }
+
+    public Vec2 getCellPadding() {
+        return values.get(StyleProperty.CELL_PADDING);
+    }
+
+    public Vec2 getTouchExtraPadding() {
+        return values.get(StyleProperty.TOUCH_EXTRA_PADDING);
+    }
+
+    public Float getIndentSpacing() {
+        return values.get(StyleProperty.INDENT_SPACING);
+    }
+
+    public Float getColumnsMinSpacing() {
+        return values.get(StyleProperty.COLUMNS_MIN_SPACING);
+    }
+
+    public Float getScrollbarSize() {
+        return values.get(StyleProperty.SCROLLBAR_SIZE);
+    }
+
+    public Float getScrollbarRounding() {
+        return values.get(StyleProperty.SCROLLBAR_ROUNDING);
+    }
+
+    public Float getGrabMinSize() {
+        return values.get(StyleProperty.GRAB_MIN_SIZE);
+    }
+
+    public Float getGrabRounding() {
+        return values.get(StyleProperty.GRAB_ROUNDING);
+    }
+
+    public Float getLogSliderDeadzone() {
+        return values.get(StyleProperty.LOG_SLIDER_DEADZONE);
+    }
+
+    public Float getTabRounding() {
+        return values.get(StyleProperty.TAB_ROUNDING);
+    }
+
+    public Float getTabBorderSize() {
+        return values.get(StyleProperty.TAB_BORDER_SIZE);
+    }
+
+    public Float getTabMinWidthForCloseButton() {
+        return values.get(StyleProperty.TAB_MIN_WIDTH_FOR_CLOSE_BUTTON);
+    }
+
+    public Integer getColorButtonPosition() {
+        return values.get(StyleProperty.COLOR_BUTTON_POSITION);
+    }
+
+    public Vec2 getButtonTextAlign() {
+        return values.get(StyleProperty.BUTTON_TEXT_ALIGN);
+    }
+
+    public Vec2 getSelectableTextAlign() {
+        return values.get(StyleProperty.SELECTABLE_TEXT_ALIGN);
+    }
+
+    public Vec2 getDisplayWindowPadding() {
+        return values.get(StyleProperty.DISPLAY_WINDOW_PADDING);
+    }
+
+    public Vec2 getDisplaySafeAreaPadding() {
+        return values.get(StyleProperty.DISPLAY_SAFE_AREA_PADDING);
+    }
+
+    public Float getMouseCursorScale() {
+        return values.get(StyleProperty.MOUSE_CURSOR_SCALE);
+    }
+
+    public Boolean getAntiAliasedLines() {
+        return values.get(StyleProperty.ANTI_ALIASED_LINES);
+    }
+
+    public Boolean getAntiAliasedLinesUseTex() {
+        return values.get(StyleProperty.ANTI_ALIASED_LINES_USE_TEX);
+    }
+
+    public Boolean getAntiAliasedFill() {
+        return values.get(StyleProperty.ANTI_ALIASED_FILL);
+    }
+
+    public Float getCurveTessellationTol() {
+        return values.get(StyleProperty.CURVE_TESSELLATION_TOL);
+    }
+
+    public Float getCircleTessellationMaxError() {
+        return values.get(StyleProperty.CIRCLE_TESSELLATION_MAX_ERROR);
+    }
+
+    public ColorPalette getColorPalette() {
+        return values.colorPalette();
+    }
+
+    public ResourceId getFontKey() {
+        return values.fontKey();
+    }
+
+    public Float getFontSize() {
+        return values.fontSize();
+    }
+
+    StylePropertyValues values() {
+        return values;
     }
 
     public static final class Builder {
-        private Float alpha;
-        private Float disabledAlpha;
-        private Vec2 windowPadding;
-        private Float windowRounding;
-        private Float windowBorderSize;
-        private Vec2 windowMinSize;
-        private Vec2 windowTitleAlign;
-        private Integer windowMenuButtonPosition;
-        private Float childRounding;
-        private Float childBorderSize;
-        private Float popupRounding;
-        private Float popupBorderSize;
-        private Vec2 framePadding;
-        private Float frameRounding;
-        private Float frameBorderSize;
-        private Vec2 itemSpacing;
-        private Vec2 itemInnerSpacing;
-        private Vec2 cellPadding;
-        private Vec2 touchExtraPadding;
-        private Float indentSpacing;
-        private Float columnsMinSpacing;
-        private Float scrollbarSize;
-        private Float scrollbarRounding;
-        private Float grabMinSize;
-        private Float grabRounding;
-        private Float logSliderDeadzone;
-        private Float tabRounding;
-        private Float tabBorderSize;
-        private Float tabMinWidthForCloseButton;
-        private Integer colorButtonPosition;
-        private Vec2 buttonTextAlign;
-        private Vec2 selectableTextAlign;
-        private Vec2 displayWindowPadding;
-        private Vec2 displaySafeAreaPadding;
-        private Float mouseCursorScale;
-        private Boolean antiAliasedLines;
-        private Boolean antiAliasedLinesUseTex;
-        private Boolean antiAliasedFill;
-        private Float curveTessellationTol;
-        private Float circleTessellationMaxError;
-        private ColorPalette colorPalette;
-        private ResourceId fontKey;
-        private Float fontSize;
+        private final StylePropertyValues.Builder delegate = StylePropertyValues.builder();
+
+        private Builder() {
+        }
 
         public Builder alpha(float value) {
-            this.alpha = value;
+            delegate.alpha(value);
             return this;
         }
 
         public Builder disabledAlpha(float value) {
-            this.disabledAlpha = value;
+            delegate.disabledAlpha(value);
             return this;
         }
 
         public Builder windowPadding(float x, float y) {
-            this.windowPadding = Vec2.of(x, y);
+            delegate.windowPadding(x, y);
             return this;
         }
 
         public Builder windowPadding(Vec2 value) {
-            this.windowPadding = Objects.requireNonNull(value, "windowPadding");
+            delegate.windowPadding(value);
             return this;
         }
 
         public Builder windowRounding(float value) {
-            this.windowRounding = value;
+            delegate.windowRounding(value);
             return this;
         }
 
         public Builder windowBorderSize(float value) {
-            this.windowBorderSize = value;
+            delegate.windowBorderSize(value);
             return this;
         }
 
         public Builder windowMinSize(float x, float y) {
-            this.windowMinSize = Vec2.of(x, y);
+            delegate.windowMinSize(x, y);
             return this;
         }
 
         public Builder windowMinSize(Vec2 value) {
-            this.windowMinSize = Objects.requireNonNull(value, "windowMinSize");
+            delegate.windowMinSize(value);
             return this;
         }
 
         public Builder windowTitleAlign(float x, float y) {
-            this.windowTitleAlign = Vec2.of(x, y);
+            delegate.windowTitleAlign(x, y);
             return this;
         }
 
         public Builder windowTitleAlign(Vec2 value) {
-            this.windowTitleAlign = Objects.requireNonNull(value, "windowTitleAlign");
+            delegate.windowTitleAlign(value);
             return this;
         }
 
         public Builder windowMenuButtonPosition(int value) {
-            this.windowMenuButtonPosition = value;
+            delegate.windowMenuButtonPosition(value);
             return this;
         }
 
         public Builder childRounding(float value) {
-            this.childRounding = value;
+            delegate.childRounding(value);
             return this;
         }
 
         public Builder childBorderSize(float value) {
-            this.childBorderSize = value;
+            delegate.childBorderSize(value);
             return this;
         }
 
         public Builder popupRounding(float value) {
-            this.popupRounding = value;
+            delegate.popupRounding(value);
             return this;
         }
 
         public Builder popupBorderSize(float value) {
-            this.popupBorderSize = value;
+            delegate.popupBorderSize(value);
             return this;
         }
 
         public Builder framePadding(float x, float y) {
-            this.framePadding = Vec2.of(x, y);
+            delegate.framePadding(x, y);
             return this;
         }
 
         public Builder framePadding(Vec2 value) {
-            this.framePadding = Objects.requireNonNull(value, "framePadding");
+            delegate.framePadding(value);
             return this;
         }
 
         public Builder frameRounding(float value) {
-            this.frameRounding = value;
+            delegate.frameRounding(value);
             return this;
         }
 
         public Builder frameBorderSize(float value) {
-            this.frameBorderSize = value;
+            delegate.frameBorderSize(value);
             return this;
         }
 
         public Builder itemSpacing(float x, float y) {
-            this.itemSpacing = Vec2.of(x, y);
+            delegate.itemSpacing(x, y);
             return this;
         }
 
         public Builder itemSpacing(Vec2 value) {
-            this.itemSpacing = Objects.requireNonNull(value, "itemSpacing");
+            delegate.itemSpacing(value);
             return this;
         }
 
         public Builder itemInnerSpacing(float x, float y) {
-            this.itemInnerSpacing = Vec2.of(x, y);
+            delegate.itemInnerSpacing(x, y);
             return this;
         }
 
         public Builder itemInnerSpacing(Vec2 value) {
-            this.itemInnerSpacing = Objects.requireNonNull(value, "itemInnerSpacing");
+            delegate.itemInnerSpacing(value);
             return this;
         }
 
         public Builder cellPadding(float x, float y) {
-            this.cellPadding = Vec2.of(x, y);
+            delegate.cellPadding(x, y);
             return this;
         }
 
         public Builder cellPadding(Vec2 value) {
-            this.cellPadding = Objects.requireNonNull(value, "cellPadding");
+            delegate.cellPadding(value);
             return this;
         }
 
         public Builder touchExtraPadding(float x, float y) {
-            this.touchExtraPadding = Vec2.of(x, y);
+            delegate.touchExtraPadding(x, y);
             return this;
         }
 
         public Builder touchExtraPadding(Vec2 value) {
-            this.touchExtraPadding = Objects.requireNonNull(value, "touchExtraPadding");
+            delegate.touchExtraPadding(value);
             return this;
         }
 
         public Builder indentSpacing(float value) {
-            this.indentSpacing = value;
+            delegate.indentSpacing(value);
             return this;
         }
 
         public Builder columnsMinSpacing(float value) {
-            this.columnsMinSpacing = value;
+            delegate.columnsMinSpacing(value);
             return this;
         }
 
         public Builder scrollbarSize(float value) {
-            this.scrollbarSize = value;
+            delegate.scrollbarSize(value);
             return this;
         }
 
         public Builder scrollbarRounding(float value) {
-            this.scrollbarRounding = value;
+            delegate.scrollbarRounding(value);
             return this;
         }
 
         public Builder grabMinSize(float value) {
-            this.grabMinSize = value;
+            delegate.grabMinSize(value);
             return this;
         }
 
         public Builder grabRounding(float value) {
-            this.grabRounding = value;
+            delegate.grabRounding(value);
             return this;
         }
 
         public Builder logSliderDeadzone(float value) {
-            this.logSliderDeadzone = value;
+            delegate.logSliderDeadzone(value);
             return this;
         }
 
         public Builder tabRounding(float value) {
-            this.tabRounding = value;
+            delegate.tabRounding(value);
             return this;
         }
 
         public Builder tabBorderSize(float value) {
-            this.tabBorderSize = value;
+            delegate.tabBorderSize(value);
             return this;
         }
 
         public Builder tabMinWidthForCloseButton(float value) {
-            this.tabMinWidthForCloseButton = value;
+            delegate.tabMinWidthForCloseButton(value);
             return this;
         }
 
         public Builder colorButtonPosition(int value) {
-            this.colorButtonPosition = value;
+            delegate.colorButtonPosition(value);
             return this;
         }
 
         public Builder buttonTextAlign(float x, float y) {
-            this.buttonTextAlign = Vec2.of(x, y);
+            delegate.buttonTextAlign(x, y);
             return this;
         }
 
         public Builder buttonTextAlign(Vec2 value) {
-            this.buttonTextAlign = Objects.requireNonNull(value, "buttonTextAlign");
+            delegate.buttonTextAlign(value);
             return this;
         }
 
         public Builder selectableTextAlign(float x, float y) {
-            this.selectableTextAlign = Vec2.of(x, y);
+            delegate.selectableTextAlign(x, y);
             return this;
         }
 
         public Builder selectableTextAlign(Vec2 value) {
-            this.selectableTextAlign = Objects.requireNonNull(value, "selectableTextAlign");
+            delegate.selectableTextAlign(value);
             return this;
         }
 
         public Builder displayWindowPadding(float x, float y) {
-            this.displayWindowPadding = Vec2.of(x, y);
+            delegate.displayWindowPadding(x, y);
             return this;
         }
 
         public Builder displayWindowPadding(Vec2 value) {
-            this.displayWindowPadding = Objects.requireNonNull(value, "displayWindowPadding");
+            delegate.displayWindowPadding(value);
             return this;
         }
 
         public Builder displaySafeAreaPadding(float x, float y) {
-            this.displaySafeAreaPadding = Vec2.of(x, y);
+            delegate.displaySafeAreaPadding(x, y);
             return this;
         }
 
         public Builder displaySafeAreaPadding(Vec2 value) {
-            this.displaySafeAreaPadding = Objects.requireNonNull(value, "displaySafeAreaPadding");
+            delegate.displaySafeAreaPadding(value);
             return this;
         }
 
         public Builder mouseCursorScale(float value) {
-            this.mouseCursorScale = value;
+            delegate.mouseCursorScale(value);
             return this;
         }
 
         public Builder antiAliasedLines(boolean value) {
-            this.antiAliasedLines = value;
+            delegate.antiAliasedLines(value);
             return this;
         }
 
         public Builder antiAliasedLinesUseTex(boolean value) {
-            this.antiAliasedLinesUseTex = value;
+            delegate.antiAliasedLinesUseTex(value);
             return this;
         }
 
         public Builder antiAliasedFill(boolean value) {
-            this.antiAliasedFill = value;
+            delegate.antiAliasedFill(value);
             return this;
         }
 
         public Builder curveTessellationTol(float value) {
-            this.curveTessellationTol = value;
+            delegate.curveTessellationTol(value);
             return this;
         }
 
         public Builder circleTessellationMaxError(float value) {
-            this.circleTessellationMaxError = value;
+            delegate.circleTessellationMaxError(value);
             return this;
         }
 
         public Builder colorPalette(ColorPalette value) {
-            this.colorPalette = value;
+            delegate.colorPalette(value);
             return this;
         }
 
         public Builder fontKey(ResourceId value) {
-            this.fontKey = value;
+            delegate.fontKey(value);
             return this;
         }
 
         public Builder fontSize(Float value) {
-            this.fontSize = value;
+            delegate.fontSize(value);
             return this;
         }
 
         public StyleDelta build() {
-            StyleDelta delta = new StyleDelta(this);
-            StyleValidation.validateDelta(delta);
-            return delta;
+            StylePropertyValues values = delegate.build();
+            values.validate("StyleDelta");
+            return new StyleDelta(values);
         }
     }
 }

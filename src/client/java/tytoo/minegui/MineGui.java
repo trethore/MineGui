@@ -12,6 +12,6 @@ public final class MineGui {
     }
 
     public static MineGuiContext setupSimple(String namespace) {
-        return MineGuiCore.init(MineGuiInitializationOptions.skipGlobalConfig().withNamespace(namespace));
+        return MineGuiCore.init(MineGuiInitializationOptions.skipGlobalConfig(namespace));
     }
 }

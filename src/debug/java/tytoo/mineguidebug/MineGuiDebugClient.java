@@ -18,7 +18,7 @@ public final class MineGuiDebugClient implements ClientModInitializer {
                         .build()
         );
         MineGuiDebugCore.init(context);
-        
+
         HelloMineGui.run();
 
         MineGuiDebugCore.LOGGER.info("Hello developer! MineGui is initialized !");

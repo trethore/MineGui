@@ -1,101 +1,13 @@
 package tytoo.minegui.style;
 
 import imgui.ImGuiStyle;
-import lombok.Getter;
 import tytoo.minegui.util.ResourceId;
 
-import java.util.Objects;
-
-@Getter
 public final class StyleDescriptor {
-    private final float alpha;
-    private final float disabledAlpha;
-    private final Vec2 windowPadding;
-    private final float windowRounding;
-    private final float windowBorderSize;
-    private final Vec2 windowMinSize;
-    private final Vec2 windowTitleAlign;
-    private final int windowMenuButtonPosition;
-    private final float childRounding;
-    private final float childBorderSize;
-    private final float popupRounding;
-    private final float popupBorderSize;
-    private final Vec2 framePadding;
-    private final float frameRounding;
-    private final float frameBorderSize;
-    private final Vec2 itemSpacing;
-    private final Vec2 itemInnerSpacing;
-    private final Vec2 cellPadding;
-    private final Vec2 touchExtraPadding;
-    private final float indentSpacing;
-    private final float columnsMinSpacing;
-    private final float scrollbarSize;
-    private final float scrollbarRounding;
-    private final float grabMinSize;
-    private final float grabRounding;
-    private final float logSliderDeadzone;
-    private final float tabRounding;
-    private final float tabBorderSize;
-    private final float tabMinWidthForCloseButton;
-    private final int colorButtonPosition;
-    private final Vec2 buttonTextAlign;
-    private final Vec2 selectableTextAlign;
-    private final Vec2 displayWindowPadding;
-    private final Vec2 displaySafeAreaPadding;
-    private final float mouseCursorScale;
-    private final boolean antiAliasedLines;
-    private final boolean antiAliasedLinesUseTex;
-    private final boolean antiAliasedFill;
-    private final float curveTessellationTol;
-    private final float circleTessellationMaxError;
-    private final ColorPalette colorPalette;
-    private final ResourceId fontKey;
-    private final Float fontSize;
+    private final StylePropertyValues values;
 
-    private StyleDescriptor(Builder builder) {
-        this.alpha = builder.alpha;
-        this.disabledAlpha = builder.disabledAlpha;
-        this.windowPadding = Objects.requireNonNull(builder.windowPadding, "windowPadding");
-        this.windowRounding = builder.windowRounding;
-        this.windowBorderSize = builder.windowBorderSize;
-        this.windowMinSize = Objects.requireNonNull(builder.windowMinSize, "windowMinSize");
-        this.windowTitleAlign = Objects.requireNonNull(builder.windowTitleAlign, "windowTitleAlign");
-        this.windowMenuButtonPosition = builder.windowMenuButtonPosition;
-        this.childRounding = builder.childRounding;
-        this.childBorderSize = builder.childBorderSize;
-        this.popupRounding = builder.popupRounding;
-        this.popupBorderSize = builder.popupBorderSize;
-        this.framePadding = Objects.requireNonNull(builder.framePadding, "framePadding");
-        this.frameRounding = builder.frameRounding;
-        this.frameBorderSize = builder.frameBorderSize;
-        this.itemSpacing = Objects.requireNonNull(builder.itemSpacing, "itemSpacing");
-        this.itemInnerSpacing = Objects.requireNonNull(builder.itemInnerSpacing, "itemInnerSpacing");
-        this.cellPadding = Objects.requireNonNull(builder.cellPadding, "cellPadding");
-        this.touchExtraPadding = Objects.requireNonNull(builder.touchExtraPadding, "touchExtraPadding");
-        this.indentSpacing = builder.indentSpacing;
-        this.columnsMinSpacing = builder.columnsMinSpacing;
-        this.scrollbarSize = builder.scrollbarSize;
-        this.scrollbarRounding = builder.scrollbarRounding;
-        this.grabMinSize = builder.grabMinSize;
-        this.grabRounding = builder.grabRounding;
-        this.logSliderDeadzone = builder.logSliderDeadzone;
-        this.tabRounding = builder.tabRounding;
-        this.tabBorderSize = builder.tabBorderSize;
-        this.tabMinWidthForCloseButton = builder.tabMinWidthForCloseButton;
-        this.colorButtonPosition = builder.colorButtonPosition;
-        this.buttonTextAlign = Objects.requireNonNull(builder.buttonTextAlign, "buttonTextAlign");
-        this.selectableTextAlign = Objects.requireNonNull(builder.selectableTextAlign, "selectableTextAlign");
-        this.displayWindowPadding = Objects.requireNonNull(builder.displayWindowPadding, "displayWindowPadding");
-        this.displaySafeAreaPadding = Objects.requireNonNull(builder.displaySafeAreaPadding, "displaySafeAreaPadding");
-        this.mouseCursorScale = builder.mouseCursorScale;
-        this.antiAliasedLines = builder.antiAliasedLines;
-        this.antiAliasedLinesUseTex = builder.antiAliasedLinesUseTex;
-        this.antiAliasedFill = builder.antiAliasedFill;
-        this.curveTessellationTol = builder.curveTessellationTol;
-        this.circleTessellationMaxError = builder.circleTessellationMaxError;
-        this.colorPalette = builder.colorPalette != null ? builder.colorPalette : ColorPalette.empty();
-        this.fontKey = builder.fontKey;
-        this.fontSize = builder.fontSize;
+    StyleDescriptor(StylePropertyValues values) {
+        this.values = values;
     }
 
     public static Builder builder() {
@@ -107,59 +19,12 @@ public final class StyleDescriptor {
     }
 
     public static StyleDescriptor capture(ImGuiStyle style, ColorPalette palette, ResourceId fontKey, Float fontSize) {
-        return builder()
-                .fromStyle(style)
-                .colorPalette(palette)
-                .fontKey(fontKey)
-                .fontSize(fontSize)
-                .build();
+        StylePropertyValues values = StylePropertyValues.captureFrom(style, palette, fontKey, fontSize);
+        return new StyleDescriptor(values);
     }
 
     public void applyTo(ImGuiStyle style) {
-        if (style == null) {
-            return;
-        }
-        style.setAlpha(alpha);
-        style.setDisabledAlpha(disabledAlpha);
-        style.setWindowPadding(windowPadding.x(), windowPadding.y());
-        style.setWindowRounding(windowRounding);
-        style.setWindowBorderSize(windowBorderSize);
-        style.setWindowMinSize(windowMinSize.x(), windowMinSize.y());
-        style.setWindowTitleAlign(windowTitleAlign.x(), windowTitleAlign.y());
-        style.setWindowMenuButtonPosition(windowMenuButtonPosition);
-        style.setChildRounding(childRounding);
-        style.setChildBorderSize(childBorderSize);
-        style.setPopupRounding(popupRounding);
-        style.setPopupBorderSize(popupBorderSize);
-        style.setFramePadding(framePadding.x(), framePadding.y());
-        style.setFrameRounding(frameRounding);
-        style.setFrameBorderSize(frameBorderSize);
-        style.setItemSpacing(itemSpacing.x(), itemSpacing.y());
-        style.setItemInnerSpacing(itemInnerSpacing.x(), itemInnerSpacing.y());
-        style.setCellPadding(cellPadding.x(), cellPadding.y());
-        style.setTouchExtraPadding(touchExtraPadding.x(), touchExtraPadding.y());
-        style.setIndentSpacing(indentSpacing);
-        style.setColumnsMinSpacing(columnsMinSpacing);
-        style.setScrollbarSize(scrollbarSize);
-        style.setScrollbarRounding(scrollbarRounding);
-        style.setGrabMinSize(grabMinSize);
-        style.setGrabRounding(grabRounding);
-        style.setLogSliderDeadzone(logSliderDeadzone);
-        style.setTabRounding(tabRounding);
-        style.setTabBorderSize(tabBorderSize);
-        style.setTabMinWidthForCloseButton(tabMinWidthForCloseButton);
-        style.setColorButtonPosition(colorButtonPosition);
-        style.setButtonTextAlign(buttonTextAlign.x(), buttonTextAlign.y());
-        style.setSelectableTextAlign(selectableTextAlign.x(), selectableTextAlign.y());
-        style.setDisplayWindowPadding(displayWindowPadding.x(), displayWindowPadding.y());
-        style.setDisplaySafeAreaPadding(displaySafeAreaPadding.x(), displaySafeAreaPadding.y());
-        style.setMouseCursorScale(mouseCursorScale);
-        style.setAntiAliasedLines(antiAliasedLines);
-        style.setAntiAliasedLinesUseTex(antiAliasedLinesUseTex);
-        style.setAntiAliasedFill(antiAliasedFill);
-        style.setCurveTessellationTol(curveTessellationTol);
-        style.setCircleTessellationMaxError(circleTessellationMaxError);
-        colorPalette.applyTo(style);
+        values.applyTo(style);
     }
 
     public StyleDescriptor withDelta(StyleDelta delta) {
@@ -169,427 +34,571 @@ public final class StyleDescriptor {
         return delta.resolve(this);
     }
 
+    public <T> T get(StyleProperty property) {
+        return values.get(property);
+    }
+
+    public float getAlpha() {
+        Float val = values.get(StyleProperty.ALPHA);
+        return val != null ? val : 1.0f;
+    }
+
+    public float getDisabledAlpha() {
+        Float val = values.get(StyleProperty.DISABLED_ALPHA);
+        return val != null ? val : 0.6f;
+    }
+
+    public Vec2 getWindowPadding() {
+        Vec2 val = values.get(StyleProperty.WINDOW_PADDING);
+        return val != null ? val : Vec2.of(0f, 0f);
+    }
+
+    public float getWindowRounding() {
+        Float val = values.get(StyleProperty.WINDOW_ROUNDING);
+        return val != null ? val : 0f;
+    }
+
+    public float getWindowBorderSize() {
+        Float val = values.get(StyleProperty.WINDOW_BORDER_SIZE);
+        return val != null ? val : 1f;
+    }
+
+    public Vec2 getWindowMinSize() {
+        Vec2 val = values.get(StyleProperty.WINDOW_MIN_SIZE);
+        return val != null ? val : Vec2.of(32f, 32f);
+    }
+
+    public Vec2 getWindowTitleAlign() {
+        Vec2 val = values.get(StyleProperty.WINDOW_TITLE_ALIGN);
+        return val != null ? val : Vec2.of(0f, 0.5f);
+    }
+
+    public int getWindowMenuButtonPosition() {
+        Integer val = values.get(StyleProperty.WINDOW_MENU_BUTTON_POSITION);
+        return val != null ? val : 0;
+    }
+
+    public float getChildRounding() {
+        Float val = values.get(StyleProperty.CHILD_ROUNDING);
+        return val != null ? val : 0f;
+    }
+
+    public float getChildBorderSize() {
+        Float val = values.get(StyleProperty.CHILD_BORDER_SIZE);
+        return val != null ? val : 1f;
+    }
+
+    public float getPopupRounding() {
+        Float val = values.get(StyleProperty.POPUP_ROUNDING);
+        return val != null ? val : 0f;
+    }
+
+    public float getPopupBorderSize() {
+        Float val = values.get(StyleProperty.POPUP_BORDER_SIZE);
+        return val != null ? val : 1f;
+    }
+
+    public Vec2 getFramePadding() {
+        Vec2 val = values.get(StyleProperty.FRAME_PADDING);
+        return val != null ? val : Vec2.of(4f, 3f);
+    }
+
+    public float getFrameRounding() {
+        Float val = values.get(StyleProperty.FRAME_ROUNDING);
+        return val != null ? val : 0f;
+    }
+
+    public float getFrameBorderSize() {
+        Float val = values.get(StyleProperty.FRAME_BORDER_SIZE);
+        return val != null ? val : 0f;
+    }
+
+    public Vec2 getItemSpacing() {
+        Vec2 val = values.get(StyleProperty.ITEM_SPACING);
+        return val != null ? val : Vec2.of(8f, 4f);
+    }
+
+    public Vec2 getItemInnerSpacing() {
+        Vec2 val = values.get(StyleProperty.ITEM_INNER_SPACING);
+        return val != null ? val : Vec2.of(4f, 4f);
+    }
+
+    public Vec2 getCellPadding() {
+        Vec2 val = values.get(StyleProperty.CELL_PADDING);
+        return val != null ? val : Vec2.of(4f, 2f);
+    }
+
+    public Vec2 getTouchExtraPadding() {
+        Vec2 val = values.get(StyleProperty.TOUCH_EXTRA_PADDING);
+        return val != null ? val : Vec2.of(0f, 0f);
+    }
+
+    public float getIndentSpacing() {
+        Float val = values.get(StyleProperty.INDENT_SPACING);
+        return val != null ? val : 21f;
+    }
+
+    public float getColumnsMinSpacing() {
+        Float val = values.get(StyleProperty.COLUMNS_MIN_SPACING);
+        return val != null ? val : 6f;
+    }
+
+    public float getScrollbarSize() {
+        Float val = values.get(StyleProperty.SCROLLBAR_SIZE);
+        return val != null ? val : 14f;
+    }
+
+    public float getScrollbarRounding() {
+        Float val = values.get(StyleProperty.SCROLLBAR_ROUNDING);
+        return val != null ? val : 9f;
+    }
+
+    public float getGrabMinSize() {
+        Float val = values.get(StyleProperty.GRAB_MIN_SIZE);
+        return val != null ? val : 10f;
+    }
+
+    public float getGrabRounding() {
+        Float val = values.get(StyleProperty.GRAB_ROUNDING);
+        return val != null ? val : 0f;
+    }
+
+    public float getLogSliderDeadzone() {
+        Float val = values.get(StyleProperty.LOG_SLIDER_DEADZONE);
+        return val != null ? val : 4f;
+    }
+
+    public float getTabRounding() {
+        Float val = values.get(StyleProperty.TAB_ROUNDING);
+        return val != null ? val : 4f;
+    }
+
+    public float getTabBorderSize() {
+        Float val = values.get(StyleProperty.TAB_BORDER_SIZE);
+        return val != null ? val : 0f;
+    }
+
+    public float getTabMinWidthForCloseButton() {
+        Float val = values.get(StyleProperty.TAB_MIN_WIDTH_FOR_CLOSE_BUTTON);
+        return val != null ? val : 0f;
+    }
+
+    public int getColorButtonPosition() {
+        Integer val = values.get(StyleProperty.COLOR_BUTTON_POSITION);
+        return val != null ? val : 1;
+    }
+
+    public Vec2 getButtonTextAlign() {
+        Vec2 val = values.get(StyleProperty.BUTTON_TEXT_ALIGN);
+        return val != null ? val : Vec2.of(0.5f, 0.5f);
+    }
+
+    public Vec2 getSelectableTextAlign() {
+        Vec2 val = values.get(StyleProperty.SELECTABLE_TEXT_ALIGN);
+        return val != null ? val : Vec2.of(0f, 0f);
+    }
+
+    public Vec2 getDisplayWindowPadding() {
+        Vec2 val = values.get(StyleProperty.DISPLAY_WINDOW_PADDING);
+        return val != null ? val : Vec2.of(19f, 19f);
+    }
+
+    public Vec2 getDisplaySafeAreaPadding() {
+        Vec2 val = values.get(StyleProperty.DISPLAY_SAFE_AREA_PADDING);
+        return val != null ? val : Vec2.of(3f, 3f);
+    }
+
+    public float getMouseCursorScale() {
+        Float val = values.get(StyleProperty.MOUSE_CURSOR_SCALE);
+        return val != null ? val : 1f;
+    }
+
+    public boolean isAntiAliasedLines() {
+        Boolean val = values.get(StyleProperty.ANTI_ALIASED_LINES);
+        return val != null ? val : true;
+    }
+
+    public boolean isAntiAliasedLinesUseTex() {
+        Boolean val = values.get(StyleProperty.ANTI_ALIASED_LINES_USE_TEX);
+        return val != null ? val : true;
+    }
+
+    public boolean isAntiAliasedFill() {
+        Boolean val = values.get(StyleProperty.ANTI_ALIASED_FILL);
+        return val != null ? val : true;
+    }
+
+    public float getCurveTessellationTol() {
+        Float val = values.get(StyleProperty.CURVE_TESSELLATION_TOL);
+        return val != null ? val : 1.25f;
+    }
+
+    public float getCircleTessellationMaxError() {
+        Float val = values.get(StyleProperty.CIRCLE_TESSELLATION_MAX_ERROR);
+        return val != null ? val : 0.3f;
+    }
+
+    public ColorPalette getColorPalette() {
+        ColorPalette palette = values.colorPalette();
+        return palette != null ? palette : ColorPalette.empty();
+    }
+
+    public ResourceId getFontKey() {
+        return values.fontKey();
+    }
+
+    public Float getFontSize() {
+        return values.fontSize();
+    }
+
+    StylePropertyValues values() {
+        return values;
+    }
+
     public static final class Builder {
-        private float alpha;
-        private float disabledAlpha;
-        private Vec2 windowPadding = Vec2.of(0.0f, 0.0f);
-        private float windowRounding;
-        private float windowBorderSize;
-        private Vec2 windowMinSize = Vec2.of(0.0f, 0.0f);
-        private Vec2 windowTitleAlign = Vec2.of(0.5f, 0.5f);
-        private int windowMenuButtonPosition;
-        private float childRounding;
-        private float childBorderSize;
-        private float popupRounding;
-        private float popupBorderSize;
-        private Vec2 framePadding = Vec2.of(0.0f, 0.0f);
-        private float frameRounding;
-        private float frameBorderSize;
-        private Vec2 itemSpacing = Vec2.of(0.0f, 0.0f);
-        private Vec2 itemInnerSpacing = Vec2.of(0.0f, 0.0f);
-        private Vec2 cellPadding = Vec2.of(0.0f, 0.0f);
-        private Vec2 touchExtraPadding = Vec2.of(0.0f, 0.0f);
-        private float indentSpacing;
-        private float columnsMinSpacing;
-        private float scrollbarSize;
-        private float scrollbarRounding;
-        private float grabMinSize;
-        private float grabRounding;
-        private float logSliderDeadzone;
-        private float tabRounding;
-        private float tabBorderSize;
-        private float tabMinWidthForCloseButton;
-        private int colorButtonPosition;
-        private Vec2 buttonTextAlign = Vec2.of(0.5f, 0.5f);
-        private Vec2 selectableTextAlign = Vec2.of(0.0f, 0.0f);
-        private Vec2 displayWindowPadding = Vec2.of(0.0f, 0.0f);
-        private Vec2 displaySafeAreaPadding = Vec2.of(0.0f, 0.0f);
-        private float mouseCursorScale = 1.0f;
-        private boolean antiAliasedLines = true;
-        private boolean antiAliasedLinesUseTex = true;
-        private boolean antiAliasedFill = true;
-        private float curveTessellationTol = 1.25f;
-        private float circleTessellationMaxError = 0.3f;
-        private ColorPalette colorPalette = ColorPalette.empty();
-        private ResourceId fontKey;
-        private Float fontSize;
+        private final StylePropertyValues.Builder delegate = StylePropertyValues.builder();
+
+        private Builder() {
+            initDefaults();
+        }
+
+        private void initDefaults() {
+            delegate.alpha(1.0f);
+            delegate.disabledAlpha(0.6f);
+            delegate.windowPadding(8f, 8f);
+            delegate.windowRounding(0f);
+            delegate.windowBorderSize(1f);
+            delegate.windowMinSize(32f, 32f);
+            delegate.windowTitleAlign(0f, 0.5f);
+            delegate.windowMenuButtonPosition(0);
+            delegate.childRounding(0f);
+            delegate.childBorderSize(1f);
+            delegate.popupRounding(0f);
+            delegate.popupBorderSize(1f);
+            delegate.framePadding(4f, 3f);
+            delegate.frameRounding(0f);
+            delegate.frameBorderSize(0f);
+            delegate.itemSpacing(8f, 4f);
+            delegate.itemInnerSpacing(4f, 4f);
+            delegate.cellPadding(4f, 2f);
+            delegate.touchExtraPadding(0f, 0f);
+            delegate.indentSpacing(21f);
+            delegate.columnsMinSpacing(6f);
+            delegate.scrollbarSize(14f);
+            delegate.scrollbarRounding(9f);
+            delegate.grabMinSize(10f);
+            delegate.grabRounding(0f);
+            delegate.logSliderDeadzone(4f);
+            delegate.tabRounding(4f);
+            delegate.tabBorderSize(0f);
+            delegate.tabMinWidthForCloseButton(0f);
+            delegate.colorButtonPosition(1);
+            delegate.buttonTextAlign(0.5f, 0.5f);
+            delegate.selectableTextAlign(0f, 0f);
+            delegate.displayWindowPadding(19f, 19f);
+            delegate.displaySafeAreaPadding(3f, 3f);
+            delegate.mouseCursorScale(1f);
+            delegate.antiAliasedLines(true);
+            delegate.antiAliasedLinesUseTex(true);
+            delegate.antiAliasedFill(true);
+            delegate.curveTessellationTol(1.25f);
+            delegate.circleTessellationMaxError(0.3f);
+            delegate.colorPalette(ColorPalette.empty());
+        }
 
         public Builder fromStyle(ImGuiStyle style) {
-            if (style == null) {
-                return this;
+            if (style != null) {
+                delegate.fromStyle(style);
             }
-            alpha(style.getAlpha());
-            disabledAlpha(style.getDisabledAlpha());
-            windowPadding(style.getWindowPaddingX(), style.getWindowPaddingY());
-            windowRounding(style.getWindowRounding());
-            windowBorderSize(style.getWindowBorderSize());
-            windowMinSize(style.getWindowMinSizeX(), style.getWindowMinSizeY());
-            windowTitleAlign(style.getWindowTitleAlignX(), style.getWindowTitleAlignY());
-            windowMenuButtonPosition(style.getWindowMenuButtonPosition());
-            childRounding(style.getChildRounding());
-            childBorderSize(style.getChildBorderSize());
-            popupRounding(style.getPopupRounding());
-            popupBorderSize(style.getPopupBorderSize());
-            framePadding(style.getFramePaddingX(), style.getFramePaddingY());
-            frameRounding(style.getFrameRounding());
-            frameBorderSize(style.getFrameBorderSize());
-            itemSpacing(style.getItemSpacingX(), style.getItemSpacingY());
-            itemInnerSpacing(style.getItemInnerSpacingX(), style.getItemInnerSpacingY());
-            cellPadding(style.getCellPaddingX(), style.getCellPaddingY());
-            touchExtraPadding(style.getTouchExtraPaddingX(), style.getTouchExtraPaddingY());
-            indentSpacing(style.getIndentSpacing());
-            columnsMinSpacing(style.getColumnsMinSpacing());
-            scrollbarSize(style.getScrollbarSize());
-            scrollbarRounding(style.getScrollbarRounding());
-            grabMinSize(style.getGrabMinSize());
-            grabRounding(style.getGrabRounding());
-            logSliderDeadzone(style.getLogSliderDeadzone());
-            tabRounding(style.getTabRounding());
-            tabBorderSize(style.getTabBorderSize());
-            tabMinWidthForCloseButton(style.getTabMinWidthForCloseButton());
-            colorButtonPosition(style.getColorButtonPosition());
-            buttonTextAlign(style.getButtonTextAlignX(), style.getButtonTextAlignY());
-            selectableTextAlign(style.getSelectableTextAlignX(), style.getSelectableTextAlignY());
-            displayWindowPadding(style.getDisplayWindowPaddingX(), style.getDisplayWindowPaddingY());
-            displaySafeAreaPadding(style.getDisplaySafeAreaPaddingX(), style.getDisplaySafeAreaPaddingY());
-            mouseCursorScale(style.getMouseCursorScale());
-            antiAliasedLines(style.getAntiAliasedLines());
-            antiAliasedLinesUseTex(style.getAntiAliasedLinesUseTex());
-            antiAliasedFill(style.getAntiAliasedFill());
-            curveTessellationTol(style.getCurveTessellationTol());
-            circleTessellationMaxError(style.getCircleTessellationMaxError());
             return this;
         }
 
         public Builder fromDescriptor(StyleDescriptor descriptor) {
-            if (descriptor == null) {
-                return this;
+            if (descriptor != null) {
+                delegate.fromValues(descriptor.values);
             }
-            alpha(descriptor.getAlpha());
-            disabledAlpha(descriptor.getDisabledAlpha());
-            windowPadding(descriptor.getWindowPadding());
-            windowRounding(descriptor.getWindowRounding());
-            windowBorderSize(descriptor.getWindowBorderSize());
-            windowMinSize(descriptor.getWindowMinSize());
-            windowTitleAlign(descriptor.getWindowTitleAlign());
-            windowMenuButtonPosition(descriptor.getWindowMenuButtonPosition());
-            childRounding(descriptor.getChildRounding());
-            childBorderSize(descriptor.getChildBorderSize());
-            popupRounding(descriptor.getPopupRounding());
-            popupBorderSize(descriptor.getPopupBorderSize());
-            framePadding(descriptor.getFramePadding());
-            frameRounding(descriptor.getFrameRounding());
-            frameBorderSize(descriptor.getFrameBorderSize());
-            itemSpacing(descriptor.getItemSpacing());
-            itemInnerSpacing(descriptor.getItemInnerSpacing());
-            cellPadding(descriptor.getCellPadding());
-            touchExtraPadding(descriptor.getTouchExtraPadding());
-            indentSpacing(descriptor.getIndentSpacing());
-            columnsMinSpacing(descriptor.getColumnsMinSpacing());
-            scrollbarSize(descriptor.getScrollbarSize());
-            scrollbarRounding(descriptor.getScrollbarRounding());
-            grabMinSize(descriptor.getGrabMinSize());
-            grabRounding(descriptor.getGrabRounding());
-            logSliderDeadzone(descriptor.getLogSliderDeadzone());
-            tabRounding(descriptor.getTabRounding());
-            tabBorderSize(descriptor.getTabBorderSize());
-            tabMinWidthForCloseButton(descriptor.getTabMinWidthForCloseButton());
-            colorButtonPosition(descriptor.getColorButtonPosition());
-            buttonTextAlign(descriptor.getButtonTextAlign());
-            selectableTextAlign(descriptor.getSelectableTextAlign());
-            displayWindowPadding(descriptor.getDisplayWindowPadding());
-            displaySafeAreaPadding(descriptor.getDisplaySafeAreaPadding());
-            mouseCursorScale(descriptor.getMouseCursorScale());
-            antiAliasedLines(descriptor.isAntiAliasedLines());
-            antiAliasedLinesUseTex(descriptor.isAntiAliasedLinesUseTex());
-            antiAliasedFill(descriptor.isAntiAliasedFill());
-            curveTessellationTol(descriptor.getCurveTessellationTol());
-            circleTessellationMaxError(descriptor.getCircleTessellationMaxError());
-            colorPalette(descriptor.getColorPalette());
-            fontKey(descriptor.getFontKey());
-            fontSize(descriptor.getFontSize());
             return this;
         }
 
         public Builder alpha(float value) {
-            this.alpha = value;
+            delegate.alpha(value);
             return this;
         }
 
         public Builder disabledAlpha(float value) {
-            this.disabledAlpha = value;
+            delegate.disabledAlpha(value);
             return this;
         }
 
         public Builder windowPadding(float x, float y) {
-            this.windowPadding = Vec2.of(x, y);
+            delegate.windowPadding(x, y);
             return this;
         }
 
         public Builder windowPadding(Vec2 value) {
-            this.windowPadding = Objects.requireNonNull(value, "windowPadding");
+            delegate.windowPadding(value);
             return this;
         }
 
         public Builder windowRounding(float value) {
-            this.windowRounding = value;
+            delegate.windowRounding(value);
             return this;
         }
 
         public Builder windowBorderSize(float value) {
-            this.windowBorderSize = value;
+            delegate.windowBorderSize(value);
             return this;
         }
 
         public Builder windowMinSize(float x, float y) {
-            this.windowMinSize = Vec2.of(x, y);
+            delegate.windowMinSize(x, y);
             return this;
         }
 
         public Builder windowMinSize(Vec2 value) {
-            this.windowMinSize = Objects.requireNonNull(value, "windowMinSize");
+            delegate.windowMinSize(value);
             return this;
         }
 
         public Builder windowTitleAlign(float x, float y) {
-            this.windowTitleAlign = Vec2.of(x, y);
+            delegate.windowTitleAlign(x, y);
             return this;
         }
 
         public Builder windowTitleAlign(Vec2 value) {
-            this.windowTitleAlign = Objects.requireNonNull(value, "windowTitleAlign");
+            delegate.windowTitleAlign(value);
             return this;
         }
 
         public Builder windowMenuButtonPosition(int value) {
-            this.windowMenuButtonPosition = value;
+            delegate.windowMenuButtonPosition(value);
             return this;
         }
 
         public Builder childRounding(float value) {
-            this.childRounding = value;
+            delegate.childRounding(value);
             return this;
         }
 
         public Builder childBorderSize(float value) {
-            this.childBorderSize = value;
+            delegate.childBorderSize(value);
             return this;
         }
 
         public Builder popupRounding(float value) {
-            this.popupRounding = value;
+            delegate.popupRounding(value);
             return this;
         }
 
         public Builder popupBorderSize(float value) {
-            this.popupBorderSize = value;
+            delegate.popupBorderSize(value);
             return this;
         }
 
         public Builder framePadding(float x, float y) {
-            this.framePadding = Vec2.of(x, y);
+            delegate.framePadding(x, y);
             return this;
         }
 
         public Builder framePadding(Vec2 value) {
-            this.framePadding = Objects.requireNonNull(value, "framePadding");
+            delegate.framePadding(value);
             return this;
         }
 
         public Builder frameRounding(float value) {
-            this.frameRounding = value;
+            delegate.frameRounding(value);
             return this;
         }
 
         public Builder frameBorderSize(float value) {
-            this.frameBorderSize = value;
+            delegate.frameBorderSize(value);
             return this;
         }
 
         public Builder itemSpacing(float x, float y) {
-            this.itemSpacing = Vec2.of(x, y);
+            delegate.itemSpacing(x, y);
             return this;
         }
 
         public Builder itemSpacing(Vec2 value) {
-            this.itemSpacing = Objects.requireNonNull(value, "itemSpacing");
+            delegate.itemSpacing(value);
             return this;
         }
 
         public Builder itemInnerSpacing(float x, float y) {
-            this.itemInnerSpacing = Vec2.of(x, y);
+            delegate.itemInnerSpacing(x, y);
             return this;
         }
 
         public Builder itemInnerSpacing(Vec2 value) {
-            this.itemInnerSpacing = Objects.requireNonNull(value, "itemInnerSpacing");
+            delegate.itemInnerSpacing(value);
             return this;
         }
 
         public Builder cellPadding(float x, float y) {
-            this.cellPadding = Vec2.of(x, y);
+            delegate.cellPadding(x, y);
             return this;
         }
 
         public Builder cellPadding(Vec2 value) {
-            this.cellPadding = Objects.requireNonNull(value, "cellPadding");
+            delegate.cellPadding(value);
             return this;
         }
 
         public Builder touchExtraPadding(float x, float y) {
-            this.touchExtraPadding = Vec2.of(x, y);
+            delegate.touchExtraPadding(x, y);
             return this;
         }
 
         public Builder touchExtraPadding(Vec2 value) {
-            this.touchExtraPadding = Objects.requireNonNull(value, "touchExtraPadding");
+            delegate.touchExtraPadding(value);
             return this;
         }
 
         public Builder indentSpacing(float value) {
-            this.indentSpacing = value;
+            delegate.indentSpacing(value);
             return this;
         }
 
         public Builder columnsMinSpacing(float value) {
-            this.columnsMinSpacing = value;
+            delegate.columnsMinSpacing(value);
             return this;
         }
 
         public Builder scrollbarSize(float value) {
-            this.scrollbarSize = value;
+            delegate.scrollbarSize(value);
             return this;
         }
 
         public Builder scrollbarRounding(float value) {
-            this.scrollbarRounding = value;
+            delegate.scrollbarRounding(value);
             return this;
         }
 
         public Builder grabMinSize(float value) {
-            this.grabMinSize = value;
+            delegate.grabMinSize(value);
             return this;
         }
 
         public Builder grabRounding(float value) {
-            this.grabRounding = value;
+            delegate.grabRounding(value);
             return this;
         }
 
         public Builder logSliderDeadzone(float value) {
-            this.logSliderDeadzone = value;
+            delegate.logSliderDeadzone(value);
             return this;
         }
 
         public Builder tabRounding(float value) {
-            this.tabRounding = value;
+            delegate.tabRounding(value);
             return this;
         }
 
         public Builder tabBorderSize(float value) {
-            this.tabBorderSize = value;
+            delegate.tabBorderSize(value);
             return this;
         }
 
         public Builder tabMinWidthForCloseButton(float value) {
-            this.tabMinWidthForCloseButton = value;
+            delegate.tabMinWidthForCloseButton(value);
             return this;
         }
 
         public Builder colorButtonPosition(int value) {
-            this.colorButtonPosition = value;
+            delegate.colorButtonPosition(value);
             return this;
         }
 
         public Builder buttonTextAlign(float x, float y) {
-            this.buttonTextAlign = Vec2.of(x, y);
+            delegate.buttonTextAlign(x, y);
             return this;
         }
 
         public Builder buttonTextAlign(Vec2 value) {
-            this.buttonTextAlign = Objects.requireNonNull(value, "buttonTextAlign");
+            delegate.buttonTextAlign(value);
             return this;
         }
 
         public Builder selectableTextAlign(float x, float y) {
-            this.selectableTextAlign = Vec2.of(x, y);
+            delegate.selectableTextAlign(x, y);
             return this;
         }
 
         public Builder selectableTextAlign(Vec2 value) {
-            this.selectableTextAlign = Objects.requireNonNull(value, "selectableTextAlign");
+            delegate.selectableTextAlign(value);
             return this;
         }
 
         public Builder displayWindowPadding(float x, float y) {
-            this.displayWindowPadding = Vec2.of(x, y);
+            delegate.displayWindowPadding(x, y);
             return this;
         }
 
         public Builder displayWindowPadding(Vec2 value) {
-            this.displayWindowPadding = Objects.requireNonNull(value, "displayWindowPadding");
+            delegate.displayWindowPadding(value);
             return this;
         }
 
         public Builder displaySafeAreaPadding(float x, float y) {
-            this.displaySafeAreaPadding = Vec2.of(x, y);
+            delegate.displaySafeAreaPadding(x, y);
             return this;
         }
 
         public Builder displaySafeAreaPadding(Vec2 value) {
-            this.displaySafeAreaPadding = Objects.requireNonNull(value, "displaySafeAreaPadding");
+            delegate.displaySafeAreaPadding(value);
             return this;
         }
 
         public Builder mouseCursorScale(float value) {
-            this.mouseCursorScale = value;
+            delegate.mouseCursorScale(value);
             return this;
         }
 
         public Builder antiAliasedLines(boolean value) {
-            this.antiAliasedLines = value;
+            delegate.antiAliasedLines(value);
             return this;
         }
 
         public Builder antiAliasedLinesUseTex(boolean value) {
-            this.antiAliasedLinesUseTex = value;
+            delegate.antiAliasedLinesUseTex(value);
             return this;
         }
 
         public Builder antiAliasedFill(boolean value) {
-            this.antiAliasedFill = value;
+            delegate.antiAliasedFill(value);
             return this;
         }
 
         public Builder curveTessellationTol(float value) {
-            this.curveTessellationTol = value;
+            delegate.curveTessellationTol(value);
             return this;
         }
 
         public Builder circleTessellationMaxError(float value) {
-            this.circleTessellationMaxError = value;
+            delegate.circleTessellationMaxError(value);
             return this;
         }
 
         public Builder colorPalette(ColorPalette value) {
-            this.colorPalette = value != null ? value : ColorPalette.empty();
+            delegate.colorPalette(value != null ? value : ColorPalette.empty());
             return this;
         }
 
         public Builder fontKey(ResourceId value) {
-            this.fontKey = value;
+            delegate.fontKey(value);
             return this;
         }
 
         public Builder fontSize(Float value) {
-            this.fontSize = value;
+            delegate.fontSize(value);
             return this;
         }
 
         public StyleDescriptor build() {
-            StyleDescriptor descriptor = new StyleDescriptor(this);
-            StyleValidation.validateDescriptor(descriptor);
-            return descriptor;
+            StylePropertyValues values = delegate.build();
+            values.validate("StyleDescriptor");
+            return new StyleDescriptor(values);
         }
     }
 }
