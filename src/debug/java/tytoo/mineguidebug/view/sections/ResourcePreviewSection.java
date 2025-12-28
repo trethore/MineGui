@@ -5,6 +5,7 @@ import imgui.ImGui;
 import imgui.type.ImBoolean;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.helper.LayoutHelper;
+import tytoo.minegui.helper.Tooltip;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
@@ -75,7 +76,13 @@ public final class ResourcePreviewSection implements PlaygroundSection {
             drawList.addRect(startX - 2f, startY - 2f, endX + 2f, endY + 2f, ImGui.getColorU32(0.2f, 0.7f, 1f, 1f), 6f, 0, 2f);
             drawList.addText(startX, endY + 6f, ImGui.getColorU32(0.8f, 0.8f, 0.8f, 1f), "Custom draw commands stay in sync with ImGui.");
         }
+
         ImGui.dummy(size, size + 24f);
+
+        if (ImGui.isMouseHoveringRect(startX, startY, endX, endY)) {
+            Tooltip.quick("Resource: %s\nSize: %.0fx%.0f", IMGUI_ICON, size, size);
+        }
+
         ImGuiImageUtils.TextureInfo info = ImGuiImageUtils.getTextureInfo(IMGUI_ICON);
         resourceStatus = "GL id %d - %dx%d px".formatted(info.textureId(), info.width(), info.height());
     }

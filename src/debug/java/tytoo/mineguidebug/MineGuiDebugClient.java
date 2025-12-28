@@ -14,7 +14,7 @@ public final class MineGuiDebugClient implements ClientModInitializer {
         MineGuiContext context = MineGuiCore.init(
                 MineGuiInitializationOptions.builder()
                         .namespace(MineGuiDebugCore.ID)
-                        .configRoot(FabricLoader.getInstance().getConfigDir().resolve(MineGuiDebugCore.ID))
+                        .configRoot(FabricLoader.getInstance().getConfigDir())
                         .build()
         );
         MineGuiDebugCore.init(context);

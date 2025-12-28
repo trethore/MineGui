@@ -8,6 +8,7 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import tytoo.minegui.helper.LayoutHelper;
+import tytoo.minegui.helper.TableHelper;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.imgui.scope.DisabledScope;
 import tytoo.minegui.imgui.scope.IdScope;
@@ -154,24 +155,14 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
             ImGui.tableSetupColumn("Widget", ImGuiTableColumnFlags.WidthFixed, LayoutHelper.TABLE_LABEL_WIDTH_SMALL);
             ImGui.tableSetupColumn("Purpose");
             ImGui.tableSetupColumn("MineGui tip");
-            renderRow("ImBoolean", "Wrap toggles and checkboxes.", "Keep them as fields; ImGui pulls values by reference.");
-            renderRow("ImString", "Text input buffers.", "Reuse buffers and seed defaults in constructors.");
-            renderRow("Tables", "Structured data", "RowBg + Borders read well over dark overlays.");
-            renderRow("Plot lines", "Runtime graphs", "Feed ring buffers to keep allocations flat.");
-            renderRow("ColorEdit", "Live styling", "Pair with NamedStyleRegistry to drive palettes.");
-            renderRow("Combo/Drag", "Preset swaps", "Use holder arrays to mutate numeric state inline.");
+            TableHelper.rowWrapped("ImBoolean", "Wrap toggles and checkboxes.", "Keep them as fields; ImGui pulls values by reference.");
+            TableHelper.rowWrapped("ImString", "Text input buffers.", "Reuse buffers and seed defaults in constructors.");
+            TableHelper.rowWrapped("Tables", "Structured data", "RowBg + Borders read well over dark overlays.");
+            TableHelper.rowWrapped("Plot lines", "Runtime graphs", "Feed ring buffers to keep allocations flat.");
+            TableHelper.rowWrapped("ColorEdit", "Live styling", "Pair with NamedStyleRegistry to drive palettes.");
+            TableHelper.rowWrapped("Combo/Drag", "Preset swaps", "Use holder arrays to mutate numeric state inline.");
             ImGui.endTable();
         }
-    }
-
-    private void renderRow(String widget, String purpose, String tip) {
-        ImGui.tableNextRow();
-        ImGui.tableSetColumnIndex(0);
-        ImGui.text(widget);
-        ImGui.tableSetColumnIndex(1);
-        ImGui.textWrapped(purpose);
-        ImGui.tableSetColumnIndex(2);
-        ImGui.textWrapped(tip);
     }
 
     private void updateAnimation() {

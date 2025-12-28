@@ -16,10 +16,7 @@ import java.nio.file.StandardOpenOption;
 final class ConfigSerializer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    private final Path configRoot;
-
-    ConfigSerializer(Path configRoot) {
-        this.configRoot = configRoot;
+    ConfigSerializer() {
     }
 
     GlobalConfig readConfig(Path path) {
@@ -34,14 +31,6 @@ final class ConfigSerializer {
             if (parsed == null) {
                 return null;
             }
-            String storedConfigPath = ConfigPaths.sanitizeStoredPath(parsed.getConfigPath());
-            if (storedConfigPath == null) {
-                parsed.setConfigPath(ConfigPaths.relativizeToRoot(path, configRoot));
-            } else {
-                parsed.setConfigPath(storedConfigPath);
-            }
-            String storedViewPath = ConfigPaths.sanitizeStoredPath(parsed.getViewSavesPath());
-            parsed.setViewSavesPath(storedViewPath != null ? storedViewPath : GlobalConfig.getDefaultViewSavesPath());
             parsed.setGlobalScale(parsed.getGlobalScale());
             return parsed;
         } catch (IOException | JsonParseException e) {
@@ -52,15 +41,6 @@ final class ConfigSerializer {
 
     void writeConfig(Path path, GlobalConfig value, ConfigState state, ConfigPathResolver pathResolver) {
         GlobalConfig payload = ConfigState.cloneConfig(value);
-        payload.setConfigPath(pathResolver.relativizeConfigPath(state, path));
-        Path resolvedViewDir = pathResolver.resolveViewSavesPath(state, payload);
-        ensureDirectory(resolvedViewDir);
-        if (resolvedViewDir != null && resolvedViewDir.equals(state.defaultViewSavesDir())) {
-            payload.setViewSavesPath("");
-        } else {
-            payload.setViewSavesPath(pathResolver.relativizeToConfigRoot(resolvedViewDir));
-        }
-        payload.setGlobalScale(payload.getGlobalScale());
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
             GSON.toJson(payload, writer);
         } catch (IOException e) {
@@ -74,8 +54,6 @@ final class ConfigSerializer {
             runtime.setViewport(source.isViewportEnabled());
             runtime.setDockspace(source.isDockspaceEnabled());
             runtime.setGlobalScale(source.getGlobalScale());
-            runtime.setConfigPath(source.getConfigPath());
-            runtime.setViewSavesPath(source.getViewSavesPath());
         }
         if (profile.shouldLoad(ConfigFeature.STYLE_REFERENCES)) {
             runtime.setGlobalStyleKey(source.getGlobalStyleKey());
@@ -91,8 +69,6 @@ final class ConfigSerializer {
             target.setViewport(runtime.isViewportEnabled());
             target.setDockspace(runtime.isDockspaceEnabled());
             target.setGlobalScale(runtime.getGlobalScale());
-            target.setConfigPath(runtime.getConfigPath());
-            target.setViewSavesPath(runtime.getViewSavesPath());
         }
         if (profile.shouldSave(ConfigFeature.STYLE_REFERENCES)) {
             target.setGlobalStyleKey(runtime.getGlobalStyleKey());

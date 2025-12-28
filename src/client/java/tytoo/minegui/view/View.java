@@ -23,10 +23,10 @@ public abstract class View implements Renderable {
     private CursorPolicy cursorPolicy;
     @Getter
     @Setter
-    private boolean persistentLayout = true;
+    private boolean persistentLayout = false;
     @Getter
     @Setter
-    private boolean persistentStyle = true;
+    private boolean persistentStyle = false;
     private boolean cursorPolicyExplicit;
     private final List<VisibilityListener> visibilityListeners = new CopyOnWriteArrayList<>();
 

@@ -27,7 +27,7 @@ final class ConfigState {
             this.baseDirectory = configRoot.resolve(namespace).normalize();
         }
         this.defaultConfigFile = baseDirectory.resolve("global_config.json");
-        this.defaultViewSavesDir = baseDirectory.resolve(GlobalConfig.getDefaultViewSavesPath());
+        this.defaultViewSavesDir = baseDirectory.resolve("views");
         this.config = new GlobalConfig();
         this.snapshot = cloneConfig(this.config);
         this.activeConfigPath = defaultConfigFile;
@@ -164,8 +164,6 @@ final class ConfigState {
         clone.setViewport(config.isViewportEnabled());
         clone.setDockspace(config.isDockspaceEnabled());
         clone.setGlobalScale(config.getGlobalScale());
-        clone.setConfigPath(config.getConfigPath());
-        clone.setViewSavesPath(config.getViewSavesPath());
         clone.setGlobalStyleKey(config.getGlobalStyleKey());
         return clone;
     }

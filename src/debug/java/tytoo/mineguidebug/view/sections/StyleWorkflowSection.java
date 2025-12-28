@@ -7,6 +7,7 @@ import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import tytoo.minegui.helper.LayoutHelper;
+import tytoo.minegui.helper.TableHelper;
 import tytoo.minegui.style.ColorPalette;
 import tytoo.minegui.style.NamedStyleRegistry;
 import tytoo.minegui.style.StyleDescriptor;
@@ -74,22 +75,14 @@ public final class StyleWorkflowSection implements PlaygroundSection {
         if (ImGui.beginTable("style_breakdown", 2, tableFlags)) {
             ImGui.tableSetupColumn("Metric", ImGuiTableColumnFlags.WidthFixed, LayoutHelper.TABLE_LABEL_WIDTH);
             ImGui.tableSetupColumn("Value");
-            renderMetricRow("Window rounding", "%.1f".formatted(descriptor.getWindowRounding()));
-            renderMetricRow("Scrollbar size", "%.1f".formatted(descriptor.getScrollbarSize()));
-            renderMetricRow("Item spacing", "%.1f x %.1f".formatted(descriptor.getItemSpacing().x(), descriptor.getItemSpacing().y()));
-            renderMetricRow("Tab rounding", "%.1f".formatted(descriptor.getTabRounding()));
-            renderMetricRow("Anti-aliased fill", Boolean.toString(descriptor.isAntiAliasedFill()));
-            renderMetricRow("Palette entries", Integer.toString(descriptor.getColorPalette().getColors().size()));
+            TableHelper.row("Window rounding", "%.1f".formatted(descriptor.getWindowRounding()));
+            TableHelper.row("Scrollbar size", "%.1f".formatted(descriptor.getScrollbarSize()));
+            TableHelper.row("Item spacing", "%.1f x %.1f".formatted(descriptor.getItemSpacing().x(), descriptor.getItemSpacing().y()));
+            TableHelper.row("Tab rounding", "%.1f".formatted(descriptor.getTabRounding()));
+            TableHelper.row("Anti-aliased fill", Boolean.toString(descriptor.isAntiAliasedFill()));
+            TableHelper.row("Palette entries", Integer.toString(descriptor.getColorPalette().getColors().size()));
             ImGui.endTable();
         }
-    }
-
-    private void renderMetricRow(String label, String value) {
-        ImGui.tableNextRow();
-        ImGui.tableSetColumnIndex(0);
-        ImGui.text(label);
-        ImGui.tableSetColumnIndex(1);
-        ImGui.text(value);
     }
 
     private void ensureDescriptors() {

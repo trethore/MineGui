@@ -51,6 +51,13 @@ public final class ViewPersistenceManager {
         dirtyLayouts.remove(view);
     }
 
+    public void ensureSharedLayoutLoaded() {
+        if (!sharedLayoutLoaded && canLoadLayouts()) {
+            adapter.loadSharedLayout(namespace).ifPresent(ImGui::loadIniSettingsFromMemory);
+            sharedLayoutLoaded = true;
+        }
+    }
+
     public void ensureLoaded(View view) {
         if (view == null || isConfigIgnored()) {
             return;
@@ -59,10 +66,8 @@ public final class ViewPersistenceManager {
         if (entry == null) {
             return;
         }
-        if (!sharedLayoutLoaded && canLoadLayouts()) {
-            adapter.loadSharedLayout(namespace).ifPresent(ImGui::loadIniSettingsFromMemory);
-            sharedLayoutLoaded = true;
-        }
+        ensureSharedLayoutLoaded();
+
         if (!entry.layoutLoaded && canLoadLayouts() && view.isPersistentLayout()) {
             adapter.loadLayout(entry.request).ifPresent(ImGui::loadIniSettingsFromMemory);
             entry.layoutLoaded = true;

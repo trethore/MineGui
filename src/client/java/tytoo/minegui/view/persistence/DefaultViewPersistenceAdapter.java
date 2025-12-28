@@ -26,8 +26,6 @@ public final class DefaultViewPersistenceAdapter implements ViewPersistenceAdapt
         }
         this.viewsDirectory = base.resolve("views");
         this.stylesDirectory = base.resolve("styles");
-        ensureDirectory(viewsDirectory);
-        ensureDirectory(stylesDirectory);
         this.sharedLayoutDirectory = viewsDirectory;
     }
 
@@ -71,35 +69,20 @@ public final class DefaultViewPersistenceAdapter implements ViewPersistenceAdapt
         write(path, snapshot.snapshotJson());
     }
 
-    private void ensureDirectory(Path directory) {
-        try {
-            Files.createDirectories(directory);
-        } catch (IOException e) {
-            MineGuiCore.LOGGER.error("Failed to create directory {}", directory, e);
-        }
-    }
-
     private Path sharedLayoutPath(String namespace) {
-        return sharedLayoutDirectory.resolve(sanitizeNamespace(namespace)).resolve("_shared.ini");
+        // We ignore the namespace argument for the path structure, 
+        // assuming this adapter is already scoped to the correct namespace root.
+        return sharedLayoutDirectory.resolve("_shared.ini");
     }
 
     private Path viewLayoutPath(ViewPersistenceRequest request) {
-        return viewsDirectory
-                .resolve(sanitizeNamespace(request.namespace()))
-                .resolve(request.slug() + ".ini");
+        // We ignore request.namespace() for the directory structure.
+        return viewsDirectory.resolve(request.slug() + ".ini");
     }
 
     private Path viewStylePath(ViewPersistenceRequest request) {
-        return stylesDirectory
-                .resolve(sanitizeNamespace(request.namespace()))
-                .resolve(request.slug() + ".json");
-    }
-
-    private String sanitizeNamespace(String namespace) {
-        if (namespace == null || namespace.isBlank()) {
-            return "default";
-        }
-        return namespace.replaceAll("[^a-zA-Z0-9._-]", "_");
+        // We ignore request.namespace() for the directory structure.
+        return stylesDirectory.resolve(request.slug() + ".json");
     }
 
     private Optional<String> readString(Path path) {

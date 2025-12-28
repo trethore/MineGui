@@ -16,73 +16,29 @@ final class ConfigPathResolver {
     }
 
     ConfigPathResolution resolvePaths(ConfigState state, GlobalConfig target) {
-        GlobalConfig source = target != null ? target : new GlobalConfig();
-        String sanitizedConfig = ConfigPaths.sanitizeStoredPath(source.getConfigPath());
-        String sanitizedViews = ConfigPaths.sanitizeStoredPath(source.getViewSavesPath());
-        ConfigPathRequest request = buildRequest(state, sanitizedConfig, sanitizedViews);
+        ConfigPathRequest request = buildRequest(state);
         Path configPath = resolvePathWithFallback(state, request, ConfigPathKind.CONFIG_FILE);
         Path viewPath = resolvePathWithFallback(state, request, ConfigPathKind.VIEW_SAVES_DIRECTORY);
         return new ConfigPathResolution(configPath, viewPath);
     }
 
     void applyResolvedPaths(ConfigState state, GlobalConfig target, ConfigPathResolution resolution) {
-        if (state == null || target == null || resolution == null) {
-            return;
-        }
-        target.setConfigPath(relativizeConfigPath(state, resolution.configFile()));
-        Path resolvedViewDir = resolution.viewSavesDirectory();
-        if (resolvedViewDir != null && resolvedViewDir.equals(state.defaultViewSavesDir())) {
-            target.setViewSavesPath("");
-        } else {
-            target.setViewSavesPath(relativizeToConfigRoot(resolvedViewDir));
-        }
+        // No-op as paths are no longer stored in GlobalConfig
     }
 
     Path resolveConfigPath(ConfigState state, GlobalConfig target) {
         ConfigPathResolution resolution = resolvePaths(state, target);
-        Path resolved = resolution.configFile();
-        if (target != null) {
-            target.setConfigPath(relativizeConfigPath(state, resolved));
-        }
-        return resolved;
+        return resolution.configFile();
     }
 
     Path resolveViewSavesPath(ConfigState state, GlobalConfig target) {
         ConfigPathResolution resolution = resolvePaths(state, target);
-        Path resolved = resolution.viewSavesDirectory();
-        if (target != null) {
-            if (resolved != null && resolved.equals(state.defaultViewSavesDir())) {
-                target.setViewSavesPath("");
-            } else {
-                target.setViewSavesPath(relativizeToConfigRoot(resolved));
-            }
-        }
-        return resolved;
+        return resolution.viewSavesDirectory();
     }
 
-    String relativizeConfigPath(ConfigState state, Path path) {
-        if (state == null) {
-            return relativizeToConfigRoot(path);
-        }
-        if (path == null) {
-            return null;
-        }
-        Path normalized = path.normalize();
-        if (normalized.equals(state.defaultConfigFile())) {
-            return "global_config.json";
-        }
-        return relativizeToConfigRoot(normalized);
-    }
-
-    String relativizeToConfigRoot(Path path) {
-        return ConfigPaths.relativizeToRoot(path, configRoot);
-    }
-
-    private ConfigPathRequest buildRequest(ConfigState state, String configPath, String viewPath) {
+    private ConfigPathRequest buildRequest(ConfigState state) {
         return new ConfigPathRequest(
                 state.namespace(),
-                configPath,
-                viewPath,
                 configRoot,
                 namespaceRoot,
                 state.baseDirectory(),

@@ -19,8 +19,6 @@ public final class GlobalConfigNamespaceConfigStore implements NamespaceConfigSt
                 config.isViewportEnabled(),
                 config.isDockspaceEnabled(),
                 config.getGlobalScale(),
-                config.getConfigPath(),
-                config.getViewSavesPath(),
                 styleKey
         );
     }
@@ -33,8 +31,6 @@ public final class GlobalConfigNamespaceConfigStore implements NamespaceConfigSt
         globalConfig.setViewport(config.viewportEnabled());
         globalConfig.setDockspace(config.dockspaceEnabled());
         globalConfig.setGlobalScale(config.globalScale());
-        globalConfig.setConfigPath(config.configPath());
-        globalConfig.setViewSavesPath(config.viewSavesPath());
         ResourceId styleKey = config.globalStyleKey();
         globalConfig.setGlobalStyleKey(styleKey != null ? styleKey.toString() : null);
         service.save();

@@ -6,6 +6,8 @@ import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import tytoo.minegui.helper.LayoutHelper;
+import tytoo.minegui.helper.Panel;
+import tytoo.minegui.helper.TableHelper;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.view.View;
 
@@ -42,7 +44,6 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
 
     private void renderControls() {
         leftPaneWidth.sliderFloat("Left pane width", 140f, 260f, "%.0f px");
-        ImGui.sameLine();
         gutterSize.sliderFloat("Gutter", 6f, 18f, "%.0f px");
         ImGui.checkbox("Show guides", showGuides);
         ImGui.sameLine();
@@ -53,7 +54,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
         ImVec2 startPos = ImGui.getCursorScreenPos();
         float contentHeight = 260f;
         ImGui.beginGroup();
-        if (ImGui.beginChild("layout_nav", leftPaneWidth.get(), contentHeight, true)) {
+        Panel.of("layout_nav").size(leftPaneWidth.get(), contentHeight).border(true).render(() -> {
             ImGui.textColored(0.72f, 0.84f, 1f, 1f, "Navigation");
             ImGui.separator();
             for (int i = 0; i < NAV_ITEMS.length; i++) {
@@ -62,10 +63,9 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
                     selectedNavIndex = i;
                 }
             }
-        }
-        ImGui.endChild();
+        });
         ImGui.sameLine(0f, gutterSize.get());
-        if (ImGui.beginChild("layout_body", 0f, contentHeight, true)) {
+        Panel.of("layout_body").height(contentHeight).border(true).render(() -> {
             ImGui.textColored(0.74f, 0.92f, 0.86f, 1f, "Detail Panel");
             ImGui.separator();
             ImGui.textWrapped("""
@@ -76,8 +76,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             ImGui.bulletText("Scroll independent of the navigation rail.");
             ImGui.bulletText("Tab bar above comes from MineGui Window helper.");
             ImGui.bulletText("Every widget keeps state in this section instance.");
-        }
-        ImGui.endChild();
+        });
         ImGui.endGroup();
 
         if (showGuides.get()) {
@@ -106,30 +105,28 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             ImGui.button("Step");
         });
         ImGui.sameLine(0f, 8f);
-        renderCard("Chips", "Selectable tags in a child", () -> {
-            ImGui.beginChild("chip_panel", 120f, 64f, true);
-            ImGui.textColored(0.8f, 0.9f, 1f, 1f, "Filters");
-            ImGui.separator();
-            ImGui.selectable("UI");
-            ImGui.sameLine();
-            ImGui.selectable("Rendering");
-            ImGui.sameLine();
-            ImGui.selectable("Input");
-            ImGui.endChild();
-        });
+        renderCard("Chips", "Selectable tags in a child",
+                () -> Panel.of("chip_panel").size(180f, 80f).border(true).render(() -> {
+                    ImGui.textColored(0.8f, 0.9f, 1f, 1f, "Filters");
+                    ImGui.separator();
+                    ImGui.selectable("UI");
+                    ImGui.sameLine();
+                    ImGui.selectable("Rendering");
+                    ImGui.sameLine();
+                    ImGui.selectable("Input");
+                }));
         ImGui.sameLine(0f, 8f);
-        renderCard("Sticky footer", "Add spacer + AlignTextToFramePadding", () -> {
-            ImGui.beginChild("footer_panel", 140f, 72f, true);
-            ImGui.text("Body grows");
-            ImGui.text("...");
-            ImGui.dummy(0f, 12f);
-            ImGui.separator();
-            ImGui.alignTextToFramePadding();
-            ImGui.text("Inline status");
-            ImGui.sameLine();
-            ImGui.textColored(0.72f, 0.84f, 1f, 1f, "OK");
-            ImGui.endChild();
-        });
+        renderCard("Sticky footer", "Add spacer + AlignTextToFramePadding",
+                () -> Panel.of("footer_panel").size(180f, 80f).border(true).render(() -> {
+                    ImGui.text("Body grows");
+                    ImGui.text("...");
+                    ImGui.dummy(0f, 12f);
+                    ImGui.separator();
+                    ImGui.alignTextToFramePadding();
+                    ImGui.text("Inline status");
+                    ImGui.sameLine();
+                    ImGui.textColored(0.72f, 0.84f, 1f, 1f, "OK");
+                }));
         ImGui.endGroup();
         LayoutHelper.sectionGap();
         if (showTable.get()) {
@@ -138,12 +135,12 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     }
 
     private void renderCard(String title, String subtitle, Runnable content) {
-        ImGui.beginChild(title, 150f, 110f, true);
-        ImGui.text(title);
-        ImGui.textDisabled(subtitle);
-        LayoutHelper.smallGap();
-        content.run();
-        ImGui.endChild();
+        Panel.of(title).size(200f, 140f).border(true).render(() -> {
+            ImGui.text(title);
+            ImGui.textDisabled(subtitle);
+            LayoutHelper.smallGap();
+            content.run();
+        });
     }
 
     private void renderLayoutTable() {
@@ -152,21 +149,11 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             ImGui.tableSetupColumn("Primitive", ImGuiTableColumnFlags.WidthFixed, LayoutHelper.TABLE_LABEL_WIDTH_SMALL);
             ImGui.tableSetupColumn("Use case", ImGuiTableColumnFlags.WidthStretch);
             ImGui.tableSetupColumn("Tip", ImGuiTableColumnFlags.WidthStretch);
-            renderLayoutRow("beginChild()", "Scrollable regions", "Pair with style rounding for cards.");
-            renderLayoutRow("sameLine()", "Inline controls", "Supply spacing argument for gutters.");
-            renderLayoutRow("group()", "Lock item width", "Great for stacked buttons and labels.");
-            renderLayoutRow("tables", "Measured grids", "RowBg + Borders reads well in overlays.");
+            TableHelper.rowWrapped("beginChild()", "Scrollable regions", "Pair with style rounding for cards.");
+            TableHelper.rowWrapped("sameLine()", "Inline controls", "Supply spacing argument for gutters.");
+            TableHelper.rowWrapped("group()", "Lock item width", "Great for stacked buttons and labels.");
+            TableHelper.rowWrapped("tables", "Measured grids", "RowBg + Borders reads well in overlays.");
             ImGui.endTable();
         }
-    }
-
-    private void renderLayoutRow(String primitive, String useCase, String tip) {
-        ImGui.tableNextRow();
-        ImGui.tableSetColumnIndex(0);
-        ImGui.text(primitive);
-        ImGui.tableSetColumnIndex(1);
-        ImGui.textWrapped(useCase);
-        ImGui.tableSetColumnIndex(2);
-        ImGui.textWrapped(tip);
     }
 }

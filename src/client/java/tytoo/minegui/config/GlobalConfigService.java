@@ -15,7 +15,7 @@ public class GlobalConfigService {
         this.namespace = Objects.requireNonNull(namespace, "namespace");
         this.state = new ConfigState(namespace, configRoot, defaultStrategy);
         this.pathResolver = new ConfigPathResolver(configRoot, configRoot, defaultStrategy);
-        this.serializer = new ConfigSerializer(configRoot);
+        this.serializer = new ConfigSerializer();
     }
 
     public String namespace() {
@@ -144,7 +144,6 @@ public class GlobalConfigService {
         ConfigSerializer.ensureDirectory(state.defaultConfigFile().getParent());
         GlobalConfig baseDocument = serializer.readConfig(state.defaultConfigFile());
         GlobalConfig snapshot = ConfigState.cloneConfig(baseDocument != null ? baseDocument : new GlobalConfig());
-        ensureViewPath(snapshot);
         ConfigPathResolution snapshotPaths = pathResolver.resolvePaths(state, snapshot);
         pathResolver.applyResolvedPaths(state, snapshot, snapshotPaths);
         Path snapshotConfigPath = snapshotPaths.configFile();
@@ -153,7 +152,6 @@ public class GlobalConfigService {
             GlobalConfig overrideConfig = serializer.readConfig(snapshotConfigPath);
             if (overrideConfig != null) {
                 snapshot = ConfigState.cloneConfig(overrideConfig);
-                ensureViewPath(snapshot);
                 snapshotPaths = pathResolver.resolvePaths(state, snapshot);
                 pathResolver.applyResolvedPaths(state, snapshot, snapshotPaths);
                 snapshotConfigPath = snapshotPaths.configFile();
@@ -162,16 +160,13 @@ public class GlobalConfigService {
 
         Path snapshotViewPath = snapshotPaths.viewSavesDirectory();
         ConfigSerializer.ensureDirectory(snapshotConfigPath.getParent());
-        ConfigSerializer.ensureDirectory(snapshotViewPath);
 
         GlobalConfig runtime = serializer.applyLoadProfile(snapshot, state.featureProfile());
-        ensureViewPath(runtime);
         ConfigPathResolution runtimePaths = pathResolver.resolvePaths(state, runtime);
         pathResolver.applyResolvedPaths(state, runtime, runtimePaths);
         Path runtimeConfigPath = runtimePaths.configFile();
         Path runtimeViewPath = runtimePaths.viewSavesDirectory();
         ConfigSerializer.ensureDirectory(runtimeConfigPath.getParent());
-        ConfigSerializer.ensureDirectory(runtimeViewPath);
 
         if (!Files.exists(runtimeConfigPath)) {
             GlobalConfig initialPayload = serializer.mergeForSave(runtime, snapshot, state.featureProfile());
@@ -195,13 +190,11 @@ public class GlobalConfigService {
             load();
         }
 
-        ensureViewPath(state.config());
         ConfigPathResolution runtimePaths = pathResolver.resolvePaths(state, state.config());
         pathResolver.applyResolvedPaths(state, state.config(), runtimePaths);
         Path runtimeConfigPath = runtimePaths.configFile();
         Path runtimeViewPath = runtimePaths.viewSavesDirectory();
         ConfigSerializer.ensureDirectory(runtimeConfigPath.getParent());
-        ConfigSerializer.ensureDirectory(runtimeViewPath);
 
         GlobalConfig payload = serializer.mergeForSave(state.config(), state.snapshot(), state.featureProfile());
         serializer.writeConfig(runtimeConfigPath, payload, state, pathResolver);
@@ -245,12 +238,6 @@ public class GlobalConfigService {
         refreshedState.setConfig(ConfigState.cloneConfig(state.config()));
         refreshedState.setSnapshot(ConfigState.cloneConfig(state.snapshot()));
         return refreshed;
-    }
-
-    private void ensureViewPath(GlobalConfig config) {
-        if (config.getViewSavesPath() == null || config.getViewSavesPath().isBlank()) {
-            config.setViewSavesPath(GlobalConfig.getDefaultViewSavesPath());
-        }
     }
 
     private void applyIgnoredDefaults(boolean markLoaded) {

@@ -208,9 +208,12 @@ public final class UIManager implements VisibilityListener {
         }
         StyleManager.pushActive(styleManager);
         try {
+            ViewPersistenceManager manager = persistence();
+            if (manager != null) {
+                manager.ensureSharedLayoutLoaded();
+            }
             renderViews();
             renderCallbacks();
-            ViewPersistenceManager manager = persistence();
             if (manager != null) {
                 manager.flushLayouts();
             }

@@ -7,6 +7,7 @@ import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import tytoo.minegui.helper.LayoutHelper;
+import tytoo.minegui.helper.TableHelper;
 import tytoo.minegui.view.View;
 
 public final class OverviewSection implements PlaygroundSection {
@@ -73,13 +74,13 @@ public final class OverviewSection implements PlaygroundSection {
         if (ImGui.beginTable("playground_overview_practices", 2, flags)) {
             ImGui.tableSetupColumn("Topic", ImGuiTableColumnFlags.WidthFixed, LayoutHelper.TABLE_LABEL_WIDTH);
             ImGui.tableSetupColumn("Guidance");
-            renderPracticeRow("Immediate mode", "Hold ImBoolean/ImString fields in the section; ImGui pulls by reference each frame.");
-            renderPracticeRow("Window helper", "Window.of(...) drives titles, flags, and docking in one call.");
-            renderPracticeRow("Cursor policy", parent.hasExplicitCursorPolicy()
+            TableHelper.rowWrapped("Immediate mode", "Hold ImBoolean/ImString fields in the section; ImGui pulls by reference each frame.");
+            TableHelper.rowWrapped("Window helper", "Window.of(...) drives titles, flags, and docking in one call.");
+            TableHelper.rowWrapped("Cursor policy", parent.hasExplicitCursorPolicy()
                     ? "Click-to-lock enabled for consistent focus."
                     : "Set an explicit policy when a view needs locked cursor behavior.");
-            renderPracticeRow("Style registry", "NamedStyleRegistry keeps palettes reusable per view or namespace.");
-            renderPracticeRow("Resource bridge", "ImGuiImageUtils pulls Minecraft textures straight into draw lists.");
+            TableHelper.rowWrapped("Style registry", "NamedStyleRegistry keeps palettes reusable per view or namespace.");
+            TableHelper.rowWrapped("Resource bridge", "ImGuiImageUtils pulls Minecraft textures straight into draw lists.");
             ImGui.endTable();
         }
     }
@@ -88,13 +89,4 @@ public final class OverviewSection implements PlaygroundSection {
         ImGui.separator();
         ImGui.inputTextMultiline("Scratch pad", scratchPad, 320.0f, 96.0f);
     }
-
-    private void renderPracticeRow(String topic, String description) {
-        ImGui.tableNextRow();
-        ImGui.tableSetColumnIndex(0);
-        ImGui.text(topic);
-        ImGui.tableSetColumnIndex(1);
-        ImGui.textWrapped(description);
-    }
-
 }

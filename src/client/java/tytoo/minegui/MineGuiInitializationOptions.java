@@ -43,7 +43,14 @@ public record MineGuiInitializationOptions(
         dockspaceCustomizer = dockspaceCustomizer != null ? dockspaceCustomizer : DockspaceCustomizer.noop();
         configStore = configStore != null ? configStore : new GlobalConfigNamespaceConfigStore();
         if (viewPersistenceAdapter == null) {
-            viewPersistenceAdapter = new DefaultViewPersistenceAdapter(ConfigRegistry.get(namespace).viewSavesDirectory());
+            Path effectiveRoot = configRoot != null ? configRoot : ConfigRegistry.configRoot();
+            Path baseDir;
+            if (effectiveRoot.getFileName() != null && effectiveRoot.getFileName().toString().equals(namespace)) {
+                baseDir = effectiveRoot;
+            } else {
+                baseDir = effectiveRoot.resolve(namespace);
+            }
+            viewPersistenceAdapter = new DefaultViewPersistenceAdapter(baseDir);
         }
     }
 
@@ -77,6 +84,23 @@ public record MineGuiInitializationOptions(
 
     public MineGuiInitializationOptions withoutFeature(ConfigFeature feature) {
         return withFeatureProfile(featureProfile.withoutFeature(feature));
+    }
+
+    public MineGuiInitializationOptions withConfigRoot(Path configRoot) {
+        return new MineGuiInitializationOptions(
+                namespace,
+                configRoot,
+                loadGlobalConfig,
+                ignoreGlobalConfig,
+                featureProfile,
+                configPathStrategy,
+                registerDefaultFonts,
+                fontRegistrar,
+                defaultCursorPolicyId,
+                dockspaceCustomizer,
+                configStore,
+                viewPersistenceAdapter
+        );
     }
 
     public static final class Builder {
