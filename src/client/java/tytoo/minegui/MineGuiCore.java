@@ -9,8 +9,10 @@ import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
-import tytoo.minegui.config.ConfigPathStrategies;
 import tytoo.minegui.config.ConfigRegistry;
+import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
+import tytoo.minegui.config.GlobalConfigService;
+import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.MineGuiRuntimeContext;
@@ -38,16 +40,15 @@ public final class MineGuiCore {
     }
 
     public static synchronized MineGuiContext init(MineGuiInitializationOptions options) {
-        String namespace = options.namespace();
-        if (CONTEXTS.containsKey(namespace)) {
-            return CONTEXTS.get(namespace);
-        }
         Objects.requireNonNull(options, "options");
+        String namespace = options.namespace();
+        MineGuiRuntimeContext existing = CONTEXTS.get(namespace);
+        if (existing != null) {
+            return existing;
+        }
 
         ConfigRegistry.setDefaultNamespace(ID);
-        if (options.configRoot() != null) {
-            ConfigRegistry.get(namespace).setPathStrategy(ConfigPathStrategies.root(options.configRoot()));
-        }
+        applyConfigOptions(options);
 
         MineGuiRuntimeContext context = new MineGuiRuntimeContext(options);
         CONTEXTS.put(namespace, context);
@@ -75,6 +76,28 @@ public final class MineGuiCore {
 
     public static Collection<MineGuiRuntimeContext> getAllContexts() {
         return Collections.unmodifiableCollection(CONTEXTS.values());
+    }
+
+    private static void applyConfigOptions(MineGuiInitializationOptions options) {
+        String namespace = options.namespace();
+        NamespaceConfigStore store = options.configStore();
+        boolean usesGlobalStore = store instanceof GlobalConfigNamespaceConfigStore;
+        if (usesGlobalStore && options.configRoot() != null) {
+            ConfigRegistry.configure(options.configRoot());
+        }
+        GlobalConfigService globalConfig = ConfigRegistry.get(namespace);
+        if (usesGlobalStore && options.configPathStrategy() != null) {
+            globalConfig.setPathStrategy(options.configPathStrategy());
+        }
+        if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
+            globalConfig.setConfigIgnored(true);
+            return;
+        }
+        globalConfig.setConfigIgnored(false);
+        globalConfig.setAutoLoadEnabled(true);
+        if (options.featureProfile() != null) {
+            globalConfig.setFeatureProfile(options.featureProfile());
+        }
     }
 
     private static synchronized void registerReloadListener() {
@@ -109,18 +132,34 @@ public final class MineGuiCore {
     }
 
     public static void loadConfig() {
+        boolean shouldLoadGlobal = false;
         for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            MineGuiInitializationOptions options = context.options();
+            if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
+                continue;
+            }
             context.config().reload();
+            shouldLoadGlobal = true;
         }
-        ConfigRegistry.get().load();
+        if (shouldLoadGlobal) {
+            ConfigRegistry.get().load();
+        }
     }
 
     public static void saveConfig() {
+        boolean shouldSaveGlobal = false;
         for (MineGuiRuntimeContext context : CONTEXTS.values()) {
             context.persistence().flushLayouts();
+            MineGuiInitializationOptions options = context.options();
+            if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
+                continue;
+            }
             context.config().save();
+            shouldSaveGlobal = true;
         }
-        ConfigRegistry.get().save();
+        if (shouldSaveGlobal) {
+            ConfigRegistry.get().save();
+        }
     }
 
     public static String getConfigNamespace() {
