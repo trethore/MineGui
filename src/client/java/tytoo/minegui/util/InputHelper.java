@@ -3,11 +3,77 @@ package tytoo.minegui.util;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @SuppressWarnings("unused")
 public final class InputHelper {
     private static final int NO_CACHE = Integer.MIN_VALUE;
     private static final int[] KEY_REMAP_CACHE = new int[GLFW.GLFW_KEY_LAST + 1];
+
+    private static final Map<String, Integer> KEY_NAME_MAP = Map.<String, Integer>ofEntries(
+            Map.entry("0", GLFW.GLFW_KEY_0),
+            Map.entry("1", GLFW.GLFW_KEY_1),
+            Map.entry("2", GLFW.GLFW_KEY_2),
+            Map.entry("3", GLFW.GLFW_KEY_3),
+            Map.entry("4", GLFW.GLFW_KEY_4),
+            Map.entry("5", GLFW.GLFW_KEY_5),
+            Map.entry("6", GLFW.GLFW_KEY_6),
+            Map.entry("7", GLFW.GLFW_KEY_7),
+            Map.entry("8", GLFW.GLFW_KEY_8),
+            Map.entry("9", GLFW.GLFW_KEY_9),
+            Map.entry("A", GLFW.GLFW_KEY_A),
+            Map.entry("a", GLFW.GLFW_KEY_A),
+            Map.entry("B", GLFW.GLFW_KEY_B),
+            Map.entry("b", GLFW.GLFW_KEY_B),
+            Map.entry("C", GLFW.GLFW_KEY_C),
+            Map.entry("c", GLFW.GLFW_KEY_C),
+            Map.entry("D", GLFW.GLFW_KEY_D),
+            Map.entry("d", GLFW.GLFW_KEY_D),
+            Map.entry("E", GLFW.GLFW_KEY_E),
+            Map.entry("e", GLFW.GLFW_KEY_E),
+            Map.entry("F", GLFW.GLFW_KEY_F),
+            Map.entry("f", GLFW.GLFW_KEY_F),
+            Map.entry("G", GLFW.GLFW_KEY_G),
+            Map.entry("g", GLFW.GLFW_KEY_G),
+            Map.entry("H", GLFW.GLFW_KEY_H),
+            Map.entry("h", GLFW.GLFW_KEY_H),
+            Map.entry("I", GLFW.GLFW_KEY_I),
+            Map.entry("i", GLFW.GLFW_KEY_I),
+            Map.entry("J", GLFW.GLFW_KEY_J),
+            Map.entry("j", GLFW.GLFW_KEY_J),
+            Map.entry("K", GLFW.GLFW_KEY_K),
+            Map.entry("k", GLFW.GLFW_KEY_K),
+            Map.entry("L", GLFW.GLFW_KEY_L),
+            Map.entry("l", GLFW.GLFW_KEY_L),
+            Map.entry("M", GLFW.GLFW_KEY_M),
+            Map.entry("m", GLFW.GLFW_KEY_M),
+            Map.entry("N", GLFW.GLFW_KEY_N),
+            Map.entry("n", GLFW.GLFW_KEY_N),
+            Map.entry("O", GLFW.GLFW_KEY_O),
+            Map.entry("o", GLFW.GLFW_KEY_O),
+            Map.entry("P", GLFW.GLFW_KEY_P),
+            Map.entry("p", GLFW.GLFW_KEY_P),
+            Map.entry("Q", GLFW.GLFW_KEY_Q),
+            Map.entry("q", GLFW.GLFW_KEY_Q),
+            Map.entry("R", GLFW.GLFW_KEY_R),
+            Map.entry("r", GLFW.GLFW_KEY_R),
+            Map.entry("S", GLFW.GLFW_KEY_S),
+            Map.entry("s", GLFW.GLFW_KEY_S),
+            Map.entry("T", GLFW.GLFW_KEY_T),
+            Map.entry("t", GLFW.GLFW_KEY_T),
+            Map.entry("U", GLFW.GLFW_KEY_U),
+            Map.entry("u", GLFW.GLFW_KEY_U),
+            Map.entry("V", GLFW.GLFW_KEY_V),
+            Map.entry("v", GLFW.GLFW_KEY_V),
+            Map.entry("W", GLFW.GLFW_KEY_W),
+            Map.entry("w", GLFW.GLFW_KEY_W),
+            Map.entry("X", GLFW.GLFW_KEY_X),
+            Map.entry("x", GLFW.GLFW_KEY_X),
+            Map.entry("Y", GLFW.GLFW_KEY_Y),
+            Map.entry("y", GLFW.GLFW_KEY_Y),
+            Map.entry("Z", GLFW.GLFW_KEY_Z),
+            Map.entry("z", GLFW.GLFW_KEY_Z)
+    );
 
     static {
         Arrays.fill(KEY_REMAP_CACHE, NO_CACHE);
@@ -50,45 +116,7 @@ public final class InputHelper {
         if (keyName == null || keyName.isEmpty()) {
             return localKeyCode;
         }
-        return switch (keyName) {
-            case "0" -> GLFW.GLFW_KEY_0;
-            case "1" -> GLFW.GLFW_KEY_1;
-            case "2" -> GLFW.GLFW_KEY_2;
-            case "3" -> GLFW.GLFW_KEY_3;
-            case "4" -> GLFW.GLFW_KEY_4;
-            case "5" -> GLFW.GLFW_KEY_5;
-            case "6" -> GLFW.GLFW_KEY_6;
-            case "7" -> GLFW.GLFW_KEY_7;
-            case "8" -> GLFW.GLFW_KEY_8;
-            case "9" -> GLFW.GLFW_KEY_9;
-            case "A", "a" -> GLFW.GLFW_KEY_A;
-            case "B", "b" -> GLFW.GLFW_KEY_B;
-            case "C", "c" -> GLFW.GLFW_KEY_C;
-            case "D", "d" -> GLFW.GLFW_KEY_D;
-            case "E", "e" -> GLFW.GLFW_KEY_E;
-            case "F", "f" -> GLFW.GLFW_KEY_F;
-            case "G", "g" -> GLFW.GLFW_KEY_G;
-            case "H", "h" -> GLFW.GLFW_KEY_H;
-            case "I", "i" -> GLFW.GLFW_KEY_I;
-            case "J", "j" -> GLFW.GLFW_KEY_J;
-            case "K", "k" -> GLFW.GLFW_KEY_K;
-            case "L", "l" -> GLFW.GLFW_KEY_L;
-            case "M", "m" -> GLFW.GLFW_KEY_M;
-            case "N", "n" -> GLFW.GLFW_KEY_N;
-            case "O", "o" -> GLFW.GLFW_KEY_O;
-            case "P", "p" -> GLFW.GLFW_KEY_P;
-            case "Q", "q" -> GLFW.GLFW_KEY_Q;
-            case "R", "r" -> GLFW.GLFW_KEY_R;
-            case "S", "s" -> GLFW.GLFW_KEY_S;
-            case "T", "t" -> GLFW.GLFW_KEY_T;
-            case "U", "u" -> GLFW.GLFW_KEY_U;
-            case "V", "v" -> GLFW.GLFW_KEY_V;
-            case "W", "w" -> GLFW.GLFW_KEY_W;
-            case "X", "x" -> GLFW.GLFW_KEY_X;
-            case "Y", "y" -> GLFW.GLFW_KEY_Y;
-            case "Z", "z" -> GLFW.GLFW_KEY_Z;
-            default -> localKeyCode;
-        };
+        return KEY_NAME_MAP.getOrDefault(keyName, localKeyCode);
     }
 
     public static boolean isUndo() {

@@ -7,6 +7,7 @@ import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
 import lombok.Getter;
 import lombok.Setter;
+import tytoo.minegui.util.MathUtils;
 
 import java.util.*;
 
@@ -68,27 +69,6 @@ public final class DockspaceRenderState {
     private static void addTask(List<Runnable> tasks, Runnable task) {
         Objects.requireNonNull(task, "task");
         tasks.add(task);
-    }
-
-    private static float sanitizeFinite(float value) {
-        if (!Float.isFinite(value)) {
-            return 0.0f;
-        }
-        return value;
-    }
-
-    private static float sanitizeDimension(float value) {
-        if (!Float.isFinite(value) || value < 0.0f) {
-            return 0.0f;
-        }
-        return value;
-    }
-
-    private static float sanitizeNonNegative(float value) {
-        if (!Float.isFinite(value) || value < 0.0f) {
-            return 0.0f;
-        }
-        return value;
     }
 
     public String windowTitle() {
@@ -358,22 +338,22 @@ public final class DockspaceRenderState {
         if ((dockspaceFlags & ImGuiDockNodeFlags.PassthruCentralNode) != 0) {
             addWindowFlags(ImGuiWindowFlags.NoBackground);
         }
-        windowPosX = sanitizeFinite(windowPosX);
-        windowPosY = sanitizeFinite(windowPosY);
-        windowWidth = sanitizeDimension(windowWidth);
-        windowHeight = sanitizeDimension(windowHeight);
-        dockspaceWidth = sanitizeDimension(dockspaceWidth);
-        dockspaceHeight = sanitizeDimension(dockspaceHeight);
-        defaultWindowPosX = sanitizeFinite(defaultWindowPosX);
-        defaultWindowPosY = sanitizeFinite(defaultWindowPosY);
-        defaultWindowWidth = sanitizeDimension(defaultWindowWidth);
-        defaultWindowHeight = sanitizeDimension(defaultWindowHeight);
+        windowPosX = MathUtils.clampFinite(windowPosX, 0.0f);
+        windowPosY = MathUtils.clampFinite(windowPosY, 0.0f);
+        windowWidth = MathUtils.clampNonNegative(windowWidth, 0.0f);
+        windowHeight = MathUtils.clampNonNegative(windowHeight, 0.0f);
+        dockspaceWidth = MathUtils.clampNonNegative(dockspaceWidth, 0.0f);
+        dockspaceHeight = MathUtils.clampNonNegative(dockspaceHeight, 0.0f);
+        defaultWindowPosX = MathUtils.clampFinite(defaultWindowPosX, 0.0f);
+        defaultWindowPosY = MathUtils.clampFinite(defaultWindowPosY, 0.0f);
+        defaultWindowWidth = MathUtils.clampNonNegative(defaultWindowWidth, 0.0f);
+        defaultWindowHeight = MathUtils.clampNonNegative(defaultWindowHeight, 0.0f);
         if (overrideWindowPadding) {
-            windowPaddingX = sanitizeNonNegative(windowPaddingX);
-            windowPaddingY = sanitizeNonNegative(windowPaddingY);
+            windowPaddingX = MathUtils.clampNonNegative(windowPaddingX, 0.0f);
+            windowPaddingY = MathUtils.clampNonNegative(windowPaddingY, 0.0f);
         }
         if (overrideWindowBorderSize) {
-            windowBorderSize = sanitizeNonNegative(windowBorderSize);
+            windowBorderSize = MathUtils.clampNonNegative(windowBorderSize, 0.0f);
         }
     }
 }

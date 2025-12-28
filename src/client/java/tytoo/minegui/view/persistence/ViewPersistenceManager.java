@@ -106,7 +106,7 @@ public final class ViewPersistenceManager {
         if (entry == null) {
             return;
         }
-        String json = StyleJsonSerializer.toJson(namespace, view.getId(), null, descriptor);
+        String json = StyleJsonSerializer.toJson(null, descriptor);
         if (!force && json != null && json.equals(entry.lastStyleJson)) {
             return;
         }

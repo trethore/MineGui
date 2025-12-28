@@ -24,6 +24,10 @@ public final class Window {
         STATE_BY_TITLE.remove(title);
     }
 
+    public static void disposeAll() {
+        STATE_BY_TITLE.clear();
+    }
+
     public static Builder of(String title) {
         return new Builder(title);
     }
@@ -116,7 +120,7 @@ public final class Window {
 
         public void render(Runnable content) {
             Objects.requireNonNull(content, "content");
-            WindowState state = STATE_BY_TITLE.computeIfAbsent(title, WindowState::new);
+            WindowState state = STATE_BY_TITLE.computeIfAbsent(title, ignored -> new WindowState());
 
             if (forcedX != null && forcedY != null) {
                 ImGui.setNextWindowPos(forcedX, forcedY, posCondition);
@@ -173,7 +177,7 @@ public final class Window {
     private static final class WindowState {
         private boolean wasOpen;
 
-        private WindowState(String title) {
+        private WindowState() {
         }
     }
 }

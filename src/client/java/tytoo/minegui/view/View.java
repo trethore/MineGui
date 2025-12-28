@@ -2,10 +2,8 @@ package tytoo.minegui.view;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Identifier;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
-import tytoo.minegui.util.MinecraftIdentifiers;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
@@ -149,14 +147,6 @@ public abstract class View {
     public View useStyle(ResourceId key) {
         setStyleKey(key);
         return this;
-    }
-
-    public View useStyle(Identifier identifier) {
-        if (identifier == null) {
-            setStyleKey(null);
-            return this;
-        }
-        return useStyle(MinecraftIdentifiers.fromMinecraft(identifier));
     }
 
     private void updateCursorPolicy(CursorPolicy nextPolicy, boolean explicit) {

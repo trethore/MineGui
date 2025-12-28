@@ -8,7 +8,7 @@ import java.util.Deque;
 
 @SuppressWarnings("unused")
 public final class ImGuiUtils {
-    private static final ImGui IM_GUI_INSTANCE = new ImGui();
+    private static final ImGui IMGUI = new ImGui();
     private static final ThreadLocal<Deque<Float>> WINDOW_FONT_SCALE_STACK =
             ThreadLocal.withInitial(() -> {
                 Deque<Float> stack = new ArrayDeque<>();
@@ -17,6 +17,10 @@ public final class ImGuiUtils {
             });
 
     private ImGuiUtils() {
+    }
+
+    public static void cleanup() {
+        WINDOW_FONT_SCALE_STACK.remove();
     }
 
     public static double mouseX() {
@@ -43,18 +47,18 @@ public final class ImGuiUtils {
         float current = currentValue != null ? currentValue : 1.0f;
         float target = current * scaleMultiplier;
         stack.push(target);
-        IM_GUI_INSTANCE.setWindowFontScale(target);
+        IMGUI.setWindowFontScale(target);
     }
 
     public static void popWindowFontScale() {
         Deque<Float> stack = WINDOW_FONT_SCALE_STACK.get();
         if (stack.size() <= 1) {
-            IM_GUI_INSTANCE.setWindowFontScale(1.0f);
+            IMGUI.setWindowFontScale(1.0f);
             return;
         }
         stack.pop();
         Float restoredValue = stack.peek();
         float restored = restoredValue != null ? restoredValue : 1.0f;
-        IM_GUI_INSTANCE.setWindowFontScale(restored);
+        IMGUI.setWindowFontScale(restored);
     }
 }

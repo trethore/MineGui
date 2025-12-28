@@ -68,7 +68,7 @@ public final class StyleWorkflowSection implements PlaygroundSection {
         }
         ImGui.sameLine();
         if (ImGui.button("Reset view style")) {
-            parent.useStyle((ResourceId) null);
+            parent.useStyle(null);
         }
         int tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
         if (ImGui.beginTable("style_breakdown", 2, tableFlags)) {

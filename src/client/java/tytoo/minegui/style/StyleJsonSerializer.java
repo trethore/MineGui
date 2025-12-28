@@ -15,12 +15,11 @@ public final class StyleJsonSerializer {
     private StyleJsonSerializer() {
     }
 
-    public static String toJson(String namespace, String viewId, ResourceId styleKey, StyleDescriptor descriptor) {
+    public static String toJson(ResourceId styleKey, StyleDescriptor descriptor) {
         if (descriptor == null) {
             return null;
         }
         JsonObject root = new JsonObject();
-        // namespace and viewId were previously emitted as metadata-only; omitting them avoids implying enforcement on load.
         if (styleKey != null) {
             root.addProperty("styleKey", styleKey.toString());
         }
@@ -196,7 +195,7 @@ public final class StyleJsonSerializer {
         }
         try {
             return root.get(key).getAsFloat();
-        } catch (RuntimeException ignored) {
+        } catch (NumberFormatException | IllegalStateException | UnsupportedOperationException ignored) {
             return fallback != null ? fallback : 0.0f;
         }
     }
@@ -207,7 +206,7 @@ public final class StyleJsonSerializer {
         }
         try {
             return root.get(key).getAsFloat();
-        } catch (RuntimeException ignored) {
+        } catch (NumberFormatException | IllegalStateException | UnsupportedOperationException ignored) {
             return fallback;
         }
     }
@@ -218,7 +217,7 @@ public final class StyleJsonSerializer {
         }
         try {
             return root.get(key).getAsInt();
-        } catch (RuntimeException ignored) {
+        } catch (NumberFormatException | IllegalStateException | UnsupportedOperationException ignored) {
             return fallback;
         }
     }
@@ -229,7 +228,7 @@ public final class StyleJsonSerializer {
         }
         try {
             return root.get(key).getAsBoolean();
-        } catch (RuntimeException ignored) {
+        } catch (IllegalStateException | UnsupportedOperationException ignored) {
             return fallback;
         }
     }
