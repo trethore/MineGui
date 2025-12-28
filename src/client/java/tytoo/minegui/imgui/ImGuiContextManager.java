@@ -12,6 +12,7 @@ import tytoo.minegui.config.ConfigRegistry;
 import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
 import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.config.NamespaceConfigStore;
+import tytoo.minegui.runtime.MineGuiRuntimeContext;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
@@ -117,7 +118,6 @@ public final class ImGuiContextManager {
     }
 
     private static void initializeImGui() {
-        FontLibrary fontLibrary = FontLibrary.getInstance();
         ImGuiContext context = ImGui.createContext();
         ImGui.setCurrentContext(context);
         ImGuiRenderer.resetAppliedGlobalScale();
@@ -139,7 +139,7 @@ public final class ImGuiContextManager {
 
         ImFont defaultFont = configureDefaultFonts(io);
         ImGuiRenderer.applyGlobalScale(config);
-        fontLibrary.runRegistrationPhase(io);
+        runFontRegistrars(io);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             ImGuiStyle style = ImGui.getStyle();
@@ -151,21 +151,49 @@ public final class ImGuiContextManager {
 
     private static ImFont configureDefaultFonts(ImGuiIO io) {
         ImFontConfig defaultConfig = new ImFontConfig();
+        ImFont baseDefaultFont;
         try {
             defaultConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
             defaultConfig.setPixelSnapH(true);
-            io.getFonts().addFontDefault(defaultConfig);
+            baseDefaultFont = io.getFonts().addFontDefault(defaultConfig);
         } finally {
             defaultConfig.destroy();
         }
 
-        Fonts.registerDefaults(io);
-        FontLibrary fontLibrary = FontLibrary.getInstance();
-        ImFont defaultFont = Fonts.ensure(fontLibrary.getDefaultFontKey());
-        if (defaultFont != null) {
-            io.setFontDefault(defaultFont);
+        ImFont defaultFont = baseDefaultFont;
+        if (shouldRegisterDefaultFonts()) {
+            Fonts.registerDefaults(io);
+            FontLibrary fontLibrary = FontLibrary.getInstance();
+            ImFont registeredDefault = Fonts.ensure(fontLibrary.getDefaultFontKey());
+            if (registeredDefault != null) {
+                io.setFontDefault(registeredDefault);
+                defaultFont = registeredDefault;
+            }
         }
         return defaultFont;
+    }
+
+    private static boolean shouldRegisterDefaultFonts() {
+        for (MineGuiRuntimeContext context : MineGuiCore.getAllContexts()) {
+            if (context.options().registerDefaultFonts()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void runFontRegistrars(ImGuiIO io) {
+        for (MineGuiRuntimeContext context : MineGuiCore.getAllContexts()) {
+            var registrar = context.options().fontRegistrar();
+            if (registrar == null) {
+                continue;
+            }
+            try {
+                registrar.accept(io);
+            } catch (RuntimeException exception) {
+                MineGuiCore.LOGGER.error("Font registrar failed for namespace '{}'", context.options().namespace(), exception);
+            }
+        }
     }
 
     private static void finalizeInitialStyle(ImFont defaultFont) {

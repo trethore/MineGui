@@ -3,7 +3,9 @@ package tytoo.minegui.runtime;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.ConfigRegistry;
+import tytoo.minegui.config.MemoryNamespaceConfigStore;
 import tytoo.minegui.config.NamespaceConfigStore;
+import tytoo.minegui.imgui.ImGuiContextManager;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.UIManager;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
@@ -37,7 +39,11 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
         this.options = options;
         NamespaceConfigStore store = options.configStore();
         String namespace = options.namespace();
+        if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
+            store = new MemoryNamespaceConfigStore();
+        }
         this.config = new NamespaceConfigService(namespace, store);
+
         this.uiManager = UIManager.get(namespace);
         this.styleManager = StyleManager.get(namespace);
         ViewPersistenceAdapter persistenceAdapter = options.viewPersistenceAdapter();
@@ -45,6 +51,9 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
             persistenceAdapter = new DefaultViewPersistenceAdapter(ConfigRegistry.get(namespace).viewSavesDirectory());
         }
         this.persistenceManager = new ViewPersistenceManager(namespace, this.config, persistenceAdapter);
+        if (options.fontRegistrar() != null && ImGuiContextManager.isContextInitialized()) {
+            MineGuiCore.LOGGER.warn("Font registrar for namespace '{}' was registered after ImGui initialization; it will not run until the next client restart.", namespace);
+        }
         this.uiManager.setPersistenceManager(this.persistenceManager);
         StyleManager defaultStyleManager = StyleManager.get(ConfigRegistry.defaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {

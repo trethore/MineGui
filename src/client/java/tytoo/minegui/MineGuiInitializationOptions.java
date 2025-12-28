@@ -1,5 +1,6 @@
 package tytoo.minegui;
 
+import imgui.ImGuiIO;
 import lombok.With;
 import tytoo.minegui.config.*;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
@@ -10,6 +11,7 @@ import tytoo.minegui.view.persistence.ViewPersistenceAdapter;
 
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.function.Consumer;
 
 @With
 @SuppressWarnings("unused")
@@ -20,11 +22,14 @@ public record MineGuiInitializationOptions(
         boolean ignoreGlobalConfig,
         ConfigFeatureProfile featureProfile,
         ConfigPathStrategy configPathStrategy,
+        boolean registerDefaultFonts,
+        Consumer<ImGuiIO> fontRegistrar,
         ResourceId defaultCursorPolicyId,
         DockspaceCustomizer dockspaceCustomizer,
         NamespaceConfigStore configStore,
         ViewPersistenceAdapter viewPersistenceAdapter
 ) {
+
     public MineGuiInitializationOptions {
         if (namespace == null || namespace.isBlank()) {
             throw new IllegalArgumentException("Namespace must be non-blank");
@@ -81,10 +86,13 @@ public record MineGuiInitializationOptions(
         private boolean ignoreGlobalConfig;
         private ConfigFeatureProfile featureProfile = ConfigFeatureProfile.all();
         private ConfigPathStrategy configPathStrategy = ConfigPathStrategies.sandboxed();
+        private boolean registerDefaultFonts = true;
+        private Consumer<ImGuiIO> fontRegistrar;
         private ResourceId defaultCursorPolicyId = CursorPolicies.clickToLockId();
         private DockspaceCustomizer dockspaceCustomizer = DockspaceCustomizer.noop();
         private NamespaceConfigStore configStore = new GlobalConfigNamespaceConfigStore();
         private ViewPersistenceAdapter viewPersistenceAdapter;
+
 
         private Builder() {
         }
@@ -143,10 +151,21 @@ public record MineGuiInitializationOptions(
             return this;
         }
 
+        public Builder registerDefaultFonts(boolean value) {
+            this.registerDefaultFonts = value;
+            return this;
+        }
+
+        public Builder fontRegistrar(Consumer<ImGuiIO> registrar) {
+            this.fontRegistrar = registrar;
+            return this;
+        }
+
         public Builder defaultCursorPolicyId(ResourceId policyId) {
             this.defaultCursorPolicyId = policyId;
             return this;
         }
+
 
         public Builder dockspaceCustomizer(DockspaceCustomizer customizer) {
             this.dockspaceCustomizer = customizer;
@@ -171,11 +190,14 @@ public record MineGuiInitializationOptions(
                     ignoreGlobalConfig,
                     featureProfile,
                     configPathStrategy,
+                    registerDefaultFonts,
+                    fontRegistrar,
                     defaultCursorPolicyId,
                     dockspaceCustomizer,
                     configStore,
                     viewPersistenceAdapter
             );
         }
+
     }
 }
