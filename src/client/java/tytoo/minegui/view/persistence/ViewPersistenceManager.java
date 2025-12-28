@@ -3,7 +3,7 @@ package tytoo.minegui.view.persistence;
 import imgui.ImGui;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
-import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.ConfigRegistry;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleJsonSerializer;
@@ -273,7 +273,7 @@ public final class ViewPersistenceManager {
     }
 
     private boolean isConfigIgnored() {
-        return configService.isConfigIgnored() || GlobalConfigManager.isConfigIgnored(namespace);
+        return configService.isConfigIgnored() || ConfigRegistry.get(namespace).isConfigIgnored();
     }
 
     private static final class Entry {

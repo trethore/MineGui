@@ -45,30 +45,34 @@ public final class NamespaceConfigService {
     }
 
     public ConfigFeatureProfile featureProfile() {
-        return GlobalConfigManager.getFeatureProfile(namespace);
+        return configService().featureProfile();
     }
 
     public void setFeatureProfile(ConfigFeatureProfile profile) {
-        GlobalConfigManager.setFeatureProfile(namespace, profile);
+        configService().setFeatureProfile(profile);
     }
 
     public boolean shouldLoad(ConfigFeature feature) {
-        return GlobalConfigManager.shouldLoadFeature(namespace, feature);
+        return configService().shouldLoadFeature(feature);
     }
 
     public boolean shouldSave(ConfigFeature feature) {
-        return GlobalConfigManager.shouldSaveFeature(namespace, feature);
+        return configService().shouldSaveFeature(feature);
     }
 
     public void enableFeature(ConfigFeature feature) {
-        GlobalConfigManager.enableFeature(namespace, feature);
+        configService().enableFeature(feature);
     }
 
     public void disableFeature(ConfigFeature feature) {
-        GlobalConfigManager.disableFeature(namespace, feature);
+        configService().disableFeature(feature);
     }
 
     public boolean isConfigIgnored() {
-        return GlobalConfigManager.isConfigIgnored(namespace);
+        return configService().isConfigIgnored();
+    }
+
+    private ConfigService configService() {
+        return ConfigRegistry.get(namespace);
     }
 }

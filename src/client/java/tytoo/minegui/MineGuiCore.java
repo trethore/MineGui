@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
 import tytoo.minegui.config.ConfigPathStrategies;
-import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.ConfigRegistry;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.MineGuiRuntimeContext;
@@ -43,9 +43,9 @@ public final class MineGuiCore {
         }
         Objects.requireNonNull(options, "options");
 
-        GlobalConfigManager.configureDefaultNamespace(ID);
+        ConfigRegistry.setDefaultNamespace(ID);
         if (options.configRoot() != null) {
-            GlobalConfigManager.setConfigPathStrategy(namespace, ConfigPathStrategies.root(options.configRoot()));
+            ConfigRegistry.get(namespace).setPathStrategy(ConfigPathStrategies.root(options.configRoot()));
         }
 
         MineGuiRuntimeContext context = new MineGuiRuntimeContext(options);
@@ -58,7 +58,7 @@ public final class MineGuiCore {
     }
 
     public static MineGuiContext getContext() {
-        MineGuiContext context = getContext(GlobalConfigManager.getDefaultNamespace());
+        MineGuiContext context = getContext(ConfigRegistry.defaultNamespace());
         if (context != null) {
             return context;
         }
@@ -107,7 +107,7 @@ public final class MineGuiCore {
         for (MineGuiRuntimeContext context : CONTEXTS.values()) {
             context.config().reload();
         }
-        GlobalConfigManager.load(GlobalConfigManager.getDefaultNamespace());
+        ConfigRegistry.get().load();
     }
 
     public static void saveConfig() {
@@ -115,11 +115,11 @@ public final class MineGuiCore {
             context.persistence().flushLayouts();
             context.config().save();
         }
-        GlobalConfigManager.save(GlobalConfigManager.getDefaultNamespace());
+        ConfigRegistry.get().save();
     }
 
     public static String getConfigNamespace() {
-        return GlobalConfigManager.getDefaultNamespace();
+        return ConfigRegistry.defaultNamespace();
     }
 
     public static void requestReload() {

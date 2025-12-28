@@ -1,7 +1,7 @@
 package tytoo.minegui.runtime;
 
 import tytoo.minegui.MineGuiInitializationOptions;
-import tytoo.minegui.config.GlobalConfigManager;
+import tytoo.minegui.config.ConfigRegistry;
 import tytoo.minegui.config.NamespaceConfigStore;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.UIManager;
@@ -37,11 +37,11 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
         this.styleManager = StyleManager.get(namespace);
         ViewPersistenceAdapter persistenceAdapter = options.viewPersistenceAdapter();
         if (persistenceAdapter == null) {
-            persistenceAdapter = new DefaultViewPersistenceAdapter(GlobalConfigManager.getViewSavesDirectory(namespace));
+            persistenceAdapter = new DefaultViewPersistenceAdapter(ConfigRegistry.get(namespace).viewSavesDirectory());
         }
         this.persistenceManager = new ViewPersistenceManager(namespace, this.config, persistenceAdapter);
         this.uiManager.setPersistenceManager(this.persistenceManager);
-        StyleManager defaultStyleManager = StyleManager.get(GlobalConfigManager.getDefaultNamespace());
+        StyleManager defaultStyleManager = StyleManager.get(ConfigRegistry.defaultNamespace());
         if (this.styleManager.getGlobalDescriptor().isEmpty()) {
             defaultStyleManager.getGlobalDescriptor()
                     .map(descriptor -> StyleDescriptor.builder().fromDescriptor(descriptor).build())

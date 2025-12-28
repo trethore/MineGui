@@ -1,313 +1,55 @@
 package tytoo.minegui.imgui;
 
-import imgui.*;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiConfigFlags;
-import imgui.gl3.ImGuiImplGl3;
-import imgui.glfw.ImGuiImplGlfw;
-import imgui.internal.ImGuiContext;
 import lombok.Getter;
-import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.config.GlobalConfigManager;
-import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
-import tytoo.minegui.config.NamespaceConfig;
-import tytoo.minegui.config.NamespaceConfigStore;
-import tytoo.minegui.imgui.dock.DockspaceRenderState;
-import tytoo.minegui.runtime.MineGuiContext;
-import tytoo.minegui.runtime.MineGuiRuntimeContext;
-import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
-import tytoo.minegui.style.*;
-import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.InputHelper;
-import tytoo.minegui.util.ResourceId;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
 
 public class ImGuiLoader {
-    private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
-    private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
-    private static final NamespaceConfigStore DEFAULT_CONFIG_STORE = new GlobalConfigNamespaceConfigStore();
-    private static final String GLSL_VERSION = "#version 150";
-    private static float appliedGlobalScale = Float.NaN;
     @Getter
     private static volatile boolean contextInitialized;
-    private static volatile boolean clientStarted;
-    private static volatile boolean initializationInProgress;
-    private static volatile boolean initializationFailed;
-
     private static long windowHandle;
-    private static int mcWindowWidth;
-    private static int mcWindowHeight;
-    private static int mcWindowX;
-    private static int mcWindowY;
 
     public static void onGlfwInit(long handle) {
         MineGuiCore.loadConfig();
         windowHandle = handle;
-        tryInitializeContext();
+        ImGuiContextManager.onGlfwInit(handle);
+        ImGuiContextManager.tryInitialize();
+        contextInitialized = ImGuiContextManager.isContextInitialized();
     }
 
     public static void onWindowResize(int width, int height) {
-        mcWindowWidth = width;
-        mcWindowHeight = height;
+        ImGuiRenderer.onWindowResize(width, height);
     }
 
     public static void onWindowMoved(int x, int y) {
-        mcWindowX = x;
-        mcWindowY = y;
+        ImGuiRenderer.onWindowMoved(x, y);
     }
 
     public static void onClientStarted() {
-        clientStarted = true;
-        tryInitializeContext();
+        ImGuiContextManager.onClientStarted();
+        ImGuiContextManager.tryInitialize();
+        contextInitialized = ImGuiContextManager.isContextInitialized();
     }
 
     public static void onFrameRender() {
-        if (!MineGuiCore.isInitialized()) {
-            return;
-        }
-        tryInitializeContext();
-        if (!contextInitialized) {
-            return;
-        }
-        ensureDefaultFont();
-        imGuiGlfw.newFrame();
-        CursorPolicyRegistry.onFrameStart();
-        ImGui.newFrame();
-        NamespaceConfig defaultConfig = resolveDefaultConfig();
-        applyGlobalScale(defaultConfig);
-        renderDockSpace(defaultConfig);
-
-        List<MineGuiContext> contexts = new ArrayList<>(MineGuiCore.getAllContexts());
-        contexts.sort(Comparator.comparing(ctx -> ctx.options().namespace()));
-
-        for (MineGuiContext context : contexts) {
-            NamespaceConfig config = context.config().current();
-            applyGlobalScale(config);
-            context.style().apply();
-            context.ui().render();
-        }
-
-        ImGui.render();
-        endFrame();
-    }
-
-    private static void ensureDefaultFont() {
-        if (!contextInitialized) {
-            return;
-        }
-        ImFont current = ImGui.getFont();
-        if (current != null && current.isValidPtr()) {
-            try {
-                if (current.isLoaded()) {
-                    return;
-                }
-            } catch (Exception ignored) {
-                // continue to reset the default font
-            }
-        }
-        ImFont fallback = Fonts.ensure(FontLibrary.getInstance().getDefaultFontKey());
-        if (fallback != null && fallback.isValidPtr()) {
-            ImGui.getIO().setFontDefault(fallback);
-        }
+        ImGuiRenderer.onFrameRender();
+        contextInitialized = ImGuiContextManager.isContextInitialized();
     }
 
     public static void requestReload() {
-        if (!MineGuiCore.isInitialized()) {
-            return;
-        }
-        if (contextInitialized) {
-            MineGuiCore.LOGGER.warn("MineGui reload requested after initialization; restart the client to refresh fonts.");
-            return;
-        }
-        initializationFailed = false;
-        tryInitializeContext();
-    }
-
-    private static void tryInitializeContext() {
-        if (!MineGuiCore.isInitialized()) {
-            return;
-        }
-        if (contextInitialized || initializationInProgress || initializationFailed) {
-            return;
-        }
-        if (!clientStarted || windowHandle == 0L) {
-            return;
-        }
-        initializeContext();
-    }
-
-    private static void initializeContext() {
-        initializationInProgress = true;
-        try {
-            MineGuiCore.LOGGER.info("Initializing MineGui context");
-            FontLibrary fontLibrary = FontLibrary.getInstance();
-            fontLibrary.resetRuntime();
-            StyleManager.resetAllActiveFonts();
-            initializeImGui();
-            fontLibrary.preloadRegisteredFonts();
-            imGuiGlfw.init(windowHandle, false);
-            imGuiGl3.init(GLSL_VERSION);
-            if (!rebuildFontAtlasTexture()) {
-                MineGuiCore.LOGGER.error("Failed to initialize MineGui font atlas. Ensure fonts register before MineGui starts.");
-                teardownContext();
-                initializationFailed = true;
-                return;
-            }
-            ImGuiImageUtils.invalidateAll();
-            reapplyNamespaceStyles();
-            fontLibrary.lockRegistration();
-            contextInitialized = true;
-            initializationFailed = false;
-        } finally {
-            initializationInProgress = false;
-        }
-    }
-
-    private static void teardownContext() {
-        imGuiGl3.dispose();
-        imGuiGlfw.dispose();
-        ImGuiContext context = ImGui.getCurrentContext();
-        if (context != null && !context.isNotValidPtr()) {
-            ImGui.destroyContext(context);
-            ImGui.setCurrentContext(null);
-        }
-    }
-
-    private static void renderDockSpace(NamespaceConfig config) {
-        if (config == null || !config.dockspaceEnabled()) {
-            return;
-        }
-        DockspaceRenderState state = DockspaceRenderState.createDefault(mcWindowX, mcWindowY, mcWindowWidth, mcWindowHeight);
-
-        for (MineGuiContext context : MineGuiCore.getAllContexts()) {
-            context.dockspaceCustomizer().customize(state);
-        }
-
-        state.normalize();
-        state.applyPlacement();
-        int styleCount = state.applyStyleOverrides();
-        for (Runnable task : state.beforeWindowTasks()) {
-            task.run();
-        }
-        ImGui.begin(state.windowTitle(), state.windowFlags());
-        if (styleCount > 0) {
-            ImGui.popStyleVar(styleCount);
-        }
-        for (Runnable task : state.beforeDockspaceTasks()) {
-            task.run();
-        }
-        if (state.isDockspaceEnabled()) {
-            int dockspaceId = ImGui.getID(state.dockspaceId());
-            ImGui.dockSpace(dockspaceId, state.dockspaceWidth(), state.dockspaceHeight(), state.dockspaceFlags());
-        }
-        for (Runnable task : state.afterDockspaceTasks()) {
-            task.run();
-        }
-        ImGui.end();
-    }
-
-    private static void initializeImGui() {
-        FontLibrary fontLibrary = FontLibrary.getInstance();
-        ImGuiContext context = ImGui.createContext();
-        ImGui.setCurrentContext(context);
-        appliedGlobalScale = Float.NaN;
-
-        final ImGuiIO io = ImGui.getIO();
-        final NamespaceConfig config = resolveDefaultConfig();
-
-        io.setIniFilename(null);
-        io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
-        if (config.dockspaceEnabled()) {
-            io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
-        }
-        if (config.viewportEnabled()) {
-            io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
-            io.setConfigViewportsNoTaskBarIcon(true);
-        } else {
-            io.setConfigViewportsNoTaskBarIcon(false);
-        }
-
-        ImFont defaultFont = configureDefaultFonts(io);
-        applyGlobalScale(config);
-        fontLibrary.runRegistrationPhase(io);
-
-        if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
-            final ImGuiStyle style = ImGui.getStyle();
-            style.setWindowRounding(0.0f);
-            style.setColor(ImGuiCol.WindowBg, ImGui.getColorU32(ImGuiCol.WindowBg, 1));
-        }
-        finalizeInitialStyle(defaultFont);
+        ImGuiContextManager.requestReload();
+        contextInitialized = ImGuiContextManager.isContextInitialized();
     }
 
     public static void reapplyNamespaceStyles() {
-        for (MineGuiContext context : MineGuiCore.getAllContexts()) {
-            context.style().apply();
-        }
-    }
-
-    private static void endFrame() {
-        // View saves flush removed or moved to core save
-        imGuiGl3.renderDrawData(ImGui.getDrawData());
-
-        if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
-            final long backupWindowPtr = GLFW.glfwGetCurrentContext();
-            ImGui.updatePlatformWindows();
-            ImGui.renderPlatformWindowsDefault();
-            GLFW.glfwMakeContextCurrent(backupWindowPtr);
-        }
-    }
-
-    private static ImFont configureDefaultFonts(ImGuiIO io) {
-        final ImFontConfig defaultConfig = new ImFontConfig();
-        try {
-            defaultConfig.setGlyphRanges(io.getFonts().getGlyphRangesCyrillic());
-            defaultConfig.setPixelSnapH(true);
-            io.getFonts().addFontDefault(defaultConfig);
-        } finally {
-            defaultConfig.destroy();
-        }
-
-        Fonts.registerDefaults(io);
-        FontLibrary fontLibrary = FontLibrary.getInstance();
-        ImFont defaultFont = Fonts.ensure(fontLibrary.getDefaultFontKey());
-        if (defaultFont != null) {
-            io.setFontDefault(defaultFont);
-        }
-        return defaultFont;
-    }
-
-    private static void finalizeInitialStyle(ImFont defaultFont) {
-        ImGuiStyle style = ImGui.getStyle();
-        FontLibrary fontLibrary = FontLibrary.getInstance();
-        Float fontSize = defaultFont != null ? defaultFont.getFontSize() : null;
-        StyleDescriptor descriptor = StyleDescriptor.capture(
-                style,
-                ColorPalette.fromStyle(style),
-                fontLibrary.getDefaultFontKey(),
-                fontSize
-        );
-        StyleManager.getInstance().setGlobalDescriptor(descriptor);
-        StyleManager.backfillGlobalDescriptors(descriptor);
-        NamedStyleRegistry.getInstance().registerBasePresets(descriptor);
-        NamespaceConfig config = resolveDefaultConfig();
-        ResourceId configuredStyleKey = config.globalStyleKey();
-        if (configuredStyleKey != null) {
-            StyleManager.getInstance().setGlobalStyleKey(configuredStyleKey);
-        }
-        StyleManager.getInstance().apply();
-        StyleManager.publishGlobalDescriptor(descriptor);
+        ImGuiRenderer.reapplyNamespaceStyles();
     }
 
     public static void onMouseScroll(long window, double horizontal, double vertical) {
         if (windowHandle == 0L || window != windowHandle) {
             return;
         }
-        imGuiGlfw.scrollCallback(window, horizontal, vertical);
+        ImGuiContextManager.glfw().scrollCallback(window, horizontal, vertical);
     }
 
     public static void onKeyEvent(long window, int key, int scancode, int action, int modifiers) {
@@ -315,73 +57,21 @@ public class ImGuiLoader {
             return;
         }
         int normalizedKey = InputHelper.toQwerty(key);
-        imGuiGlfw.keyCallback(window, normalizedKey, scancode, action, modifiers);
+        ImGuiContextManager.glfw().keyCallback(window, normalizedKey, scancode, action, modifiers);
     }
 
     public static void onCharTyped(long window, int codePoint) {
         if (windowHandle == 0L || window != windowHandle) {
             return;
         }
-        imGuiGlfw.charCallback(window, codePoint);
+        ImGuiContextManager.glfw().charCallback(window, codePoint);
     }
 
     public static void refreshGlobalScale() {
-        applyGlobalScale(resolveDefaultConfig());
-    }
-
-    private static void applyGlobalScale(NamespaceConfig config) {
-        if (config == null) {
-            return;
-        }
-        if (!ContextGuard.hasValidContext()) {
-            return;
-        }
-        float configuredScale = config.globalScale();
-        if (!Float.isFinite(configuredScale) || configuredScale <= 0.0f) {
-            configuredScale = 1.0f;
-        }
-        if (Float.compare(configuredScale, appliedGlobalScale) == 0) {
-            return;
-        }
-        ImGui.getIO().setFontGlobalScale(configuredScale);
-        appliedGlobalScale = configuredScale;
+        ImGuiRenderer.refreshGlobalScale();
     }
 
     public static boolean rebuildFontAtlasTexture() {
-        if (!ContextGuard.hasValidContext()) {
-            MineGuiCore.LOGGER.warn("ImGui context unavailable while rebuilding MineGui font atlas");
-            return false;
-        }
-        ImGuiIO io = ImGui.getIO();
-        ImFontAtlas atlas = io != null ? io.getFonts() : null;
-        if (atlas == null) {
-            MineGuiCore.LOGGER.warn("ImGui font atlas is not available during MineGui reload");
-            return false;
-        }
-        atlas.setTexID(0);
-        if (!atlas.build()) {
-            MineGuiCore.LOGGER.warn("Failed to rebuild font atlas after MineGui reload");
-            return false;
-        }
-        imGuiGl3.updateFontsTexture();
-        if (atlas.getTexID() == 0) {
-            MineGuiCore.LOGGER.warn("Font atlas texture upload resulted in texId=0");
-            return false;
-        }
-        return true;
-    }
-
-    private static NamespaceConfig resolveDefaultConfig() {
-        MineGuiContext context = MineGuiCore.getContext();
-        if (context == null) {
-            Collection<MineGuiRuntimeContext> all = MineGuiCore.getAllContexts();
-            if (!all.isEmpty()) {
-                context = all.iterator().next();
-            }
-        }
-        if (context == null) {
-            return DEFAULT_CONFIG_STORE.load(GlobalConfigManager.getDefaultNamespace());
-        }
-        return context.config().current();
+        return ImGuiContextManager.rebuildFontAtlasTexture();
     }
 }

@@ -6,8 +6,9 @@ import imgui.ImGuiStyle;
 import lombok.Getter;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
+import tytoo.minegui.config.ConfigRegistry;
+import tytoo.minegui.config.ConfigService;
 import tytoo.minegui.config.GlobalConfig;
-import tytoo.minegui.config.GlobalConfigManager;
 import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.util.ResourceId;
@@ -41,7 +42,7 @@ public final class StyleManager {
     }
 
     public static StyleManager getInstance() {
-        return get(GlobalConfigManager.getDefaultNamespace());
+        return get(ConfigRegistry.defaultNamespace());
     }
 
     public static void backfillGlobalDescriptors(StyleDescriptor descriptor) {
@@ -258,13 +259,14 @@ public final class StyleManager {
 
     private void persistGlobalStyle(ResourceId key) {
         NamespaceConfigService configService = configService();
-        boolean configIgnored = configService != null ? configService.isConfigIgnored() : GlobalConfigManager.isConfigIgnored(namespace);
+        ConfigService registryService = ConfigRegistry.get(namespace);
+        boolean configIgnored = configService != null ? configService.isConfigIgnored() : registryService.isConfigIgnored();
         if (configIgnored) {
             return;
         }
         boolean shouldSave = configService != null
                 ? configService.shouldSave(ConfigFeature.STYLE_REFERENCES)
-                : GlobalConfigManager.shouldSaveFeature(namespace, ConfigFeature.STYLE_REFERENCES);
+                : registryService.shouldSaveFeature(ConfigFeature.STYLE_REFERENCES);
         if (!shouldSave) {
             return;
         }
@@ -272,11 +274,11 @@ public final class StyleManager {
             configService.update(cfg -> cfg.withGlobalStyleKey(key));
             return;
         }
-        GlobalConfig config = GlobalConfigManager.getConfig(namespace);
+        GlobalConfig config = registryService.config();
         String value = key != null ? key.toString() : null;
         if (!Objects.equals(config.getGlobalStyleKey(), value)) {
             config.setGlobalStyleKey(value);
-            GlobalConfigManager.save(namespace);
+            registryService.save();
         }
     }
 

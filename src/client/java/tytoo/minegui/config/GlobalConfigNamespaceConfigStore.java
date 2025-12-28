@@ -8,7 +8,8 @@ public final class GlobalConfigNamespaceConfigStore implements NamespaceConfigSt
     @Override
     public NamespaceConfig load(String namespace) {
         Objects.requireNonNull(namespace, "namespace");
-        GlobalConfig config = GlobalConfigManager.getConfig(namespace);
+        ConfigService service = ConfigRegistry.get(namespace);
+        GlobalConfig config = service.config();
         String configuredStyle = config.getGlobalStyleKey();
         ResourceId styleKey = (configuredStyle == null || configuredStyle.isBlank())
                 ? null
@@ -27,7 +28,8 @@ public final class GlobalConfigNamespaceConfigStore implements NamespaceConfigSt
     @Override
     public void save(NamespaceConfig config) {
         Objects.requireNonNull(config, "config");
-        GlobalConfig globalConfig = GlobalConfigManager.getConfig(config.namespace());
+        ConfigService service = ConfigRegistry.get(config.namespace());
+        GlobalConfig globalConfig = service.config();
         globalConfig.setViewport(config.viewportEnabled());
         globalConfig.setDockspace(config.dockspaceEnabled());
         globalConfig.setGlobalScale(config.globalScale());
@@ -35,6 +37,6 @@ public final class GlobalConfigNamespaceConfigStore implements NamespaceConfigSt
         globalConfig.setViewSavesPath(config.viewSavesPath());
         ResourceId styleKey = config.globalStyleKey();
         globalConfig.setGlobalStyleKey(styleKey != null ? styleKey.toString() : null);
-        GlobalConfigManager.save(config.namespace());
+        service.save();
     }
 }

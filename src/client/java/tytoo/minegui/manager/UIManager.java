@@ -62,11 +62,13 @@ public final class UIManager {
         return namespace;
     }
 
+
     public void registerRenderCallback(Runnable callback) {
         if (callback != null && !renderCallbacks.contains(callback)) {
             renderCallbacks.add(callback);
         }
     }
+
 
     public void unregisterRenderCallback(Runnable callback) {
         if (callback != null) {

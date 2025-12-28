@@ -36,7 +36,7 @@ public record MineGuiInitializationOptions(
         dockspaceCustomizer = dockspaceCustomizer != null ? dockspaceCustomizer : DockspaceCustomizer.noop();
         configStore = configStore != null ? configStore : new GlobalConfigNamespaceConfigStore();
         if (viewPersistenceAdapter == null) {
-            viewPersistenceAdapter = new DefaultViewPersistenceAdapter(GlobalConfigManager.getViewSavesDirectory(namespace));
+            viewPersistenceAdapter = new DefaultViewPersistenceAdapter(ConfigRegistry.get(namespace).viewSavesDirectory());
         }
     }
 
@@ -113,7 +113,7 @@ public record MineGuiInitializationOptions(
     }
 
     public MineGuiInitializationOptions withViewPersistenceAdapter(ViewPersistenceAdapter adapter) {
-        ViewPersistenceAdapter normalized = adapter != null ? adapter : new DefaultViewPersistenceAdapter(GlobalConfigManager.getViewSavesDirectory(namespace));
+        ViewPersistenceAdapter normalized = adapter != null ? adapter : new DefaultViewPersistenceAdapter(ConfigRegistry.get(namespace).viewSavesDirectory());
         return new MineGuiInitializationOptions(namespace, configRoot, loadGlobalConfig, ignoreGlobalConfig, featureProfile, configPathStrategy, defaultCursorPolicyId, dockspaceCustomizer, configStore, normalized);
     }
 
