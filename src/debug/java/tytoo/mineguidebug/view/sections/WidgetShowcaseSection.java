@@ -7,10 +7,10 @@ import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
+import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.imgui.scope.DisabledScope;
 import tytoo.minegui.imgui.scope.IdScope;
-import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.view.View;
 
 public final class WidgetShowcaseSection implements PlaygroundSection {

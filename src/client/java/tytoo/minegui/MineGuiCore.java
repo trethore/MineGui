@@ -101,6 +101,7 @@ public final class MineGuiCore {
         }
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ImGuiLoader.onClientStarted());
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            fireShutdownListeners();
             saveConfig();
             StyleManager.cleanup();
         });
@@ -141,5 +142,17 @@ public final class MineGuiCore {
             }
         }
         return false;
+    }
+
+    public static void fireContextReadyListeners() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.fireContextReady();
+        }
+    }
+
+    private static void fireShutdownListeners() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.fireShutdown();
+        }
     }
 }

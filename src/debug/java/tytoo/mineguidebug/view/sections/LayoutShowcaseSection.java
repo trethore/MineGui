@@ -5,8 +5,8 @@ import imgui.ImVec2;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
-import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.helper.LayoutHelper;
+import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.view.View;
 
 public final class LayoutShowcaseSection implements PlaygroundSection {

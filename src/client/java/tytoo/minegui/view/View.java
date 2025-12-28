@@ -11,7 +11,7 @@ import tytoo.minegui.view.cursor.CursorPolicy;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public abstract class View {
+public abstract class View implements Renderable {
     @Getter
     private boolean visible;
     @Getter

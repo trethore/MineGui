@@ -7,8 +7,8 @@ import lombok.Getter;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.ConfigFeature;
 import tytoo.minegui.config.ConfigRegistry;
-import tytoo.minegui.config.ConfigService;
 import tytoo.minegui.config.GlobalConfig;
+import tytoo.minegui.config.GlobalConfigService;
 import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.util.ResourceId;
@@ -271,7 +271,7 @@ public final class StyleManager {
 
     private void persistGlobalStyle(ResourceId key) {
         NamespaceConfigService configService = configService();
-        ConfigService registryService = ConfigRegistry.get(namespace);
+        GlobalConfigService registryService = ConfigRegistry.get(namespace);
         boolean configIgnored = configService != null ? configService.isConfigIgnored() : registryService.isConfigIgnored();
         if (configIgnored) {
             return;

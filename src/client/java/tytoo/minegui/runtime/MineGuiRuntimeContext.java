@@ -1,5 +1,6 @@
 package tytoo.minegui.runtime;
 
+import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.MineGuiInitializationOptions;
 import tytoo.minegui.config.ConfigRegistry;
 import tytoo.minegui.config.NamespaceConfigStore;
@@ -16,7 +17,10 @@ import tytoo.minegui.view.persistence.DefaultViewPersistenceAdapter;
 import tytoo.minegui.view.persistence.ViewPersistenceAdapter;
 import tytoo.minegui.view.persistence.ViewPersistenceManager;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 public final class MineGuiRuntimeContext implements MineGuiContext {
     private final MineGuiInitializationOptions options;
@@ -24,6 +28,7 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
     private final UIManager uiManager;
     private final StyleManager styleManager;
     private final ViewPersistenceManager persistenceManager;
+    private final List<MineGuiLifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
     private ResourceId defaultCursorPolicyId;
     private CursorPolicy defaultCursorPolicy;
     private volatile DockspaceCustomizer dockspaceCustomizer;
@@ -106,5 +111,45 @@ public final class MineGuiRuntimeContext implements MineGuiContext {
     @Override
     public void setDockspaceCustomizer(DockspaceCustomizer customizer) {
         dockspaceCustomizer = customizer != null ? customizer : DockspaceCustomizer.noop();
+    }
+
+    @Override
+    public void addLifecycleListener(MineGuiLifecycleListener listener) {
+        if (listener != null && !lifecycleListeners.contains(listener)) {
+            lifecycleListeners.add(listener);
+        }
+    }
+
+    @Override
+    public void removeLifecycleListener(MineGuiLifecycleListener listener) {
+        if (listener != null) {
+            lifecycleListeners.remove(listener);
+        }
+    }
+
+    public void fireContextReady() {
+        notifyLifecycle("context_ready", listener -> listener.onContextReady(this));
+    }
+
+    public void firePreRender() {
+        notifyLifecycle("pre_render", listener -> listener.onPreRender(this));
+    }
+
+    public void firePostRender() {
+        notifyLifecycle("post_render", listener -> listener.onPostRender(this));
+    }
+
+    public void fireShutdown() {
+        notifyLifecycle("shutdown", listener -> listener.onShutdown(this));
+    }
+
+    private void notifyLifecycle(String phase, Consumer<MineGuiLifecycleListener> action) {
+        for (MineGuiLifecycleListener listener : lifecycleListeners) {
+            try {
+                action.accept(listener);
+            } catch (RuntimeException exception) {
+                MineGuiCore.LOGGER.error("MineGui lifecycle listener '{}' failed for namespace '{}'", phase, options.namespace(), exception);
+            }
+        }
     }
 }

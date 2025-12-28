@@ -81,9 +81,9 @@ public final class UIManager implements VisibilityListener {
         }
     }
 
-    public void register(View view) {
+    public <T extends View> T register(T view) {
         if (view == null) {
-            return;
+            return null;
         }
         if (!views.contains(view)) {
             views.add(view);
@@ -96,9 +96,10 @@ public final class UIManager implements VisibilityListener {
                 manager.register(view);
             }
         }
+        return view;
     }
 
-    public View registerAndShow(View view) {
+    public <T extends View> T registerAndShow(T view) {
         if (view == null) {
             return null;
         }

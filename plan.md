@@ -1,274 +1,389 @@
-# MineGui Refactoring Plan
+# MineGui Architecture Review & Recommendations
 
 ## Executive Summary
 
-This document outlines refactoring opportunities to improve performance, readability, code quality, and
-maintainability for MineGui - a lightweight ImGui-based Minecraft modding library.
+**Overall Assessment: The codebase is well-designed and largely meets its goals.**
 
-**Codebase Stats:**
-- ~7,200 lines of Java across 86 files
-- 11 packages in main library + 1 debug module
-- Generally well-organized with consistent patterns
+MineGui demonstrates solid architectural decisions with a namespaced, extensible, and modular design. The previous refactoring work has significantly improved the codebase quality. This document identifies remaining opportunities and proposes enhancements to further align with the project goals.
 
----
+## Implementation Updates (Applied)
 
-## Decisions Made
+- Added lifecycle listener API (`MineGuiLifecycleListener`) with per-context pre/post render hooks.
+- Made `UIManager.register(...)` return the registered view for fluent usage.
+- Added `Styles` facade for common style operations (push, register presets, apply presets).
+- Renamed global config service to `GlobalConfigService` (deprecated `ConfigService` wrapper).
+- Added `Renderable` interface and implemented it in `View`.
 
-Based on project owner feedback:
+### Project Goals Checklist
 
-| Question | Decision |
-|----------|----------|
-| Static vs instance-based | **Instance-based with composition over inheritance** |
-| Backwards compatibility | **Not required** - lib is in development |
-| Code generation | **Use Lombok** for reducing boilerplate |
-| `LayoutHelper`/`TableHelper` | **Include in public API** |
-| `IntRef` | **Already exists** at `imgui/ref/IntRef.java` |
-| Line endings | **No enforcement** |
-| Lombok vs manual | **Lombok preferred** to reduce boilerplate |
-| Target priority | **P0 first** |
-| Out of scope | **Nothing** |
-| Debug module | **Stays separate** - test/visual debugging module |
+| Goal | Status | Assessment |
+|------|--------|------------|
+| Safe namespaced library | GOOD | Strong namespace isolation with validation |
+| Easy to implement/use | GOOD | Simple entry points, fluent APIs |
+| Useful utils without bloatware | GOOD | Helpers are minimal and focused |
+| Not screen dependent | EXCELLENT | Overlay-based, works alongside any screen |
+| Clear and well organized | GOOD | Logical package structure, some minor improvements possible |
 
 ---
 
-## Priority Matrix
+## Architecture Strengths
 
-| Priority | Impact | Effort | Category |
-|----------|--------|--------|----------|
-| P0 | High | Medium | Critical architectural issues |
-| P1 | High | Low-Medium | Quick wins with significant improvement |
-| P2 | Medium | Low | Code quality improvements |
-| P3 | Low | Low | Nice-to-have cleanups |
+### 1. Namespace Isolation (Excellent)
 
----
+The namespace system is well-implemented:
 
-## P0 - Critical Architectural Refactors (COMPLETED)
+- **`MineGuiInitializationOptions`** enforces non-blank, unique namespaces at construction time
+- **`MineGuiCore.ID`** is explicitly reserved for internal use
+- **`ResourceId`** provides pattern-validated identifiers (`[a-z0-9_.-]+:path`)
+- **`ConfigRegistry.sanitizeNamespace()`** prevents path traversal attacks and validates format
+- **Multi-context support** via `CONTEXTS` map allows multiple mods to coexist safely
 
-### 1. ~~Split `GlobalConfigManager` God Class~~ ✅ DONE
-**Location:** `config/GlobalConfigManager.java` (DELETED)
+```java
+// Validation happens at initialization - fails fast
+if (MineGuiCore.ID.equals(namespace)) {
+    throw new IllegalArgumentException("Namespace 'minegui' is reserved");
+}
+```
 
-**Solution Implemented:**
-- Deleted `GlobalConfigManager.java` (399 lines)
-- Created `ConfigRegistry.java` (~100 lines) - static facade for namespace management
-- Created `ConfigService.java` (~270 lines) - instance-based service per namespace
-- Migrated all 8 dependent files to use new API
+### 2. Clean Entry Points (Good)
 
----
+Two clear initialization paths:
+- `MineGui.setup(namespace)` - Full-featured with config persistence
+- `MineGui.setupSimple(namespace)` - Lightweight, no global config
 
-### 2. ~~Split `ImGuiLoader` Large Class~~ ✅ DONE
-**Location:** `imgui/ImGuiLoader.java`
+The builder pattern in `MineGuiInitializationOptions` allows fine-grained control without complexity.
 
-**Solution Implemented:**
-- Refactored `ImGuiLoader.java` (388 → ~75 lines) - now thin coordinator
-- Created `ImGuiContextManager.java` (~220 lines) - context lifecycle management
-- Created `ImGuiRenderer.java` (~155 lines) - frame rendering coordination
+### 3. Extensibility Points (Good)
 
----
+The library provides several clean extension mechanisms:
+- **`CursorPolicy`** - Functional interface for custom cursor behavior
+- **`ViewPersistenceAdapter`** - Interface for custom persistence backends
+- **`DockspaceCustomizer`** - Customize dockspace layout
+- **`NamespaceConfigStore`** - Custom config storage implementation
+- **`ViewSection`** - Functional interface for composable UI sections
 
-### 3. ~~Eliminate `StyleDescriptor`/`StyleDelta` Duplication~~ ✅ ACCEPTABLE
-**Location:** `style/StyleDescriptor.java`, `style/StyleDelta.java`
+### 4. Screen Independence (Excellent)
 
-**Resolution:**
-- Analyzed and found that core logic is already shared via `StylePropertyValues`
-- Both classes delegate to `StylePropertyValues.Builder` for all builder methods
-- The duplication is only in wrapper getter methods (nullable vs. with-defaults)
-- Marked as acceptable - extracting further would add complexity without benefit
+- Renders directly to OpenGL via mixins, not through Minecraft's screen system
+- Input routing correctly captures/releases events based on ImGui focus state
+- Cursor policies manage lock/unlock without requiring screen context
 
----
+### 5. Helper Utilities (Good - Minimal & Focused)
 
-### 4. ~~Convert `CursorPolicyRegistry` to Instance-Based~~ ✅ DONE
-**Location:** `runtime/cursor/CursorPolicyRegistry.java`
-
-**Solution Implemented:**
-- Refactored `CursorPolicyRegistry.java` (199 → ~80 lines) - policy registration only
-- Created `CursorUnlockManager.java` (~160 lines) - unlock request management
-- `CursorPolicyRegistry` now delegates unlock operations to `CursorUnlockManager`
+- `LayoutHelper` - 5 spacing methods, no bloat
+- `TableHelper` - 2 row methods for table construction
+- `Window` - Fluent builder for ImGui windows with lifecycle hooks
+- `MathUtils` - Validation utilities
 
 ---
 
-## P1 - High-Impact Quick Wins (COMPLETED)
+## Identified Issues & Recommendations
 
-### 5. ~~Cache `hasVisibleViews()` Result~~ ✅ DONE
-**Location:** `manager/UIManager.java:142`
+### P0 - Critical (None Found)
 
-**Problem:** Called every frame, iterates all views with `stream().anyMatch()`.
-
-**Solution Implemented:** Added `cachedHasVisibleViews` flag with invalidation on visibility changes.
+The previous refactoring successfully addressed all critical architectural issues.
 
 ---
 
-### 6. ~~Add ThreadLocal Cleanup Hooks~~ ✅ DONE
-**Location:** `style/StyleManager.java:29-30`
+### P1 - High Priority Improvements
 
-**Problem:** ThreadLocal stacks (`styleStack`, `activeFont`) never cleaned on thread death.
+#### 1.1 Missing Public Event/Lifecycle API
 
-**Solution Implemented:** Added `StyleManager.cleanup()` method, integrated into teardown flow.
+**Problem:** Developers cannot hook into MineGui lifecycle events (context ready, pre-render, post-render) without using mixins or internal APIs.
 
----
+**Location:** No dedicated event system exists
 
-### 7. ~~Replace `MineGuiInitializationOptions` Boilerplate with Lombok~~ ✅ DONE
-**Location:** `MineGuiInitializationOptions.java:59-118`
+**Recommendation:** Add a simple observer pattern for key lifecycle events:
 
-**Problem:** 12 nearly identical `withXxx()` methods.
+```java
+public interface MineGuiLifecycleListener {
+    default void onContextReady(MineGuiContext context) {}
+    default void onPreRender(MineGuiContext context) {}
+    default void onPostRender(MineGuiContext context) {}
+    default void onShutdown(MineGuiContext context) {}
+}
 
-**Solution Implemented:** Converted to Lombok `@With` annotation on record components.
+// In MineGuiRuntimeContext or UIManager:
+public void addLifecycleListener(MineGuiLifecycleListener listener);
+public void removeLifecycleListener(MineGuiLifecycleListener listener);
+```
 
----
-
-## P2 - Code Quality Improvements (COMPLETED)
-
-### 9. ~~Extract Layout Helper from Debug Module~~ ✅ DONE
-**Location:** `debug/.../DebugLayout.java`
-
-**Problem:** Useful spacing utilities only available in debug module.
-
-**Solution Implemented:**
-- Created `tytoo.minegui.helper.LayoutHelper` with `sectionGap()`, `smallGap()`, `tinyGap()`, `verticalSpace()`, `horizontalSpace()`
-- Updated `DebugLayout` to delegate to `LayoutHelper`
+**Impact:** Enables clean integration without internal coupling.
+**Effort:** Medium
 
 ---
 
-### 10. ~~Consolidate Sanitize Methods~~ ✅ DONE
-**Location:** `imgui/dock/DockspaceRenderState.java:80-92`
+#### 1.2 View Registration Returns Void
 
-**Problem:** `sanitizeFinite()`, `sanitizeDimension()`, `sanitizeNonNegative()` have overlapping logic.
+**Problem:** `UIManager.register(View)` returns void, requiring extra code:
+```java
+// Current (awkward)
+MyView view = new MyView();
+context.ui().register(view);
+view.show();
 
-**Solution Implemented:**
-- Created `tytoo.minegui.util.MathUtils` with `clampFinite()` and `clampNonNegative()`
-- Updated `DockspaceRenderState.normalize()` to use `MathUtils`
+// vs registerAndShow which returns View (better)
+View view = context.ui().registerAndShow(new MyView());
+```
 
----
+**Location:** `manager/UIManager.java:84-99`
 
-### 11. ~~Replace Switch with Map in `InputHelper`~~ ✅ DONE
-**Location:** `util/InputHelper.java:53-91`
+**Recommendation:** Make `register()` return the registered view for fluency:
+```java
+public <T extends View> T register(T view) {
+    // ... existing logic
+    return view;
+}
+```
 
-**Problem:** Large switch statement for key name mapping.
-
-**Solution Implemented:**
-- Created static `Map<String, Integer> KEY_NAME_MAP` with all key mappings
-- Replaced switch with `KEY_NAME_MAP.getOrDefault(keyName, localKeyCode)`
-
----
-
-### 12. ~~Add Table Row Helper~~ ✅ DONE
-**Location:** Multiple sections in debug module use identical table row patterns
-
-**Solution Implemented:**
-- Created `tytoo.minegui.helper.TableHelper` with `row()` and `rowWrapped()` methods
+**Impact:** Better API ergonomics
+**Effort:** Low
 
 ---
 
-### 13. ~~Unify `ResourceId` and `Identifier` Usage~~ ✅ DONE
-**Problem:** Some APIs expose both types, creating confusion.
+#### 1.3 Style System Complexity
 
-**Solution Implemented:**
-- Deprecated `View.useStyle(Identifier)` with `@Deprecated(forRemoval = true)`
-- `MinecraftIdentifiers` already provides clean conversion utilities
+**Problem:** The relationship between `StyleManager`, `StyleDescriptor`, `StyleDelta`, and `NamedStyleRegistry` is not immediately clear. Developers must understand:
+- StyleManager per namespace (instance-based)
+- StyleDescriptor = full style snapshot
+- StyleDelta = partial override
+- NamedStyleRegistry = global presets
+- StyleScope = RAII-style push/pop
 
----
+**Location:** `style/` package
 
-## P3 - Nice-to-Have Cleanups (COMPLETED)
+**Recommendation:** Add a focused facade for common operations:
+```java
+public final class Styles {
+    public static StyleScope push(Consumer<StyleDelta.Builder> customizer);
+    public static void registerPreset(ResourceId key, Consumer<StyleDescriptor.Builder> builder);
+    public static void applyPreset(ResourceId key);
+}
+```
 
-### 14. ~~Remove Unused Fields~~ ✅ DONE
-| Location | Issue | Fix |
-|----------|-------|-----|
-| `Window.java:173` | `WindowState(String title)` doesn't use `title` | Removed unused parameter |
-| `ImGuiUtils.java:11` | `IM_GUI_INSTANCE` naming | Renamed to `IMGUI`, added `cleanup()` method |
+This doesn't replace the existing system but provides a simpler entry point.
 
-### 15. ~~Improve Error Handling Specificity~~ ✅ DONE
-**Location:** `StyleJsonSerializer.java:199-200`
-
-**Problem:** Catches `RuntimeException` for JSON parsing - overly broad.
-
-**Solution Implemented:** Catch specific exceptions: `NumberFormatException | IllegalStateException | UnsupportedOperationException`
-
-### 16. ~~Add Memory Cleanup for Window State~~ ✅ DONE
-**Location:** `helper/window/Window.java:15`
-
-**Problem:** `STATE_BY_TITLE` ConcurrentHashMap never cleaned.
-
-**Solution Implemented:** Added `Window.disposeAll()` method for bulk cleanup.
-
-### 17. ~~Normalize Line Endings~~ ✅ DONE
-**Problem:** Mixed CRLF/LF in debug module files.
-
-**Solution Implemented:** `.gitattributes` already has `* text=auto`; ran `git add --renormalize .`
+**Impact:** Improved developer experience
+**Effort:** Low
 
 ---
 
-## Performance Considerations Summary
+### P2 - Medium Priority Improvements
 
-| Issue | Location | Impact | Fix |
-|-------|----------|--------|-----|
-| Stream every frame | `UIManager:142` | Medium | Cache result |
-| String split per flush | `ViewPersistenceManager:196` | Low | Already throttled |
-| New objects per scope chain | `StyleColorScope:22-29` | Low | Accept for readability |
-| HashMap creation per style capture | `ColorPalette:42-44` | Low | Only on capture, acceptable |
+#### 2.1 `ConfigService` vs `NamespaceConfigService` Confusion
 
----
+**Problem:** Two similarly-named config service classes exist:
+- `ConfigService` - manages `GlobalConfig` (legacy mutable)
+- `NamespaceConfigService` - manages `NamespaceConfig` (immutable record)
 
-## Thread Safety Summary
+Both serve config purposes but with different data models.
 
-| Concern | Location | Risk |
-|---------|----------|------|
-| ThreadLocal not cleaned | `StyleManager:29-30` | Memory leak on mod reload |
-| Non-atomic state access | `CursorPolicyRegistry:25` | Race condition possible |
-| Heavy synchronized usage | `GlobalConfigManager` | Contention under load |
-| Non-thread-safe lazy init | `StyleWorkflowSection:95` (debug) | Double registration |
+**Location:** `config/ConfigService.java`, `runtime/config/NamespaceConfigService.java`
 
----
+**Recommendation:** Rename for clarity:
+- `ConfigService` -> `LegacyConfigService` or consolidate into `NamespaceConfigService`
+- Eventually deprecate `GlobalConfig` in favor of `NamespaceConfig`
 
-## Suggested Implementation Order
-
-Targeting P0 first as decided:
-
-**Phase 1 - Architecture (P0)** ✅ COMPLETED
-1. ~~Split `GlobalConfigManager` into smaller services~~ ✅
-2. ~~Split `ImGuiLoader` responsibilities~~ ✅
-3. ~~Convert `CursorPolicyRegistry` to instance-based~~ ✅
-4. ~~Address `StyleDescriptor`/`StyleDelta` duplication~~ ✅ (acceptable as-is)
-
-**Phase 2 - Quick Wins (P1)** ✅ COMPLETED
-5. ~~Cache `hasVisibleViews()`~~ ✅
-6. ~~Add ThreadLocal cleanup~~ ✅
-7. ~~Lombok for `MineGuiInitializationOptions`~~ ✅
-
-**Phase 3 - Polish (P2/P3)** ✅ COMPLETED
-8. ~~Extract `LayoutHelper` from debug module~~ ✅
-9. ~~Consolidate sanitize methods to `MathUtils`~~ ✅
-10. ~~Replace switch with Map in `InputHelper`~~ ✅
-11. ~~Add `TableHelper` row utilities~~ ✅
-12. ~~Unify `ResourceId`/`Identifier` usage~~ ✅
-13. ~~Remove unused fields in `Window` and `ImGuiUtils`~~ ✅
-14. ~~Improve error handling in `StyleJsonSerializer`~~ ✅
-15. ~~Add memory cleanup for `Window.STATE_BY_TITLE`~~ ✅
-16. ~~Normalize line endings~~ ✅
+**Impact:** Reduced confusion for contributors
+**Effort:** Medium
 
 ---
 
-## Appendix: Files by Lines of Code (Top 20)
+#### 2.2 View Base Class Could Use Interface Extraction
 
-| File | Lines | Status |
-|------|-------|--------|
-| `StyleDescriptor.java` | 605 | Acceptable (shares core via StylePropertyValues) |
-| `StyleDelta.java` | 498 | Acceptable (shares core via StylePropertyValues) |
-| ~~`GlobalConfigManager.java`~~ | ~~399~~ | ✅ DELETED - replaced by ConfigRegistry + ConfigService |
-| ~~`ImGuiLoader.java`~~ | ~~388~~ | ✅ REFACTORED to ~75 lines (split to ImGuiContextManager + ImGuiRenderer) |
-| `StylePropertyValues.java` | 356 | Builder heavy, acceptable |
-| `WidgetShowcaseSection.java` | 280 | Debug, acceptable |
-| `UIManager.java` | 268 | ✅ Optimized (P1) |
-| `OverviewSection.java` | 260 | Debug, acceptable |
-| `MineGuiInitializationOptions.java` | 225 | ✅ Lombok refactored (P1) |
-| ~~`CursorPolicyRegistry.java`~~ | ~~199~~ | ✅ REFACTORED to ~80 lines (split to CursorUnlockManager) |
-| `ViewPersistenceManager.java` | 191 | Acceptable |
-| `FontLibrary.java` | 190 | Acceptable |
-| `Window.java` | 180 | ✅ Cleaned (P3) |
-| `LayoutShowcaseSection.java` | 175 | Debug, acceptable |
-| `StyleJsonSerializer.java` | 165 | ✅ Error handling improved (P3) |
-| `View.java` | 155 | Clean |
-| `StyleWorkflowSection.java` | 150 | Debug |
-| `InputRouter.java` | 144 | Clean |
-| `InputHelper.java` | ~100 | ✅ Map-based (P2) |
-| `DockspaceRenderState.java` | ~360 | ✅ Uses MathUtils (P2) |
-| `MineGuiCore.java` | 142 | Clean |
-| `ConfigState.java` | 140 | Minor cleanup (P2) |
+**Problem:** `View` is an abstract class. This works well but some developers prefer composition-based approaches. A `Renderable` interface could allow more flexibility.
+
+**Location:** `view/View.java`
+
+**Recommendation:** Extract a minimal interface:
+```java
+public interface Renderable {
+    void render();
+    boolean isVisible();
+}
+```
+
+Views would implement `Renderable` while keeping the abstract class for convenience.
+
+**Impact:** Flexibility for advanced users
+**Effort:** Low
+
+---
+
+#### 2.3 Static Singletons in Some Classes
+
+**Problem:** Some classes use static singleton patterns that could make testing harder:
+- `InputRouter.INSTANCE`
+- `FontLibrary.INSTANCE` 
+- `NamedStyleRegistry.INSTANCE`
+
+**Location:** Various
+
+**Recommendation:** These are acceptable for a library focused on simplicity. However, consider providing `get(String namespace)` variants for namespace-scoped retrieval where appropriate. `FontLibrary` and `NamedStyleRegistry` are intentionally global (fonts/styles shared across namespaces).
+
+**Impact:** Testability (minor concern for a mod library)
+**Effort:** Low-Medium
+
+---
+
+#### 2.4 Consider Adding Widget Helpers
+
+**Problem:** Developers often repeat common widget patterns:
+- Labeled input fields
+- Two-column property tables
+- Confirmation dialogs
+- Notification toasts
+
+**Location:** N/A - new feature
+
+**Recommendation:** Add a `Widgets` utility class with common patterns:
+```java
+public final class Widgets {
+    public static boolean labeledCheckbox(String label, ImBoolean value);
+    public static boolean labeledSlider(String label, float[] value, float min, float max);
+    public static void propertyRow(String label, String value);
+    // etc.
+}
+```
+
+**Note:** Keep this minimal to avoid bloatware. Only add patterns that are used frequently.
+
+**Impact:** Developer productivity
+**Effort:** Medium
+
+---
+
+### P3 - Low Priority / Nice-to-Have
+
+#### 3.1 CRLF Line Endings in Some Files
+
+**Problem:** Some files have mixed CRLF/LF endings (visible in file reads).
+
+**Location:** Various config and view files
+
+**Recommendation:** Run `git add --renormalize .` to apply `.gitattributes` normalization.
+
+**Effort:** Trivial
+
+---
+
+#### 3.2 Consider Documentation Comments for Public APIs
+
+**Problem:** Public API methods lack Javadoc. While the code is readable, API documentation would help external developers.
+
+**Location:** All public methods
+
+**Recommendation:** Add Javadoc to:
+- `MineGui` entry points
+- `MineGuiContext` interface
+- `View` abstract class
+- `CursorPolicy` interface
+- Public helpers (`Window`, `LayoutHelper`, etc.)
+
+**Effort:** Medium (but valuable)
+
+---
+
+#### 3.3 Debug Module Could Be a Separate Artifact
+
+**Problem:** Debug module is in `src/debug/` but ships with main artifact.
+
+**Location:** `src/debug/`
+
+**Recommendation:** Consider splitting into separate Gradle module if size becomes a concern. Current structure is fine for development.
+
+**Effort:** Low
+
+---
+
+## Questions / Design Considerations
+
+### Q1: Should views support reactive state?
+
+Currently views are imperative (developer calls ImGui each frame). Consider whether a lightweight reactive state holder would be useful:
+
+```java
+public class Observable<T> {
+    private T value;
+    private final List<Consumer<T>> listeners = new ArrayList<>();
+    
+    public void set(T value) {
+        this.value = value;
+        listeners.forEach(l -> l.accept(value));
+    }
+}
+```
+
+**Trade-off:** Adds complexity but could simplify state management in larger views.
+
+### Q2: Should there be a "hot reload" for styles?
+
+Currently style changes require client restart for font changes. Consider whether runtime font reloading is worth the complexity.
+
+### Q3: Widget validation/constraints?
+
+Should the library provide input validation helpers (e.g., clamped sliders, regex text input)?
+
+---
+
+## Package Structure Analysis
+
+```
+tytoo.minegui/
+├── command/           # Client commands (/minegui) - Clean, 2 files
+├── config/            # Configuration system - Complex but necessary, 15 files
+├── helper/            # UI helpers - Minimal, 3 files
+│   └── window/        # Window builder - 1 file
+├── imgui/             # ImGui integration - Well-factored, 9 files
+│   ├── dock/          # Dockspace customization
+│   ├── ref/           # Value references (IntRef, FloatRef)
+│   └── scope/         # Scoped style overrides
+├── input/             # Input routing - 1 file, focused
+├── manager/           # UI management - 1 file (UIManager)
+├── mixin/             # Minecraft mixins - 7 files, necessary
+│   └── client/
+├── runtime/           # Runtime services - 6 files
+│   ├── config/        # Namespace config service
+│   ├── cursor/        # Cursor management
+│   └── viewport/      # Viewport utilities
+├── style/             # Styling system - 12 files (largest package)
+├── util/              # Utilities - 10 files, reasonable
+└── view/              # View system - 8 files
+    ├── cursor/        # Cursor policies
+    └── persistence/   # View persistence
+```
+
+**Assessment:** Package structure is logical and follows single-responsibility principle. The `style/` package is the largest due to the comprehensive style system, which is expected.
+
+---
+
+## Summary of Recommended Actions
+
+### Immediate (Before 1.0)
+1. Add `register()` return value for fluency (P1.2) - **Low effort, high value**
+2. Normalize line endings (P3.1) - **Trivial**
+
+### Short-Term
+3. Add lifecycle listener API (P1.1) - **Medium effort, high value for integrations**
+4. Add `Styles` facade for common operations (P1.3) - **Low effort**
+5. Add Javadoc to public APIs (P3.2) - **Medium effort, ongoing**
+
+### Consider Later
+6. Clarify ConfigService naming (P2.1) - **Wait for stability**
+7. Add Widget helpers (P2.4) - **Based on user feedback**
+8. Extract Renderable interface (P2.2) - **If requested**
+
+---
+
+## Conclusion
+
+MineGui is a well-architected library that achieves its stated goals. The namespace isolation is robust, the API is approachable, and the codebase follows consistent patterns. The recommendations above are refinements rather than fundamental changes.
+
+The library successfully provides:
+- Safe multi-mod coexistence through namespacing
+- Simple entry points with `MineGui.setup()` and `MineGui.setupSimple()`
+- Useful helpers without bloatware
+- Screen-independent overlay rendering
+- Clear package organization
+
+No critical issues were found. The codebase is ready for broader adoption with minor polish.

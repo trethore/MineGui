@@ -4,10 +4,10 @@ import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import tytoo.minegui.MineGuiCore;
+import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
-import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.view.View;
 
 public final class ResourcePreviewSection implements PlaygroundSection {

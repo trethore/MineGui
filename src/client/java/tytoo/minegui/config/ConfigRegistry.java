@@ -13,7 +13,7 @@ public final class ConfigRegistry {
     private static final String DEFAULT_NAMESPACE = MineGuiCore.ID;
     private static final Pattern VALID_NAMESPACE = Pattern.compile("[A-Za-z0-9._-]+");
     private static final ConfigPathStrategy DEFAULT_STRATEGY = ConfigPathStrategies.sandboxed();
-    private static final Map<String, ConfigService> SERVICES = new HashMap<>();
+    private static final Map<String, GlobalConfigService> SERVICES = new HashMap<>();
     private static Path configRoot = determineConfigRoot();
     private static String defaultNamespace = DEFAULT_NAMESPACE;
 
@@ -36,16 +36,16 @@ public final class ConfigRegistry {
         return defaultNamespace;
     }
 
-    public static synchronized ConfigService get() {
+    public static synchronized GlobalConfigService get() {
         return get(defaultNamespace);
     }
 
-    public static synchronized ConfigService get(String namespace) {
+    public static synchronized GlobalConfigService get(String namespace) {
         String sanitized = sanitizeNamespace(namespace);
-        return SERVICES.computeIfAbsent(sanitized, ns -> new ConfigService(ns, configRoot, DEFAULT_STRATEGY));
+        return SERVICES.computeIfAbsent(sanitized, ns -> new GlobalConfigService(ns, configRoot, DEFAULT_STRATEGY));
     }
 
-    public static synchronized ConfigService getOrNull(String namespace) {
+    public static synchronized GlobalConfigService getOrNull(String namespace) {
         String sanitized = sanitizeNamespace(namespace);
         return SERVICES.get(sanitized);
     }
@@ -87,11 +87,11 @@ public final class ConfigRegistry {
         if (SERVICES.isEmpty()) {
             return;
         }
-        Map<String, ConfigService> previous = new HashMap<>(SERVICES);
+        Map<String, GlobalConfigService> previous = new HashMap<>(SERVICES);
         SERVICES.clear();
-        for (Map.Entry<String, ConfigService> entry : previous.entrySet()) {
-            ConfigService oldService = entry.getValue();
-            ConfigService refreshed = oldService.refreshWith(configRoot, DEFAULT_STRATEGY);
+        for (Map.Entry<String, GlobalConfigService> entry : previous.entrySet()) {
+            GlobalConfigService oldService = entry.getValue();
+            GlobalConfigService refreshed = oldService.refreshWith(configRoot, DEFAULT_STRATEGY);
             SERVICES.put(entry.getKey(), refreshed);
         }
     }

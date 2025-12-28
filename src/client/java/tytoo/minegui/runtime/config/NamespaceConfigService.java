@@ -72,7 +72,7 @@ public final class NamespaceConfigService {
         return configService().isConfigIgnored();
     }
 
-    private ConfigService configService() {
+    private GlobalConfigService configService() {
         return ConfigRegistry.get(namespace);
     }
 }

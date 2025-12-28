@@ -100,6 +100,7 @@ public final class ImGuiContextManager {
             fontLibrary.lockRegistration();
             contextInitialized = true;
             initializationFailed = false;
+            MineGuiCore.fireContextReadyListeners();
         } finally {
             initializationInProgress = false;
         }

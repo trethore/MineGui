@@ -30,4 +30,8 @@ public interface MineGuiContext {
     DockspaceCustomizer dockspaceCustomizer();
 
     void setDockspaceCustomizer(DockspaceCustomizer customizer);
+
+    void addLifecycleListener(MineGuiLifecycleListener listener);
+
+    void removeLifecycleListener(MineGuiLifecycleListener listener);
 }

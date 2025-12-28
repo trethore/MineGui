@@ -6,11 +6,11 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
+import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.style.ColorPalette;
 import tytoo.minegui.style.NamedStyleRegistry;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ResourceId;
-import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.view.View;
 import tytoo.mineguidebug.MineGuiDebugCore;
 

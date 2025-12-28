@@ -7,7 +7,7 @@ import org.lwjgl.glfw.GLFW;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.imgui.dock.DockspaceRenderState;
-import tytoo.minegui.runtime.MineGuiContext;
+import tytoo.minegui.runtime.MineGuiRuntimeContext;
 import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 import tytoo.minegui.style.FontLibrary;
 import tytoo.minegui.style.Fonts;
@@ -55,14 +55,16 @@ public final class ImGuiRenderer {
         applyGlobalScale(defaultConfig);
         renderDockSpace(defaultConfig);
 
-        List<MineGuiContext> contexts = new ArrayList<>(MineGuiCore.getAllContexts());
+        List<MineGuiRuntimeContext> contexts = new ArrayList<>(MineGuiCore.getAllContexts());
         contexts.sort(Comparator.comparing(ctx -> ctx.options().namespace()));
 
-        for (MineGuiContext context : contexts) {
+        for (MineGuiRuntimeContext context : contexts) {
             NamespaceConfig config = context.config().current();
             applyGlobalScale(config);
             context.style().apply();
+            context.firePreRender();
             context.ui().render();
+            context.firePostRender();
         }
 
         ImGui.render();
@@ -70,7 +72,7 @@ public final class ImGuiRenderer {
     }
 
     public static void reapplyNamespaceStyles() {
-        for (MineGuiContext context : MineGuiCore.getAllContexts()) {
+        for (MineGuiRuntimeContext context : MineGuiCore.getAllContexts()) {
             context.style().apply();
         }
     }
@@ -122,7 +124,7 @@ public final class ImGuiRenderer {
         }
         DockspaceRenderState state = DockspaceRenderState.createDefault(mcWindowX, mcWindowY, mcWindowWidth, mcWindowHeight);
 
-        for (MineGuiContext context : MineGuiCore.getAllContexts()) {
+        for (MineGuiRuntimeContext context : MineGuiCore.getAllContexts()) {
             context.dockspaceCustomizer().customize(state);
         }
 
