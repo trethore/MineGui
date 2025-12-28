@@ -10,8 +10,8 @@ import imgui.type.ImString;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.imgui.scope.DisabledScope;
 import tytoo.minegui.imgui.scope.IdScope;
+import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.view.View;
-import tytoo.mineguidebug.view.DebugLayout;
 
 public final class WidgetShowcaseSection implements PlaygroundSection {
     private static final int SAMPLE_CAPACITY = 90;
@@ -40,13 +40,13 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderControls();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderWidgetGrid();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderPlotSection();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderTableSection();
     }
 
@@ -124,7 +124,7 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
             ImGui.text("- Stream to MineGui overlay");
             ImGui.treePop();
         }
-        DebugLayout.tinyGap();
+        LayoutHelper.tinyGap();
         ImGui.text("Command buffer");
         try (IdScope ignored = IdScope.of("command_preview");
              DisabledScope ignored2 = DisabledScope.of()) {
@@ -151,7 +151,7 @@ public final class WidgetShowcaseSection implements PlaygroundSection {
     private void renderWidgetTable() {
         int flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchSame;
         if (ImGui.beginTable("widget_best_practices", 3, flags)) {
-            ImGui.tableSetupColumn("Widget", ImGuiTableColumnFlags.WidthFixed, DebugLayout.TABLE_LABEL_WIDTH_SMALL);
+            ImGui.tableSetupColumn("Widget", ImGuiTableColumnFlags.WidthFixed, LayoutHelper.TABLE_LABEL_WIDTH_SMALL);
             ImGui.tableSetupColumn("Purpose");
             ImGui.tableSetupColumn("MineGui tip");
             renderRow("ImBoolean", "Wrap toggles and checkboxes.", "Keep them as fields; ImGui pulls values by reference.");

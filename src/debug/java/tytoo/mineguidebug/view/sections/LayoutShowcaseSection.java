@@ -6,8 +6,8 @@ import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImBoolean;
 import tytoo.minegui.imgui.ref.FloatRef;
+import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.view.View;
-import tytoo.mineguidebug.view.DebugLayout;
 
 public final class LayoutShowcaseSection implements PlaygroundSection {
     private static final String[] NAV_ITEMS = new String[]{
@@ -27,11 +27,11 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderControls();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderTwoPaneLayout();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderMicroLayouts();
     }
 
@@ -71,7 +71,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             ImGui.textWrapped("""
                     Child windows let you pin scrolling regions, status bars, and forms. Combine them with sameLine() to create split views that dock nicely inside MineGui windows.
                     """);
-            DebugLayout.smallGap();
+            LayoutHelper.smallGap();
             ImGui.text("Selected: %s".formatted(NAV_ITEMS[selectedNavIndex]));
             ImGui.bulletText("Scroll independent of the navigation rail.");
             ImGui.bulletText("Tab bar above comes from MineGui Window helper.");
@@ -96,7 +96,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     private void renderMicroLayouts() {
         ImGui.text("Inline layouts");
         ImGui.textWrapped("Use groups and sameLine() spacing to build denser UI without helpers.");
-        DebugLayout.smallGap();
+        LayoutHelper.smallGap();
         ImGui.beginGroup();
         renderCard("Toolbar row", "Buttons stitched with sameLine()", () -> {
             ImGui.button("Play");
@@ -131,7 +131,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
             ImGui.endChild();
         });
         ImGui.endGroup();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         if (showTable.get()) {
             renderLayoutTable();
         }
@@ -141,7 +141,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
         ImGui.beginChild(title, 150f, 110f, true);
         ImGui.text(title);
         ImGui.textDisabled(subtitle);
-        DebugLayout.smallGap();
+        LayoutHelper.smallGap();
         content.run();
         ImGui.endChild();
     }
@@ -149,7 +149,7 @@ public final class LayoutShowcaseSection implements PlaygroundSection {
     private void renderLayoutTable() {
         int flags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
         if (ImGui.beginTable("layout_tips", 3, flags)) {
-            ImGui.tableSetupColumn("Primitive", ImGuiTableColumnFlags.WidthFixed, DebugLayout.TABLE_LABEL_WIDTH_SMALL);
+            ImGui.tableSetupColumn("Primitive", ImGuiTableColumnFlags.WidthFixed, LayoutHelper.TABLE_LABEL_WIDTH_SMALL);
             ImGui.tableSetupColumn("Use case", ImGuiTableColumnFlags.WidthStretch);
             ImGui.tableSetupColumn("Tip", ImGuiTableColumnFlags.WidthStretch);
             renderLayoutRow("beginChild()", "Scrollable regions", "Pair with style rounding for cards.");

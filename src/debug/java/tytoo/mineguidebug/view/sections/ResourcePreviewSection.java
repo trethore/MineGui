@@ -7,8 +7,8 @@ import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.imgui.ref.FloatRef;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
+import tytoo.minegui.helper.LayoutHelper;
 import tytoo.minegui.view.View;
-import tytoo.mineguidebug.view.DebugLayout;
 
 public final class ResourcePreviewSection implements PlaygroundSection {
     private static final ResourceId IMGUI_ICON = ResourceId.of(MineGuiCore.ID, "icon.png");
@@ -29,11 +29,11 @@ public final class ResourcePreviewSection implements PlaygroundSection {
     @Override
     public void render(View parent) {
         renderIntro();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderControls();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderPreview();
-        DebugLayout.sectionGap();
+        LayoutHelper.sectionGap();
         renderStatusLine();
     }
 

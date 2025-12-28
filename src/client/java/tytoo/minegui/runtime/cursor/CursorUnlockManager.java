@@ -74,13 +74,15 @@ public final class CursorUnlockManager {
             relockIfNecessary();
             return;
         }
+        if (!CLICK_RELEASE_UNLOCKS.isEmpty()) {
+            return;
+        }
         if (ImGui.isWindowFocused(ImGuiFocusedFlags.AnyWindow)) {
             return;
         }
         if (ImGui.isAnyItemActive()) {
             return;
         }
-        CLICK_RELEASE_UNLOCKS.clear();
         clearImGuiFocus();
         refreshState();
     }
