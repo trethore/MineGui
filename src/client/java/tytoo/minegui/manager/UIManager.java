@@ -11,6 +11,7 @@ import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.style.StyleScope;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.View;
+import tytoo.minegui.view.VisibilityListener;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
 import tytoo.minegui.view.persistence.ViewPersistenceManager;
@@ -21,7 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public final class UIManager {
+public final class UIManager implements VisibilityListener {
     private static final Map<String, UIManager> INSTANCES = new ConcurrentHashMap<>();
 
     private final String namespace;
@@ -33,6 +34,8 @@ public final class UIManager {
     private ViewPersistenceManager persistenceManager;
     @Getter
     private volatile CursorPolicy defaultCursorPolicy;
+    private volatile boolean visibilityCacheValid;
+    private volatile boolean cachedHasVisibleViews;
 
     private UIManager(String namespace) {
         this.namespace = namespace;
@@ -66,6 +69,7 @@ public final class UIManager {
     public void registerRenderCallback(Runnable callback) {
         if (callback != null && !renderCallbacks.contains(callback)) {
             renderCallbacks.add(callback);
+            invalidateVisibilityCache();
         }
     }
 
@@ -73,6 +77,7 @@ public final class UIManager {
     public void unregisterRenderCallback(Runnable callback) {
         if (callback != null) {
             renderCallbacks.remove(callback);
+            invalidateVisibilityCache();
         }
     }
 
@@ -82,8 +87,10 @@ public final class UIManager {
         }
         if (!views.contains(view)) {
             views.add(view);
+            view.addVisibilityListener(this);
             view.attach();
             view.applyDefaultCursorPolicy(defaultCursorPolicy);
+            invalidateVisibilityCache();
             ViewPersistenceManager manager = persistence();
             if (manager != null) {
                 manager.register(view);
@@ -116,8 +123,10 @@ public final class UIManager {
         if (view.isVisible()) {
             view.setVisible(false);
         }
+        view.removeVisibilityListener(this);
         views.remove(view);
         view.detach();
+        invalidateVisibilityCache();
         ViewPersistenceManager manager = persistence();
         if (manager != null) {
             manager.unregister(view);
@@ -141,7 +150,22 @@ public final class UIManager {
         if (!renderCallbacks.isEmpty()) {
             return true;
         }
-        return views.stream().anyMatch(View::isVisible);
+        if (visibilityCacheValid) {
+            return cachedHasVisibleViews;
+        }
+        boolean result = views.stream().anyMatch(View::isVisible);
+        cachedHasVisibleViews = result;
+        visibilityCacheValid = true;
+        return result;
+    }
+
+    @Override
+    public void onVisibilityChanged(View view, boolean visible) {
+        invalidateVisibilityCache();
+    }
+
+    private void invalidateVisibilityCache() {
+        visibilityCacheValid = false;
     }
 
     public boolean hasViews() {

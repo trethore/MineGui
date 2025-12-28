@@ -10,6 +10,9 @@ import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public abstract class View {
     @Getter
     private boolean visible;
@@ -27,6 +30,7 @@ public abstract class View {
     @Setter
     private boolean persistentStyle = true;
     private boolean cursorPolicyExplicit;
+    private final List<VisibilityListener> visibilityListeners = new CopyOnWriteArrayList<>();
 
     protected View(String id) {
         initializeView(id);
@@ -100,6 +104,25 @@ public abstract class View {
         } else {
             cursorPolicy.onClose(this);
             onClose();
+        }
+        notifyVisibilityListeners(visible);
+    }
+
+    public void addVisibilityListener(VisibilityListener listener) {
+        if (listener != null && !visibilityListeners.contains(listener)) {
+            visibilityListeners.add(listener);
+        }
+    }
+
+    public void removeVisibilityListener(VisibilityListener listener) {
+        if (listener != null) {
+            visibilityListeners.remove(listener);
+        }
+    }
+
+    private void notifyVisibilityListeners(boolean visible) {
+        for (VisibilityListener listener : visibilityListeners) {
+            listener.onVisibilityChanged(this, visible);
         }
     }
 

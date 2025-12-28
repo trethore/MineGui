@@ -14,6 +14,7 @@ import tytoo.minegui.config.ConfigRegistry;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.MineGuiRuntimeContext;
+import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.MinecraftIdentifiers;
 import tytoo.minegui.util.ResourceId;
@@ -99,7 +100,10 @@ public final class MineGuiCore {
             return;
         }
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ImGuiLoader.onClientStarted());
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> saveConfig());
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            saveConfig();
+            StyleManager.cleanup();
+        });
         lifecycleRegistered = true;
     }
 

@@ -108,6 +108,18 @@ public final class StyleManager {
         }
     }
 
+    public static void cleanup() {
+        ACTIVE.remove();
+        for (StyleManager manager : INSTANCES.values()) {
+            manager.cleanupThread();
+        }
+    }
+
+    public void cleanupThread() {
+        styleStack.remove();
+        activeFont.remove();
+    }
+
     public static void pushActive(StyleManager manager) {
         ACTIVE.set(manager);
     }
