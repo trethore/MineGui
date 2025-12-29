@@ -1,31 +1,42 @@
 package tytoo.minegui.runtime;
 
-import tytoo.minegui.MineGuiInitializationOptions;
+import tytoo.minegui.MineGuiOptions;
+import tytoo.minegui.config.NamespaceConfig;
+import tytoo.minegui.config.PersistenceFlags;
 import tytoo.minegui.imgui.dock.DockspaceCustomizer;
 import tytoo.minegui.manager.UIManager;
-import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.style.StyleManager;
 import tytoo.minegui.util.ResourceId;
 import tytoo.minegui.view.cursor.CursorPolicy;
-import tytoo.minegui.view.persistence.ViewPersistenceManager;
+
+import java.util.function.UnaryOperator;
 
 @SuppressWarnings("unused")
 public interface MineGuiContext {
-    MineGuiInitializationOptions options();
 
-    NamespaceConfigService config();
+    String namespace();
+
+    MineGuiOptions options();
+
+    NamespaceConfig config();
+
+    void updateConfig(UnaryOperator<NamespaceConfig> updater);
+
+    PersistenceFlags persistence();
+
+    void save();
+
+    void load();
 
     UIManager ui();
 
     StyleManager style();
 
-    ViewPersistenceManager persistence();
+    ResourceId cursorPolicyId();
 
-    ResourceId defaultCursorPolicyId();
+    CursorPolicy cursorPolicy();
 
-    CursorPolicy defaultCursorPolicy();
-
-    void setDefaultCursorPolicy(ResourceId policyId);
+    void setCursorPolicy(ResourceId policyId);
 
     DockspaceCustomizer dockspaceCustomizer();
 

@@ -15,6 +15,7 @@ import java.util.Objects;
 
 @SuppressWarnings("unused")
 public final class MineGuiDebugCore {
+
     public static final String ID = "mineguidebug";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiDebugCore.class);
 

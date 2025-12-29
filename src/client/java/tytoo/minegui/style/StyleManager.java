@@ -5,12 +5,7 @@ import imgui.ImGui;
 import imgui.ImGuiStyle;
 import lombok.Getter;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.config.ConfigFeature;
-import tytoo.minegui.config.ConfigRegistry;
-import tytoo.minegui.config.GlobalConfig;
-import tytoo.minegui.config.GlobalConfigService;
 import tytoo.minegui.runtime.MineGuiContext;
-import tytoo.minegui.runtime.config.NamespaceConfigService;
 import tytoo.minegui.util.ResourceId;
 
 import java.util.*;
@@ -20,15 +15,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public final class StyleManager {
+
     private static final ConcurrentMap<String, StyleManager> INSTANCES = new ConcurrentHashMap<>();
     private static final ConcurrentMap<ResourceId, StyleDescriptor> DESCRIPTOR_REGISTRY = new ConcurrentHashMap<>();
     private static final ThreadLocal<StyleManager> ACTIVE = new ThreadLocal<>();
     private static final CopyOnWriteArrayList<Consumer<StyleDescriptor>> GLOBAL_DESCRIPTOR_READY_LISTENERS = new CopyOnWriteArrayList<>();
+
     private static volatile StyleDescriptor globalDescriptorSnapshot;
 
     private final String namespace;
     private final ThreadLocal<Deque<StyleDelta>> styleStack = ThreadLocal.withInitial(ArrayDeque::new);
     private final ThreadLocal<ImFont> activeFont = new ThreadLocal<>();
+
     private volatile StyleDescriptor globalDescriptor;
     @Getter
     private volatile ResourceId globalStyleKey;
@@ -42,7 +40,14 @@ public final class StyleManager {
     }
 
     public static StyleManager getInstance() {
-        return get(ConfigRegistry.defaultNamespace());
+        MineGuiContext context = MineGuiCore.getContext();
+        if (context != null) {
+            return get(context.namespace());
+        }
+        if (!INSTANCES.isEmpty()) {
+            return INSTANCES.values().iterator().next();
+        }
+        return get("default");
     }
 
     public static void backfillGlobalDescriptors(StyleDescriptor descriptor) {
@@ -115,11 +120,6 @@ public final class StyleManager {
         }
     }
 
-    public void cleanupThread() {
-        styleStack.remove();
-        activeFont.remove();
-    }
-
     public static void pushActive(StyleManager manager) {
         ACTIVE.set(manager);
     }
@@ -141,6 +141,11 @@ public final class StyleManager {
 
     public String namespace() {
         return namespace;
+    }
+
+    public void cleanupThread() {
+        styleStack.remove();
+        activeFont.remove();
     }
 
     public Optional<StyleDescriptor> getGlobalDescriptor() {
@@ -263,35 +268,15 @@ public final class StyleManager {
         activeFont.remove();
     }
 
-    private NamespaceConfigService configService() {
-        MineGuiContext context = MineGuiCore.getContext();
-        if (context == null) return null;
-        return context.config();
-    }
-
     private void persistGlobalStyle(ResourceId key) {
-        NamespaceConfigService configService = configService();
-        GlobalConfigService registryService = ConfigRegistry.get(namespace);
-        boolean configIgnored = configService != null ? configService.isConfigIgnored() : registryService.isConfigIgnored();
-        if (configIgnored) {
+        MineGuiContext context = MineGuiCore.getContext(namespace);
+        if (context == null) {
             return;
         }
-        boolean shouldSave = configService != null
-                ? configService.shouldSave(ConfigFeature.STYLE_REFERENCES)
-                : registryService.shouldSaveFeature(ConfigFeature.STYLE_REFERENCES);
-        if (!shouldSave) {
+        if (!context.persistence().config()) {
             return;
         }
-        if (configService != null) {
-            configService.update(cfg -> cfg.withGlobalStyleKey(key));
-            return;
-        }
-        GlobalConfig config = registryService.config();
-        String value = key != null ? key.toString() : null;
-        if (!Objects.equals(config.getGlobalStyleKey(), value)) {
-            config.setGlobalStyleKey(value);
-            registryService.save();
-        }
+        context.updateConfig(cfg -> cfg.withGlobalStyleKey(key));
     }
 
     private void applyStyleKey(ResourceId key, boolean persist) {

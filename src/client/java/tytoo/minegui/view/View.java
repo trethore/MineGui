@@ -2,6 +2,7 @@ package tytoo.minegui.view;
 
 import lombok.Getter;
 import lombok.Setter;
+import tytoo.minegui.config.PersistenceFlags;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.util.ResourceId;
@@ -12,32 +13,37 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public abstract class View implements Renderable {
-    @Getter
-    private boolean visible;
+
     @Getter
     private String id;
+
     @Getter
     @Setter
     private ResourceId styleKey;
+
     @Getter
     private CursorPolicy cursorPolicy;
-    @Getter
-    @Setter
-    private boolean persistentLayout = false;
-    @Getter
-    @Setter
-    private boolean persistentStyle = false;
+
+    private final boolean persistLayout;
     private boolean cursorPolicyExplicit;
+    @Getter
+    private boolean visible;
     private final List<VisibilityListener> visibilityListeners = new CopyOnWriteArrayList<>();
 
     protected View(String id) {
+        this(id, true);
+    }
+
+    protected View(String id, boolean persistLayout) {
+        this.persistLayout = persistLayout;
         initializeView(id);
     }
 
     protected View() {
-        this(null);
+        this(null, true);
     }
 
+    @Override
     public final void render() {
         if (!visible) {
             return;
@@ -67,14 +73,27 @@ public abstract class View implements Renderable {
         setVisible(!visible);
     }
 
-    protected void onOpen() {
+    public void setVisible(boolean visible) {
+        if (this.visible == visible) {
+            return;
+        }
+        this.visible = visible;
+        if (visible) {
+            onOpen();
+            cursorPolicy.onOpen(this);
+        } else {
+            cursorPolicy.onClose(this);
+            onClose();
+        }
+        notifyVisibilityListeners(visible);
     }
 
-    protected void onClose() {
+    public boolean isPersistentLayout() {
+        return persistLayout;
     }
 
-    protected String deriveDefaultId() {
-        return getClass().getName();
+    public boolean shouldPersistLayout(PersistenceFlags namespaceFlags) {
+        return namespaceFlags.layouts() && persistLayout;
     }
 
     public String scopedWindowTitle(String displayTitle) {
@@ -91,21 +110,6 @@ public abstract class View implements Renderable {
     public void detach() {
     }
 
-    public void setVisible(boolean visible) {
-        if (this.visible == visible) {
-            return;
-        }
-        this.visible = visible;
-        if (visible) {
-            onOpen();
-            cursorPolicy.onOpen(this);
-        } else {
-            cursorPolicy.onClose(this);
-            onClose();
-        }
-        notifyVisibilityListeners(visible);
-    }
-
     public void addVisibilityListener(VisibilityListener listener) {
         if (listener != null && !visibilityListeners.contains(listener)) {
             visibilityListeners.add(listener);
@@ -115,12 +119,6 @@ public abstract class View implements Renderable {
     public void removeVisibilityListener(VisibilityListener listener) {
         if (listener != null) {
             visibilityListeners.remove(listener);
-        }
-    }
-
-    private void notifyVisibilityListeners(boolean visible) {
-        for (VisibilityListener listener : visibilityListeners) {
-            listener.onVisibilityChanged(this, visible);
         }
     }
 
@@ -149,6 +147,23 @@ public abstract class View implements Renderable {
         return this;
     }
 
+    protected void onOpen() {
+    }
+
+    protected void onClose() {
+    }
+
+    protected String deriveDefaultId() {
+        return getClass().getName();
+    }
+
+    protected final void renderSection(ViewSection section) {
+        if (section == null) {
+            return;
+        }
+        section.render(this);
+    }
+
     private void updateCursorPolicy(CursorPolicy nextPolicy, boolean explicit) {
         CursorPolicy resolved = nextPolicy != null ? nextPolicy : CursorPolicies.empty();
         if (this.cursorPolicy == resolved && this.cursorPolicyExplicit == explicit) {
@@ -164,13 +179,6 @@ public abstract class View implements Renderable {
         }
     }
 
-    protected final void renderSection(ViewSection section) {
-        if (section == null) {
-            return;
-        }
-        section.render(this);
-    }
-
     private void initializeView(String requestedId) {
         this.id = normalizeId(requestedId);
         this.cursorPolicy = CursorPolicies.empty();
@@ -182,5 +190,11 @@ public abstract class View implements Renderable {
             return deriveDefaultId();
         }
         return candidate;
+    }
+
+    private void notifyVisibilityListeners(boolean visible) {
+        for (VisibilityListener listener : visibilityListeners) {
+            listener.onVisibilityChanged(this, visible);
+        }
     }
 }

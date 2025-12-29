@@ -8,19 +8,16 @@ import imgui.glfw.ImGuiImplGlfw;
 import imgui.internal.ImGuiContext;
 import lombok.Getter;
 import tytoo.minegui.MineGuiCore;
-import tytoo.minegui.config.ConfigRegistry;
-import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
 import tytoo.minegui.config.NamespaceConfig;
-import tytoo.minegui.config.NamespaceConfigStore;
-import tytoo.minegui.runtime.MineGuiRuntimeContext;
+import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.style.*;
 import tytoo.minegui.util.ImGuiImageUtils;
 import tytoo.minegui.util.ResourceId;
 
 public final class ImGuiContextManager {
+
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private static final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
-    private static final NamespaceConfigStore DEFAULT_CONFIG_STORE = new GlobalConfigNamespaceConfigStore();
     private static final String GLSL_VERSION = "#version 150";
 
     @Getter
@@ -77,6 +74,44 @@ public final class ImGuiContextManager {
 
     static long windowHandle() {
         return windowHandle;
+    }
+
+    public static boolean rebuildFontAtlasTexture() {
+        if (!ContextGuard.hasValidContext()) {
+            MineGuiCore.LOGGER.warn("ImGui context unavailable while rebuilding MineGui font atlas");
+            return false;
+        }
+        ImGuiIO io = ImGui.getIO();
+        imgui.ImFontAtlas atlas = io != null ? io.getFonts() : null;
+        if (atlas == null) {
+            MineGuiCore.LOGGER.warn("ImGui font atlas is not available during MineGui reload");
+            return false;
+        }
+        atlas.setTexID(0);
+        if (!atlas.build()) {
+            MineGuiCore.LOGGER.warn("Failed to rebuild font atlas after MineGui reload");
+            return false;
+        }
+        imGuiGl3.updateFontsTexture();
+        if (atlas.getTexID() == 0) {
+            MineGuiCore.LOGGER.warn("Font atlas texture upload resulted in texId=0");
+            return false;
+        }
+        return true;
+    }
+
+    static NamespaceConfig resolveDefaultConfig() {
+        MineGuiContext context = MineGuiCore.getContext();
+        if (context == null) {
+            var all = MineGuiCore.getAllContexts();
+            if (!all.isEmpty()) {
+                context = all.iterator().next();
+            }
+        }
+        if (context == null) {
+            return NamespaceConfig.defaults("default");
+        }
+        return context.config();
     }
 
     private static void initializeContext() {
@@ -139,7 +174,6 @@ public final class ImGuiContextManager {
 
         ImFont defaultFont = configureDefaultFonts(io);
         ImGuiRenderer.applyGlobalScale(config);
-        runFontRegistrars(io);
 
         if (io.hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             ImGuiStyle style = ImGui.getStyle();
@@ -161,39 +195,13 @@ public final class ImGuiContextManager {
         }
 
         ImFont defaultFont = baseDefaultFont;
-        if (shouldRegisterDefaultFonts()) {
-            Fonts.registerDefaults(io);
-            FontLibrary fontLibrary = FontLibrary.getInstance();
-            ImFont registeredDefault = Fonts.ensure(fontLibrary.getDefaultFontKey());
-            if (registeredDefault != null) {
-                io.setFontDefault(registeredDefault);
-                defaultFont = registeredDefault;
-            }
+        FontLibrary fontLibrary = FontLibrary.getInstance();
+        ImFont registeredDefault = fontLibrary.ensureFont(fontLibrary.getDefaultFontKey(), null);
+        if (registeredDefault != null) {
+            io.setFontDefault(registeredDefault);
+            defaultFont = registeredDefault;
         }
         return defaultFont;
-    }
-
-    private static boolean shouldRegisterDefaultFonts() {
-        for (MineGuiRuntimeContext context : MineGuiCore.getAllContexts()) {
-            if (context.options().registerDefaultFonts()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void runFontRegistrars(ImGuiIO io) {
-        for (MineGuiRuntimeContext context : MineGuiCore.getAllContexts()) {
-            var registrar = context.options().fontRegistrar();
-            if (registrar == null) {
-                continue;
-            }
-            try {
-                registrar.accept(io);
-            } catch (RuntimeException exception) {
-                MineGuiCore.LOGGER.error("Font registrar failed for namespace '{}'", context.options().namespace(), exception);
-            }
-        }
     }
 
     private static void finalizeInitialStyle(ImFont defaultFont) {
@@ -216,43 +224,5 @@ public final class ImGuiContextManager {
         }
         StyleManager.getInstance().apply();
         StyleManager.publishGlobalDescriptor(descriptor);
-    }
-
-    public static boolean rebuildFontAtlasTexture() {
-        if (!ContextGuard.hasValidContext()) {
-            MineGuiCore.LOGGER.warn("ImGui context unavailable while rebuilding MineGui font atlas");
-            return false;
-        }
-        ImGuiIO io = ImGui.getIO();
-        imgui.ImFontAtlas atlas = io != null ? io.getFonts() : null;
-        if (atlas == null) {
-            MineGuiCore.LOGGER.warn("ImGui font atlas is not available during MineGui reload");
-            return false;
-        }
-        atlas.setTexID(0);
-        if (!atlas.build()) {
-            MineGuiCore.LOGGER.warn("Failed to rebuild font atlas after MineGui reload");
-            return false;
-        }
-        imGuiGl3.updateFontsTexture();
-        if (atlas.getTexID() == 0) {
-            MineGuiCore.LOGGER.warn("Font atlas texture upload resulted in texId=0");
-            return false;
-        }
-        return true;
-    }
-
-    static NamespaceConfig resolveDefaultConfig() {
-        var context = MineGuiCore.getContext();
-        if (context == null) {
-            var all = MineGuiCore.getAllContexts();
-            if (!all.isEmpty()) {
-                context = all.iterator().next();
-            }
-        }
-        if (context == null) {
-            return DEFAULT_CONFIG_STORE.load(ConfigRegistry.defaultNamespace());
-        }
-        return context.config().current();
     }
 }

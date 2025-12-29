@@ -12,7 +12,7 @@ import tytoo.minegui.runtime.cursor.CursorPolicyRegistry;
 public abstract class MGMinecraftClientMixin {
     @Inject(method = "stop()V", at = @At("HEAD"))
     private void onStop(CallbackInfo ci) {
-        MineGuiCore.saveConfig();
+        MineGuiCore.saveAll();
     }
 
     @Inject(method = "setScreen", at = @At("TAIL"))

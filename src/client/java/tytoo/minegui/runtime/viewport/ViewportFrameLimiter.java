@@ -5,6 +5,7 @@ import tytoo.minegui.config.NamespaceConfig;
 import tytoo.minegui.runtime.MineGuiContext;
 
 public final class ViewportFrameLimiter {
+
     private ViewportFrameLimiter() {
     }
 
@@ -14,7 +15,7 @@ public final class ViewportFrameLimiter {
         }
         boolean viewportEnabledFound = false;
         for (MineGuiContext context : MineGuiCore.getAllContexts()) {
-            NamespaceConfig config = context.config().current();
+            NamespaceConfig config = context.config();
             if (config == null || !config.viewportEnabled()) {
                 continue;
             }

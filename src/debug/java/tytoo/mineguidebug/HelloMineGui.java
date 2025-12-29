@@ -10,7 +10,7 @@ public final class HelloMineGui {
     }
 
     public static void run() {
-        MineGuiContext context = MineGui.setupSimple("hello_minegui");
+        MineGuiContext context = MineGui.setupLite("hello_minegui");
 
         context.ui().registerRenderCallback(() -> {
             ImGui.begin("Hello MineGui");

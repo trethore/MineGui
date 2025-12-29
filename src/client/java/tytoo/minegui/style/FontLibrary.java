@@ -232,10 +232,10 @@ public final class FontLibrary {
 
     @FunctionalInterface
     public interface FontSource {
-        static FontSource asset(String relativePath) {
+        static FontSource asset(String namespace, String relativePath) {
             return () -> {
-                String formatted = "assets/" + MineGuiCore.ID + "/fonts/" + relativePath;
-                try (InputStream stream = MineGuiCore.class.getClassLoader().getResourceAsStream(formatted)) {
+                String formatted = "assets/" + namespace + "/fonts/" + relativePath;
+                try (InputStream stream = FontLibrary.class.getClassLoader().getResourceAsStream(formatted)) {
                     if (stream == null) {
                         MineGuiCore.LOGGER.warn("Font asset not found: {}", formatted);
                         return null;

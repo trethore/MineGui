@@ -12,6 +12,7 @@ import tytoo.minegui.util.MineGuiText;
 import tytoo.minegui.util.ResourceId;
 
 public final class MineGuiReloadCommand {
+
     private MineGuiReloadCommand() {
     }
 
@@ -22,7 +23,7 @@ public final class MineGuiReloadCommand {
 
     private static int execute(FabricClientCommandSource source) {
         McClientBridge.execute(() -> {
-            MineGuiCore.loadConfig();
+            MineGuiCore.loadAll();
             for (MineGuiContext context : MineGuiCore.getAllContexts()) {
                 applyConfiguredStyle(context);
             }
@@ -34,7 +35,7 @@ public final class MineGuiReloadCommand {
 
     private static void applyConfiguredStyle(MineGuiContext context) {
         StyleManager styleManager = context.style();
-        NamespaceConfig config = context.config().current();
+        NamespaceConfig config = context.config();
         ResourceId styleKey = config.globalStyleKey();
 
         styleManager.setGlobalStyleKey(styleKey);

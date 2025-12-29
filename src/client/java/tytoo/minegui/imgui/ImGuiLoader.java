@@ -10,7 +10,7 @@ public class ImGuiLoader {
     private static long windowHandle;
 
     public static void onGlfwInit(long handle) {
-        MineGuiCore.loadConfig();
+        MineGuiCore.loadAll();
         windowHandle = handle;
         ImGuiContextManager.onGlfwInit(handle);
         ImGuiContextManager.tryInitialize();

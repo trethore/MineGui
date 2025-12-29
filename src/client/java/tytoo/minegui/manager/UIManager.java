@@ -1,10 +1,10 @@
 package tytoo.minegui.manager;
 
 import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.util.profiler.Profilers;
 import tytoo.minegui.MineGuiCore;
 import tytoo.minegui.runtime.MineGuiContext;
+import tytoo.minegui.runtime.MineGuiRuntimeContext;
 import tytoo.minegui.style.StyleDelta;
 import tytoo.minegui.style.StyleDescriptor;
 import tytoo.minegui.style.StyleManager;
@@ -14,15 +14,14 @@ import tytoo.minegui.view.View;
 import tytoo.minegui.view.VisibilityListener;
 import tytoo.minegui.view.cursor.CursorPolicies;
 import tytoo.minegui.view.cursor.CursorPolicy;
-import tytoo.minegui.view.persistence.ViewPersistenceManager;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class UIManager implements VisibilityListener {
+
     private static final Map<String, UIManager> INSTANCES = new ConcurrentHashMap<>();
 
     private final String namespace;
@@ -30,8 +29,7 @@ public final class UIManager implements VisibilityListener {
     @Getter
     private final List<View> views = new CopyOnWriteArrayList<>();
     private final List<Runnable> renderCallbacks = new CopyOnWriteArrayList<>();
-    @Setter
-    private ViewPersistenceManager persistenceManager;
+
     @Getter
     private volatile CursorPolicy defaultCursorPolicy;
     private volatile boolean visibilityCacheValid;
@@ -47,24 +45,9 @@ public final class UIManager implements VisibilityListener {
         return INSTANCES.computeIfAbsent(namespace, UIManager::new);
     }
 
-    public static UIManager getInstance() {
-        return get(MineGuiCore.getConfigNamespace());
-    }
-
-    private ViewPersistenceManager persistence() {
-        if (persistenceManager == null) {
-            MineGuiContext context = MineGuiCore.getContext(namespace);
-            if (context != null) {
-                persistenceManager = context.persistence();
-            }
-        }
-        return persistenceManager;
-    }
-
     public String namespace() {
         return namespace;
     }
-
 
     public void registerRenderCallback(Runnable callback) {
         if (callback != null && !renderCallbacks.contains(callback)) {
@@ -72,7 +55,6 @@ public final class UIManager implements VisibilityListener {
             invalidateVisibilityCache();
         }
     }
-
 
     public void unregisterRenderCallback(Runnable callback) {
         if (callback != null) {
@@ -91,9 +73,9 @@ public final class UIManager implements VisibilityListener {
             view.attach();
             view.applyDefaultCursorPolicy(defaultCursorPolicy);
             invalidateVisibilityCache();
-            ViewPersistenceManager manager = persistence();
-            if (manager != null) {
-                manager.register(view);
+            MineGuiRuntimeContext context = getContext();
+            if (context != null) {
+                context.registerView(view);
             }
         }
         return view;
@@ -128,9 +110,9 @@ public final class UIManager implements VisibilityListener {
         views.remove(view);
         view.detach();
         invalidateVisibilityCache();
-        ViewPersistenceManager manager = persistence();
-        if (manager != null) {
-            manager.unregister(view);
+        MineGuiRuntimeContext context = getContext();
+        if (context != null) {
+            context.unregisterView(view);
         }
     }
 
@@ -160,46 +142,13 @@ public final class UIManager implements VisibilityListener {
         return result;
     }
 
-    @Override
-    public void onVisibilityChanged(View view, boolean visible) {
-        invalidateVisibilityCache();
-    }
-
-    private void invalidateVisibilityCache() {
-        visibilityCacheValid = false;
-    }
-
     public boolean hasViews() {
         return !views.isEmpty() || !renderCallbacks.isEmpty();
     }
 
-    public void saveLayoutNow(View view) {
-        ViewPersistenceManager manager = persistence();
-        if (manager != null) {
-            manager.saveLayoutNow(view);
-        }
-    }
-
-    public void saveStyleSnapshot(View view) {
-        StyleDescriptor descriptor = styleManager.getEffectiveDescriptor().orElse(null);
-        saveStyleSnapshot(view, descriptor);
-    }
-
-    public void saveStyleSnapshot(View view, StyleDescriptor descriptor) {
-        if (descriptor == null) {
-            return;
-        }
-        ViewPersistenceManager manager = persistence();
-        if (manager != null) {
-            manager.saveStyleSnapshot(view, descriptor, true);
-        }
-    }
-
-    public void deleteStyleSnapshot(View view) {
-        ViewPersistenceManager manager = persistence();
-        if (manager != null) {
-            manager.deleteStyleSnapshot(view);
-        }
+    @Override
+    public void onVisibilityChanged(View view, boolean visible) {
+        invalidateVisibilityCache();
     }
 
     public void render() {
@@ -208,18 +157,19 @@ public final class UIManager implements VisibilityListener {
         }
         StyleManager.pushActive(styleManager);
         try {
-            ViewPersistenceManager manager = persistence();
-            if (manager != null) {
-                manager.ensureSharedLayoutLoaded();
-            }
+            MineGuiRuntimeContext context = getContext();
             renderViews();
             renderCallbacks();
-            if (manager != null) {
-                manager.flushLayouts();
+            if (context != null) {
+                context.flushLayouts();
             }
         } finally {
             StyleManager.popActive(styleManager);
         }
+    }
+
+    private void invalidateVisibilityCache() {
+        visibilityCacheValid = false;
     }
 
     private void renderCallbacks() {
@@ -233,16 +183,13 @@ public final class UIManager implements VisibilityListener {
     }
 
     private void renderViews() {
+        MineGuiRuntimeContext context = getContext();
         for (View view : views) {
-            if (view == null) {
+            if (view == null || !view.isVisible()) {
                 continue;
             }
-            if (!view.isVisible()) {
-                continue;
-            }
-            ViewPersistenceManager manager = persistence();
-            if (manager != null) {
-                manager.ensureLoaded(view);
+            if (context != null) {
+                context.ensureViewLoaded(view);
             }
             ResourceId originalKey = styleManager.getGlobalStyleKey();
             StyleDescriptor originalDescriptor = styleManager.getEffectiveDescriptor().orElse(null);
@@ -251,31 +198,22 @@ public final class UIManager implements VisibilityListener {
             StyleDelta delta = view.configureStyleDelta();
             try (StyleScope ignored = delta != null ? StyleScope.push(delta) : null) {
                 view.render();
-                if (manager != null && view.isPersistentStyle()) {
-                    styleManager.getEffectiveDescriptor().ifPresent(effective -> manager.saveStyleSnapshot(view, effective, false));
-                }
             } finally {
                 Profilers.get().pop();
                 restoreBaseStyle(originalKey, originalDescriptor);
-                if (manager != null) {
-                    if (view.isPersistentLayout()) {
-                        manager.markLayoutDirty(view, false);
-                    }
+                if (context != null && view.isPersistentLayout()) {
+                    context.markLayoutDirty(view);
                 }
             }
         }
     }
 
-    private StyleDescriptor applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
+    private void applyViewBaseStyle(View view, StyleDescriptor fallbackDescriptor) {
         ResourceId styleKey = view.getStyleKey();
         if (styleKey != null) {
             styleManager.setGlobalStyleKeyTransient(styleKey);
         }
-        StyleDescriptor descriptor = styleManager.getEffectiveDescriptor().orElse(fallbackDescriptor);
-        StyleDescriptor persisted = Optional.ofNullable(persistence())
-                .flatMap(manager -> manager.styleSnapshot(view))
-                .orElse(null);
-        StyleDescriptor resolved = persisted != null ? persisted : descriptor;
+        StyleDescriptor resolved = styleManager.getEffectiveDescriptor().orElse(fallbackDescriptor);
         if (resolved != null) {
             StyleDescriptor updated = view.configureBaseStyle(resolved);
             if (updated != null) {
@@ -284,7 +222,6 @@ public final class UIManager implements VisibilityListener {
             styleManager.setGlobalDescriptor(resolved);
         }
         styleManager.apply();
-        return styleManager.getEffectiveDescriptor().orElse(resolved);
     }
 
     private void restoreBaseStyle(ResourceId originalKey, StyleDescriptor originalDescriptor) {
@@ -293,5 +230,13 @@ public final class UIManager implements VisibilityListener {
             styleManager.setGlobalDescriptor(originalDescriptor);
         }
         styleManager.apply();
+    }
+
+    private MineGuiRuntimeContext getContext() {
+        MineGuiContext context = MineGuiCore.getContext(namespace);
+        if (context instanceof MineGuiRuntimeContext runtimeContext) {
+            return runtimeContext;
+        }
+        return null;
     }
 }

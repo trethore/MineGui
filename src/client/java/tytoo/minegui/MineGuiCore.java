@@ -9,10 +9,7 @@ import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tytoo.minegui.command.MineGuiClientCommands;
-import tytoo.minegui.config.ConfigRegistry;
-import tytoo.minegui.config.GlobalConfigNamespaceConfigStore;
-import tytoo.minegui.config.GlobalConfigService;
-import tytoo.minegui.config.NamespaceConfigStore;
+import tytoo.minegui.imgui.GlobalLayoutManager;
 import tytoo.minegui.imgui.ImGuiLoader;
 import tytoo.minegui.runtime.MineGuiContext;
 import tytoo.minegui.runtime.MineGuiRuntimeContext;
@@ -29,26 +26,26 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unused")
 public final class MineGuiCore {
+
     public static final String ID = "minegui";
     public static final Logger LOGGER = LoggerFactory.getLogger(MineGuiCore.class);
+
     private static final ResourceId IMGUI_IMAGES_RELOAD_ID = ResourceId.of(ID, "imgui_images");
     private static final Map<String, MineGuiRuntimeContext> CONTEXTS = new ConcurrentHashMap<>();
-    private static boolean reloadListenerRegistered;
-    private static boolean lifecycleRegistered;
+
+    private static volatile boolean reloadListenerRegistered;
+    private static volatile boolean lifecycleRegistered;
 
     private MineGuiCore() {
     }
 
-    public static synchronized MineGuiContext init(MineGuiInitializationOptions options) {
+    public static synchronized MineGuiContext init(MineGuiOptions options) {
         Objects.requireNonNull(options, "options");
         String namespace = options.namespace();
         MineGuiRuntimeContext existing = CONTEXTS.get(namespace);
         if (existing != null) {
             return existing;
         }
-
-        ConfigRegistry.setDefaultNamespace(ID);
-        applyConfigOptions(options);
 
         MineGuiRuntimeContext context = new MineGuiRuntimeContext(options);
         CONTEXTS.put(namespace, context);
@@ -60,10 +57,6 @@ public final class MineGuiCore {
     }
 
     public static MineGuiContext getContext() {
-        MineGuiContext context = getContext(ConfigRegistry.defaultNamespace());
-        if (context != null) {
-            return context;
-        }
         if (!CONTEXTS.isEmpty()) {
             return CONTEXTS.values().iterator().next();
         }
@@ -78,25 +71,38 @@ public final class MineGuiCore {
         return Collections.unmodifiableCollection(CONTEXTS.values());
     }
 
-    private static void applyConfigOptions(MineGuiInitializationOptions options) {
-        String namespace = options.namespace();
-        NamespaceConfigStore store = options.configStore();
-        boolean usesGlobalStore = store instanceof GlobalConfigNamespaceConfigStore;
-        if (usesGlobalStore && options.configRoot() != null) {
-            ConfigRegistry.configure(options.configRoot());
+    public static void saveAll() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.save();
         }
-        GlobalConfigService globalConfig = ConfigRegistry.get(namespace);
-        if (usesGlobalStore && options.configPathStrategy() != null) {
-            globalConfig.setPathStrategy(options.configPathStrategy());
+    }
+
+    public static void loadAll() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.load();
         }
-        if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
-            globalConfig.setConfigIgnored(true);
-            return;
+    }
+
+    public static void requestReload() {
+        ImGuiLoader.requestReload();
+    }
+
+    public static boolean isInitialized() {
+        return !CONTEXTS.isEmpty();
+    }
+
+    public static boolean hasAnyVisibleViews() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            if (context.ui().hasVisibleViews()) {
+                return true;
+            }
         }
-        globalConfig.setConfigIgnored(false);
-        globalConfig.setAutoLoadEnabled(true);
-        if (options.featureProfile() != null) {
-            globalConfig.setFeatureProfile(options.featureProfile());
+        return false;
+    }
+
+    public static void fireContextReadyListeners() {
+        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
+            context.fireContextReady();
         }
     }
 
@@ -125,68 +131,11 @@ public final class MineGuiCore {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ImGuiLoader.onClientStarted());
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             fireShutdownListeners();
-            saveConfig();
+            GlobalLayoutManager.flush(true);
+            saveAll();
             StyleManager.cleanup();
         });
         lifecycleRegistered = true;
-    }
-
-    public static void loadConfig() {
-        boolean shouldLoadGlobal = false;
-        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
-            MineGuiInitializationOptions options = context.options();
-            if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
-                continue;
-            }
-            context.config().reload();
-            shouldLoadGlobal = true;
-        }
-        if (shouldLoadGlobal) {
-            ConfigRegistry.get().load();
-        }
-    }
-
-    public static void saveConfig() {
-        boolean shouldSaveGlobal = false;
-        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
-            context.persistence().flushLayouts();
-            MineGuiInitializationOptions options = context.options();
-            if (options.ignoreGlobalConfig() || !options.loadGlobalConfig()) {
-                continue;
-            }
-            context.config().save();
-            shouldSaveGlobal = true;
-        }
-        if (shouldSaveGlobal) {
-            ConfigRegistry.get().save();
-        }
-    }
-
-    public static String getConfigNamespace() {
-        return ConfigRegistry.defaultNamespace();
-    }
-
-    public static void requestReload() {
-        ImGuiLoader.requestReload();
-    }
-
-    public static boolean isInitialized() {
-        return !CONTEXTS.isEmpty();
-    }
-
-    public static boolean hasAnyVisibleViews() {
-        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
-            if (context.ui().hasVisibleViews()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static void fireContextReadyListeners() {
-        for (MineGuiRuntimeContext context : CONTEXTS.values()) {
-            context.fireContextReady();
-        }
     }
 
     private static void fireShutdownListeners() {

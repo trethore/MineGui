@@ -47,6 +47,7 @@ public final class ImGuiRenderer {
         if (!ImGuiContextManager.tryInitialize()) {
             return;
         }
+        GlobalLayoutManager.ensureLoaded();
         ensureDefaultFont();
         ImGuiContextManager.glfw().newFrame();
         CursorPolicyRegistry.onFrameStart();
@@ -59,13 +60,16 @@ public final class ImGuiRenderer {
         contexts.sort(Comparator.comparing(ctx -> ctx.options().namespace()));
 
         for (MineGuiRuntimeContext context : contexts) {
-            NamespaceConfig config = context.config().current();
+            NamespaceConfig config = context.config();
             applyGlobalScale(config);
             context.style().apply();
             context.firePreRender();
             context.ui().render();
             context.firePostRender();
         }
+
+        GlobalLayoutManager.markDirty();
+        GlobalLayoutManager.flush();
 
         ImGui.render();
         endFrame();
